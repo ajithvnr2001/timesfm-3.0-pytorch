@@ -87,10 +87,12 @@ cd timesfm-3.0-pytorch
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Install core dependencies
+# 3. Install core dependencies from requirements.txt
 pip install --upgrade pip
-pip install -q git+https://github.com/google-research/timesfm.git \
-  yfinance exa-py pypdf google-genai openai matplotlib pandas numpy scipy
+pip install -r requirements.txt
+
+# 4. Run environment pre-flight diagnostics
+python HYBRID_GUIDE/hybrid_agentic_pipeline.py --check
 ```
 
 ### Step 2: Configure API Keys

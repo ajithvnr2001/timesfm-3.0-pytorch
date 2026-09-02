@@ -8,9 +8,12 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ### 🌟 [The Comprehensive Architectural Guide: Integrating LLMs with TimesFM 3.0](HYBRID_GUIDE/) (`HYBRID_GUIDE/`)
 * **Core Architecture**: How LLM Semantic Reasoning fuses with TimesFM 3.0 Quantitative Cross-Attention.
-* **Data Ingestion Pipeline**: Numerical market feeds (`yfinance`), BSE/NSE corporate PDF/XML parsing (`pypdf`), and macro intelligence via Exa MCP Server (`exa-py`).
+* **Interactive Notebook**: [`HYBRID_GUIDE/hybrid_agentic_pipeline.ipynb`](HYBRID_GUIDE/hybrid_agentic_pipeline.ipynb) (Interactive, step-by-step multi-asset execution).
+* **Enterprise Script**: [`HYBRID_GUIDE/hybrid_agentic_pipeline.py`](HYBRID_GUIDE/hybrid_agentic_pipeline.py) (CLI with `--mode backtest|live`, `--check`, and batch GPU support).
+* **Data Ingestion Pipeline**: Numerical market feeds (`yfinance`), BSE/NSE corporate PDF/XML parsing (`pypdf`), and macro intelligence via Exa Neural Search (`exa-py`).
 * **The Zero-Leakage Protocol**: Eliminating lookahead bias in backtests (Point-In-Time timestamps, Corporate Action neutrality via Market Cap, and Entity Anonymization "Company X" protocol).
-* **Production Implementation Blueprint**: Complete Python code for end-to-end deployment.
+* **Prompt Library**: [`HYBRID_GUIDE/prompts/`](HYBRID_GUIDE/prompts/) (Extraction, Valuation, and Anonymization prompts).
+* **1-Click Setup**: Install all dependencies via [`requirements.txt`](requirements.txt).
 
 ---
 

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-hybrid_agentic_pipeline.py (Enterprise Edition)
-==============================================
+hybrid_agentic_pipeline.py (Enterprise Edition v2.0)
+===================================================
 Production-Grade End-to-End Hybrid Forecasting Engine:
-Fusing Large Language Models (Gemini / OpenAI), Exa Neural Search,
-and Google Research's TimesFM 3.0 Foundation Model.
+Fuses Large Language Models (Gemini / OpenAI / Heuristic),
+Exa Neural Search, and Google Research's TimesFM 3.0 Foundation Model.
 
-Capabilities:
+Key Features:
 - Mode 1: Historical Backtesting (Strict Point-In-Time Zero-Leakage)
 - Mode 2: Live Forward Prediction (Real-time Market Data + Live Exa News Search)
-- Scope: Single Stock OR Multi-Stock Portfolios/Baskets (Batch Vectorized Inference)
+- Scope: Single Stock OR Multi-Stock Portfolios/Baskets (Vectorized GPU Batch)
+- LLM Providers: Google Gemini (google-genai), OpenAI (openai SDK), and Offline Heuristic
 - Ingestion: Yahoo Finance OHLCV, BSE/NSE Corporate PDFs (pypdf), and Exa Neural Search (exa-py)
+- Smart Document Matching: Handles single PDF, directory of PDFs, or graceful Exa fallback
+- Diagnostics: Built-in --check flag to audit environment and API keys
 """
 
 import argparse
@@ -46,15 +49,30 @@ try:
 except ImportError:
     HAS_EXA = False
 
+# Optional OpenAI & Gemini
+try:
+    from google import genai
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
+
+try:
+    import openai
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
+
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="End-to-End Hybrid LLM + Exa + TimesFM 3.0 Pipeline")
+    parser = argparse.ArgumentParser(description="Enterprise Hybrid LLM + Exa + TimesFM 3.0 Forecasting Pipeline")
+    parser.add_argument("--check", action="store_true",
+                        help="Run environment health-check (GPU, CUDA, PyTorch, TimesFM 3.0, API keys) and exit")
     parser.add_argument("--mode", type=str, default="live", choices=["backtest", "live"],
                         help="Operating mode: 'backtest' (strict cutoff) or 'live' (real-time data)")
-    parser.add_argument("--tickers", type=str, required=True,
+    parser.add_argument("--tickers", type=str, default="MODISONLTD.NS",
                         help="Comma-separated ticker list (e.g. 'MODISONLTD.NS,CUPID.NS') or path to .txt file")
     parser.add_argument("--pdf", type=str, default=None,
-                        help="Path to corporate filing PDF (for single stock) or directory of PDFs")
+                        help="Path to corporate filing PDF (single file) OR directory containing PDFs")
     parser.add_argument("--cutoff", type=str, default=None,
                         help="Point-in-Time Cutoff Date (YYYY-MM-DD). Required if mode='backtest'")
     parser.add_argument("--horizon", type=int, default=30,
@@ -62,7 +80,7 @@ def parse_arguments():
     parser.add_argument("--api_provider", type=str, default="heuristic", choices=["gemini", "openai", "heuristic"],
                         help="LLM provider for semantic document reasoning")
     parser.add_argument("--api_key", type=str, default=None,
-                        help="API Key for Gemini or OpenAI (defaults to env vars)")
+                        help="API Key for Gemini or OpenAI (defaults to env vars GEMINI_API_KEY / OPENAI_API_KEY)")
     parser.add_argument("--exa_key", type=str, default=None,
                         help="API Key for Exa Neural Search (defaults to EXA_API_KEY env var)")
     parser.add_argument("--output_dir", type=str, default="./hybrid_output",
@@ -71,13 +89,52 @@ def parse_arguments():
 
 
 # ==============================================================================
-# 1. Multi-Modal Data Ingestion Layer (Market + Exa + PDF)
+# Diagnostics & Health-Check
+# ==============================================================================
+def run_diagnostics():
+    print("=================================================================")
+    print(" SYSTEM & ENVIRONMENT HEALTH-CHECK")
+    print("=================================================================")
+    cuda_avail = HAS_TORCH and torch.cuda.is_available()
+    gpu_name = torch.cuda.get_device_name(0) if cuda_avail else "None (CPU Mode)"
+
+    print(f"• PyTorch:               {'✓ Available' if HAS_TORCH else '✗ Missing'}")
+    print(f"• CUDA GPU Acceleration: {'✓ Available (' + gpu_name + ')' if cuda_avail else '✗ No GPU detected'}")
+    print(f"• Google TimesFM 3.0:    {'✓ Available' if HAS_TIMESFM else '✗ Missing (run pip install git+https://github.com/google-research/timesfm.git)'}")
+    print(f"• Exa Neural Search:     {'✓ Available' if HAS_EXA else '✗ Missing'}")
+    print(f"• Google GenAI SDK:      {'✓ Available' if HAS_GEMINI else '✗ Missing'}")
+    print(f"• OpenAI SDK:            {'✓ Available' if HAS_OPENAI else '✗ Missing'}")
+    print(f"• PyPDF Document Parser: {'✓ Available' if 'pypdf' in sys.modules else '✗ Missing'}")
+
+    print("\nAPI Keys Detected in Environment:")
+    print(f"• GEMINI_API_KEY:        {'✓ Set' if os.environ.get('GEMINI_API_KEY') else '✗ Not set'}")
+    print(f"• EXA_API_KEY:           {'✓ Set' if os.environ.get('EXA_API_KEY') else '✗ Not set'}")
+    print(f"• OPENAI_API_KEY:        {'✓ Set' if os.environ.get('OPENAI_API_KEY') else '✗ Not set'}")
+    print("=================================================================\n")
+
+
+# ==============================================================================
+# 1. Multi-Modal Data Ingestion Layer (Market + Exa + Smart PDF)
 # ==============================================================================
 def resolve_tickers(ticker_arg: str) -> list:
     if os.path.isfile(ticker_arg):
         with open(ticker_arg) as f:
             return [line.strip() for line in f if line.strip() and not line.startswith("#")]
     return [t.strip() for t in ticker_arg.split(",") if t.strip()]
+
+
+def resolve_pdf_for_ticker(pdf_arg: str, ticker_symbol: str) -> str:
+    """Smart PDF Resolver: Resolves specific PDF if a directory or single file is passed."""
+    if not pdf_arg or not os.path.exists(pdf_arg):
+        return ""
+    if os.path.isfile(pdf_arg):
+        return pdf_arg
+    if os.path.isdir(pdf_arg):
+        clean_name = ticker_symbol.replace(".NS", "").replace(".BO", "").lower()
+        for fname in os.listdir(pdf_arg):
+            if fname.lower().endswith(".pdf") and clean_name in fname.lower():
+                return os.path.join(pdf_arg, fname)
+    return ""
 
 
 def fetch_market_data(ticker_symbol: str, mode: str, cutoff_date: str, horizon: int):
@@ -152,17 +209,15 @@ def extract_filing_pdf(pdf_path: str, max_pages: int = 40) -> str:
 # ==============================================================================
 def synthesize_fundamental_valuation(ticker: str, filing_text: str, exa_data: dict, current_price: float,
                                      provider: str, api_key: str, horizon: int) -> dict:
-    print(f"\n[LLM Valuation Layer] Reasoning over fundamentals for {ticker}...")
+    print(f"\n[LLM Valuation Layer] Reasoning over fundamentals for {ticker} (Provider: {provider})...")
 
     # Offline / Heuristic Mode
-    if provider == "heuristic" or not api_key:
-        # Check text for financial keywords
+    if provider == "heuristic" or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
         eps_match = re.search(r"(?:Diluted EPS|EPS)[^\d]*([\d,]+\.?\d*)", filing_text, re.IGNORECASE)
         eps = float(eps_match.group(1).replace(",", "")) if eps_match else max(1.0, current_price / 16.0)
         trailing_pe = current_price / eps
-        sector_pe = 40.0  # Peer benchmark
+        sector_pe = 40.0
 
-        # Re-rating multiplier (target multiple)
         target_multiple = min(sector_pe * 0.60, max(18.0, trailing_pe * 1.5))
         fair_value_target = eps * target_multiple
 
@@ -179,11 +234,12 @@ def synthesize_fundamental_valuation(ticker: str, filing_text: str, exa_data: di
             "exa_signals": [c["title"] for c in exa_data.get("catalysts", [])]
         }
 
-    # Gemini API Integration
+    # Google Gemini API Integration
     elif provider == "gemini":
+        gemini_key = api_key or os.environ.get("GEMINI_API_KEY")
         try:
             from google import genai
-            client = genai.Client(api_key=api_key or os.environ.get("GEMINI_API_KEY"))
+            client = genai.Client(api_key=gemini_key)
             prompt = f"""You are a Principal Quantitative Equity Analyst.
 Target Company: {ticker}
 Current Market Price: {current_price}
@@ -219,6 +275,49 @@ Return ONLY a valid JSON object matching:
             print(f"  • Gemini API Error: {e}. Falling back to heuristic.")
             return synthesize_fundamental_valuation(ticker, filing_text, exa_data, current_price, "heuristic", None, horizon)
 
+    # OpenAI API Integration
+    elif provider == "openai":
+        openai_key = api_key or os.environ.get("OPENAI_API_KEY")
+        try:
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            prompt = f"""Target Company: {ticker}
+Current Market Price: {current_price}
+Forecast Horizon: {horizon} trading days.
+
+Corporate Disclosures Excerpt:
+{filing_text[:12000]}
+
+Exa News Signals:
+{json.dumps(exa_data.get('catalysts', []))}
+
+Calculate trailing EPS, trailing P/E, sector median P/E, and output an intrinsic re-rating target.
+Return ONLY a valid JSON object matching:
+{{
+  "trailing_eps": float,
+  "trailing_pe": float,
+  "sector_pe": float,
+  "fair_value_target": float,
+  "sigmoid_steepness": float,
+  "sigmoid_midpoint": float
+}}
+"""
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a quantitative valuation analyst. Return strict JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            data = json.loads(response.choices[0].message.content)
+            print(f"  • OpenAI Valuation: Target Price = Rs. {data['fair_value_target']:.2f}")
+            data["exa_signals"] = [c["title"] for c in exa_data.get("catalysts", [])]
+            return data
+        except Exception as e:
+            print(f"  • OpenAI API Error: {e}. Falling back to heuristic.")
+            return synthesize_fundamental_valuation(ticker, filing_text, exa_data, current_price, "heuristic", None, horizon)
+
 
 # ==============================================================================
 # 3. Vectorized Dynamic Covariate Construction & TimesFM 3.0 Inference
@@ -227,7 +326,6 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
     batch_size = len(batch_train_dfs)
     print(f"\n[TimesFM 3.0 Engine] Preparing Batch Inference (Batch Size: {batch_size}, Horizon: {horizon})...")
 
-    # Determine context length
     ctx_len = min(64, min(len(df) for df in batch_train_dfs))
 
     batch_contexts = []
@@ -242,7 +340,6 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
         k = val_data.get("sigmoid_steepness", 0.18)
         t0 = val_data.get("sigmoid_midpoint", horizon / 2.0)
 
-        # Context Closes
         batch_contexts.append(df["Close"].values.astype(np.float32))
 
         # Past-Only: Volume accumulation ratio
@@ -261,7 +358,6 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
             cov_path[ctx_len + h] = (projected - last_price) / 100.0
         batch_past_future.append(cov_path)
 
-    # Tensor formatting
     context_tensor = np.stack(batch_contexts, axis=0) # [B, L]
     past_only_tensor = np.expand_dims(np.stack(batch_past_only, axis=0), axis=1) # [B, 1, L]
     past_future_tensor = np.expand_dims(np.stack(batch_past_future, axis=0), axis=1) # [B, 1, L + H]
@@ -322,11 +418,9 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
         q90 = q90s[i]
         last_price = float(train_df.iloc[-1]["Close"])
 
-        # Construct future dates
         last_date = train_df.index[-1]
         future_dates = [last_date + datetime.timedelta(days=d) for d in range(1, horizon + 1)]
 
-        # Save Plot
         plt.figure(figsize=(14, 7), dpi=150)
         plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
         plt.plot(train_df.index[-40:], train_df["Close"].values[-40:], label="Historical Context", color="#1b365d", linewidth=2)
@@ -353,7 +447,6 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
         plt.savefig(plot_path)
         plt.close()
 
-        # Save JSON
         record = {
             "ticker": ticker,
             "mode": mode,
@@ -375,7 +468,6 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
         print(f"  • [{ticker}] Plot -> {plot_path}")
         print(f"  • [{ticker}] JSON -> {json_path}")
 
-    # Master Portfolio Summary
     summary_path = os.path.join(output_dir, "batch_portfolio_summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary_catalog, f, indent=2)
@@ -384,6 +476,11 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
 
 def main():
     args = parse_arguments()
+
+    if args.check:
+        run_diagnostics()
+        sys.exit(0)
+
     tickers = resolve_tickers(args.tickers)
     print(f"=================================================================")
     print(f" HYBRID LLM + EXA + TIMESFM 3.0 FORECASTING ENGINE")
@@ -394,11 +491,11 @@ def main():
     batch_test_dfs = []
     batch_valuations = []
 
-    # Ingest each ticker
     for ticker in tickers:
         train_df, test_df, last_price = fetch_market_data(ticker, args.mode, args.cutoff, args.horizon)
         exa_data = fetch_exa_intelligence(ticker, args.exa_key, args.mode, args.cutoff)
-        filing_text = extract_filing_pdf(args.pdf)
+        pdf_path = resolve_pdf_for_ticker(args.pdf, ticker)
+        filing_text = extract_filing_pdf(pdf_path)
         val_data = synthesize_fundamental_valuation(ticker, filing_text, exa_data, last_price,
                                                     args.api_provider, args.api_key, args.horizon)
 
@@ -406,10 +503,7 @@ def main():
         batch_test_dfs.append(test_df)
         batch_valuations.append(val_data)
 
-    # Vectorized Batch TimesFM 3.0 Execution
     preds, q10s, q90s = execute_hybrid_forecaster(batch_train_dfs, batch_valuations, args.horizon)
-
-    # Save output datasets and charts
     export_and_plot_results(args.output_dir, tickers, batch_train_dfs, batch_test_dfs,
                            batch_valuations, preds, q10s, q90s, args.mode, args.horizon)
 

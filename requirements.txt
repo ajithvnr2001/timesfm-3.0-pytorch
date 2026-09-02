@@ -1,0 +1,28 @@
+# ==============================================================================
+# TimesFM 3.0 & Hybrid LLM Agentic Quantitative Pipeline Dependencies
+# ==============================================================================
+
+# Core Time-Series Foundation Model from Google Research
+git+https://github.com/google-research/timesfm.git
+
+# Financial Market Data Ingestion & Math
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+
+# Corporate Document & PDF Extraction
+pypdf>=4.0.0
+
+# Neural Web & Corporate Disclosure Retrieval
+exa-py>=1.0.0
+
+# Large Language Model SDKs (Gemini & OpenAI)
+google-genai>=0.1.0
+google-generativeai>=0.8.0
+openai>=1.30.0
+
+# Interactive Analysis & Notebooks
+nbformat>=5.9.0
+ipykernel>=6.25.0
