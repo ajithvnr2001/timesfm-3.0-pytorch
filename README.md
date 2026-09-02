@@ -74,7 +74,13 @@ timesfm-3.0-pytorch/
 ├── README.md
 ├── .gitignore
 ├── HYBRID_GUIDE/                           # Comprehensive Architectural & Best Practices Guide
-│   └── README.md                           # In-depth guide on LLM+TimesFM integration & leak-free backtesting
+│   ├── README.md                           # Master architectural & mathematical guide
+│   ├── ZERO_LEAKAGE_GUIDE.md               # 🌟 The Definitive Zero-Leakage Backtesting Guide
+│   ├── AGENT_HARNESS_INTEGRATION.md        # Non-API Guide (Antigravity, Claude Code, Codex)
+│   ├── COLAB_GPU_GUIDE.md                  # Google Colab Cloud GPU Guide
+│   ├── run_colab_gpu.sh                    # 1-Click Automated Cloud GPU Runner
+│   ├── hybrid_agentic_pipeline.py          # Production Pipeline Script (v3.0 Strict Zero-Leakage)
+│   └── hybrid_agentic_pipeline.ipynb       # Interactive Jupyter Notebook
 ├── HEROMOTOCO/                             # Multi-Year Large-Cap Benchmark (2024 to Sep 2026, 663 Days)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_heromotoco_analysis.ipynb  # Executed Jupyter Notebook

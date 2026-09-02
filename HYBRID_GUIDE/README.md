@@ -29,6 +29,9 @@ When fused together:
 2. **The LLM (Gemini / OpenAI)** reads the unstructured text, evaluates trailing P/E multiples against sector benchmarks, and establishes a **Fundamental Valuation Attractor**.
 3. **TimesFM 3.0** consumes the numerical price series and LLM-generated dynamic covariates through its **cross-attention transformer layers**, generating precision price paths, support/resistance bands, and calibrated $P_{10} - P_{90}$ confidence intervals.
 
+> [!IMPORTANT]
+> **Zero-Leakage Institutional Backtesting**: For an in-depth breakdown of how the pipeline eliminates LLM hindsight bias, blindfolds company names, and enforces 3-branch scenario trees, read the dedicated [Zero-Leakage Backtesting Guide](ZERO_LEAKAGE_GUIDE.md).
+
 ---
 
 ## 2. Complete End-to-End System Architecture
