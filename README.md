@@ -4,6 +4,16 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ---
 
+## 📖 Architectural Guides
+
+### 🌟 [The Comprehensive Architectural Guide: Integrating LLMs with TimesFM 3.0](HYBRID_GUIDE/) (`HYBRID_GUIDE/`)
+* **Core Architecture**: How LLM Semantic Reasoning fuses with TimesFM 3.0 Quantitative Cross-Attention.
+* **Data Ingestion Pipeline**: Numerical market feeds (`yfinance`), BSE/NSE corporate PDF/XML parsing (`pypdf`), and macro intelligence via Exa MCP Server (`exa-py`).
+* **The Zero-Leakage Protocol**: Eliminating lookahead bias in backtests (Point-In-Time timestamps, Corporate Action neutrality via Market Cap, and Entity Anonymization "Company X" protocol).
+* **Production Implementation Blueprint**: Complete Python code for end-to-end deployment.
+
+---
+
 ## Studies & Breakthrough Benchmarks
 
 ### 1. [Multi-Year Foundation Model Benchmark: CUPID LIMITED](CUPID/) (`CUPID/`)
@@ -50,6 +60,8 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 timesfm-3.0-pytorch/
 ├── README.md
 ├── .gitignore
+├── HYBRID_GUIDE/                           # Comprehensive Architectural & Best Practices Guide
+│   └── README.md                           # In-depth guide on LLM+TimesFM integration & leak-free backtesting
 ├── CUPID/                                  # Multi-Year Benchmark (2024 to Sep 2026, 664 Days)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_cupid_analysis.ipynb       # Executed Jupyter Notebook
