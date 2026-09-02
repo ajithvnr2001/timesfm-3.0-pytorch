@@ -21,7 +21,16 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [Multi-Year Large-Cap Benchmark: HEROMOTOCO](HEROMOTOCO/) (`HEROMOTOCO/`)
+### 1. [5-Year Monthly Large-Cap Benchmark: INFOSYS](INFOSYS_MONTHLY/) (`INFOSYS_MONTHLY/`)
+* **Asset**: Infosys Limited (`INFY.NS`).
+* **Cutoff Date**: December 31, 2020 (Strict Zero Lookahead).
+* **Horizon**: **60 monthly bars (5 full years, 2021 to 2025)**.
+* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+* **Key Findings**:
+  * **Traditional Zero-Leakage (Pure TimesFM 3.0)**: Suffered severe multi-year autoregressive mean decay, drifting to **₹708.16** (**-55.2% error**, MAPE: **35.49%**).
+  * **Latest Agent Zero-Leakage Triad**: Base Case scenario projected **₹1,504.84** vs actual **₹1,581.18** (**error only -4.8%**!). The Bear-to-Bull scenario envelope covered **96.7% of all 60 months (58/60 months)**, achieving a **73.1% error reduction**.
+
+### 2. [Multi-Year Large-Cap Benchmark: HEROMOTOCO](HEROMOTOCO/) (`HEROMOTOCO/`)
 * **Asset**: Hero MotoCorp Limited (`HEROMOTOCO.NS`).
 * **Cutoff Date**: December 31, 2023 (Strict Zero Lookahead).
 * **Horizon**: **663 trading days (2.7 years)** from January 2024 to September 2026.
@@ -87,6 +96,12 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── INFOSYS_MONTHLY/                        # 🌟 5-Year Monthly Benchmark (2021 to 2025, 60 Months)
+│   ├── README.md                           # Comprehensive evaluation report
+│   ├── timesfm3_infosys_monthly_analysis.ipynb # Executed Jupyter Notebook
+│   ├── timesfm_infosys_monthly_experiment.py # Standalone GPU execution script
+│   ├── timesfm3_infosys_monthly_forecast.png # High-resolution 60-month benchmark chart
+│   └── infosys_monthly_results.json        # Raw monthly predictions and error metrics
 ├── HEROMOTOCO/                             # Multi-Year Large-Cap Benchmark (2024 to Sep 2026, 663 Days)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_heromotoco_analysis.ipynb  # Executed Jupyter Notebook
