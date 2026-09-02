@@ -13,6 +13,7 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 * **Data Ingestion Pipeline**: Numerical market feeds (`yfinance`), BSE/NSE corporate PDF/XML parsing (`pypdf`), and macro intelligence via Exa Neural Search (`exa-py`).
 * **The Zero-Leakage Protocol**: Eliminating lookahead bias in backtests (Point-In-Time timestamps, Corporate Action neutrality via Market Cap, and Entity Anonymization "Company X" protocol).
 * **Prompt Library**: [`HYBRID_GUIDE/prompts/`](HYBRID_GUIDE/prompts/) (Extraction, Valuation, and Anonymization prompts).
+* **Agent Harness (Non-API) Guide**: [`HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md`](HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md) (Use Antigravity, Claude Code, Codex, or OpenCode with zero external API keys).
 * **1-Click Setup**: Install all dependencies via [`requirements.txt`](requirements.txt).
 
 ---

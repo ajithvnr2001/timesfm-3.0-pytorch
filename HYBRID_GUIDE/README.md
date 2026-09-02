@@ -260,6 +260,20 @@ python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
 
 ---
 
+### Recipe 5: Agent Harness (Non-API) Mode
+*Using Google Antigravity, Claude Code, OpenAI Codex, or OpenCode to do the reasoning with zero external API keys in Python:*
+```bash
+python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
+  --mode live \
+  --tickers MODISONLTD.NS \
+  --scenario harness_scenario.json \
+  --horizon 23 \
+  --output_dir ./output_harness_live
+```
+👉 *See the dedicated [Agent Harness Integration Guide](AGENT_HARNESS_INTEGRATION.md) for full setup and prompt templates for Antigravity, Claude Code, Codex, and OpenCode.*
+
+---
+
 ## 9. Output Directory Structure
 
 Each run produces a complete quantitative audit package:
