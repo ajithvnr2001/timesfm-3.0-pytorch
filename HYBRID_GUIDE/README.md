@@ -315,7 +315,63 @@ class HybridLLMTimesFMPipeline:
 
 ---
 
-## 7. Live Forward Trading vs. Historical Backtesting
+## 7. The Prompt Library & End-to-End CLI Pipeline
+
+All prompt templates, system instructions, and JSON schemas are version-controlled in the [`prompts/`](prompts/) directory:
+
+1. **[Corporate Filing & Financial Extractor Prompt](prompts/document_extraction_prompt.md)**:
+   - System instructions to parse 250-page PDF annual reports and quarterly results into structured JSON.
+   - Extracts Audited Net Revenue, EBITDA margin, PAT, Diluted EPS, and Section 180(1)(c) borrowing limit resolutions.
+2. **[Fundamental Valuation & TimesFM Covariate Synthesizer Prompt](prompts/valuation_reasoner_prompt.md)**:
+   - System instructions to calculate trailing P/E, benchmark against sector multiples, and generate 3 probabilistic scenarios (Bull, Base, Bear).
+   - Generates exact S-curve discovery parameters ($k, t_0, V_{\text{target}}$) for TimesFM dynamic covariates.
+3. **[Zero-Leakage Entity Anonymizer Prompt](prompts/entity_anonymization_prompt.md)**:
+   - System instructions to strip company names, promoter identities, and calendar dates to eliminate LLM pre-training memory leakage during historical backtests.
+
+---
+
+### End-to-End CLI Execution with `hybrid_agentic_pipeline.py`
+
+Anyone who clones this repository can execute the entire pipeline with a single command:
+
+#### Option A: Running with Google Gemini API
+```bash
+export GEMINI_API_KEY="your-gemini-api-key"
+
+python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
+  --ticker MODISONLTD.NS \
+  --pdf MODISONANALYSIS/filings/fade292d_annual_report_2026.pdf \
+  --cutoff 2026-08-01 \
+  --horizon 23 \
+  --api_provider gemini \
+  --api_key $GEMINI_API_KEY \
+  --output_dir ./modison_forecast
+```
+
+#### Option B: Running with Zero-API Offline Fallback (Heuristic Parser)
+```bash
+python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
+  --ticker MODISONLTD.NS \
+  --pdf MODISONANALYSIS/filings/fade292d_annual_report_2026.pdf \
+  --cutoff 2026-08-01 \
+  --horizon 23 \
+  --api_provider heuristic \
+  --output_dir ./modison_forecast
+```
+
+#### Option C: Multi-Year Run on Cupid Limited (Strict Pre-2024 Cutoff)
+```bash
+python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
+  --ticker CUPID.NS \
+  --cutoff 2023-12-31 \
+  --horizon 64 \
+  --api_provider heuristic \
+  --output_dir ./cupid_forecast
+```
+
+---
+
+## 8. Live Forward Trading vs. Historical Backtesting
 
 | Operational Aspect | Historical Backtesting Protocol | Live Forward Trading Protocol |
 | :--- | :--- | :--- |
@@ -327,9 +383,10 @@ class HybridLLMTimesFMPipeline:
 
 ---
 
-## 8. Summary: Best Practices for Production Deployment
+## 9. Summary: Best Practices for Production Deployment
 
 1. **Never use pure numerical models alone for individual smallcaps**: Pure foundation models assume statistical stationarity; smallcaps move on discrete corporate announcements.
 2. **Never use pure LLMs alone for quantitative pricing**: LLMs are semantic reasoners, not differential equation solvers; they hallucinate exact decimal prices and lack volatility bands.
 3. **Use LLMs to set the attractor, TimesFM 3.0 to model the path**: The LLM determines *where* the company should be valued based on earnings; TimesFM 3.0 determines *how* the market gets there given volatility, momentum, and mean-reversion.
 4. **Enforce Point-In-Time discipline**: The difference between an amateur backtest and an institutional quantitative strategy is strict elimination of lookahead bias.
+
