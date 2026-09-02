@@ -274,6 +274,23 @@ python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
 
 ---
 
+### Recipe 6: 1-Click Cloud GPU Execution (Google Colab CLI)
+*If you lack a high-end local GPU, spin up an on-demand Tesla T4 GPU in Google Colab, execute inference, download charts, and auto-terminate:*
+```bash
+# Authenticate Colab CLI with Application Default Credentials
+gcloud auth application-default login
+
+# Execute multi-asset forecast on Colab Tesla T4 GPU:
+./HYBRID_GUIDE/run_colab_gpu.sh \
+  --tickers MODISONLTD.NS,CUPID.NS \
+  --mode live \
+  --gpu T4 \
+  --horizon 14
+```
+👉 *See the dedicated [Google Colab Cloud GPU Guide](COLAB_GPU_GUIDE.md) for session lifecycle management, authentication modes (`--auth=adc` vs `--auth=oauth2`), and GPU tiers (T4, L4, A100).*
+
+---
+
 ## 9. Output Directory Structure
 
 Each run produces a complete quantitative audit package:

@@ -14,6 +14,7 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 * **The Zero-Leakage Protocol**: Eliminating lookahead bias in backtests (Point-In-Time timestamps, Corporate Action neutrality via Market Cap, and Entity Anonymization "Company X" protocol).
 * **Prompt Library**: [`HYBRID_GUIDE/prompts/`](HYBRID_GUIDE/prompts/) (Extraction, Valuation, and Anonymization prompts).
 * **Agent Harness (Non-API) Guide**: [`HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md`](HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md) (Use Antigravity, Claude Code, Codex, or OpenCode with zero external API keys).
+* **Cloud GPU Guide (Colab CLI)**: [`HYBRID_GUIDE/COLAB_GPU_GUIDE.md`](HYBRID_GUIDE/COLAB_GPU_GUIDE.md) & [`run_colab_gpu.sh`](HYBRID_GUIDE/run_colab_gpu.sh) (On-demand T4/A100 cloud GPU execution and automated VM teardown).
 * **1-Click Setup**: Install all dependencies via [`requirements.txt`](requirements.txt).
 
 ---
