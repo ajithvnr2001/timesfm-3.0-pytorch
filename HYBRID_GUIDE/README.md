@@ -116,12 +116,11 @@ export OPENAI_API_KEY="your-openai-api-key"
 The pipeline supports two distinct modes configured via the `--mode` CLI flag:
 
 ### Mode 1: Historical Backtesting (`--mode backtest`)
-* **Strict Temporal Cutoff**: Slices all numerical and textual data at `--cutoff YYYY-MM-DD`. Anything published after 23:59:59 on the cutoff date is blocked.
-* **The 4 Anti-Leakage Golden Rules**:
-  1. **Point-In-Time (PIT) Timestamps**: Filings are keyed by *exchange dissemination date*, NOT *fiscal period end date* (e.g. Q1 ending June 30 is only published on August 13; querying June 30 data on July 1 is a fatal leak).
-  2. **Corporate Action Neutrality**: To prevent future stock split/bonus leakage (as uncovered in Cupid), backtests should evaluate in **Unadjusted Market Capitalization** ($\text{Price} \times \text{Current Shares}$).
-  3. **Entity Anonymization Protocol**: Masking the company name as `[Company_Alpha]` prevents the LLM from tapping into its pre-training memory of future winners.
-  4. **Multi-Scenario Probabilistic Trees**: The LLM outputs Bull (25%), Base (50%), and Bear (25%) scenarios rather than a single hand-tuned S-curve.
+Whenever `--mode backtest` is passed, `hybrid_agentic_pipeline.py` **automatically enforces strict zero-leakage at the code level**:
+* **Automated Blind-Box Entity Masking**: All ticker symbols, company names, and promoter references are automatically sanitized to `[Target_Company_Alpha]` before text reaches Gemini, OpenAI, or the heuristic parser.
+* **Automated Relative Year Masking**: Calendar years are converted to relative markers (`[Year_T]`, `[Year_T-1]`, `[Year_T-2]`) so the LLM cannot infer future dates.
+* **Automated 3-Branch Scenario Tree**: The LLM is forced to output discrete Bear (25%), Base (50%), and Bull (25%) scenarios. The pipeline computes the probabilistic weighted path and calculates the **Scenario Envelope Coverage (%)** across actual historical prices.
+* **Strict Point-In-Time Cutoff**: Slices all numerical and textual data at `--cutoff YYYY-MM-DD`. Anything published after the cutoff date is completely blocked.
 
 ### Mode 2: Live Forward Prediction (`--mode live`)
 * **Real-Time Data Ingestion**: Pulls live market prices up to the current minute.
