@@ -1,50 +1,52 @@
 # TimesFM 3.0 Research & Benchmarking
 
-Repository for research, benchmarking, and real-world evaluation of Google Research's **TimesFM 3.0** (`google/timesfm-3.0-pytorch`) time-series foundation model.
+Comprehensive research, benchmarking, and real-world evaluation of Google Research's **TimesFM 3.0** (`google/timesfm-3.0-pytorch`) time-series foundation model across equities, macro indices, and corporate event regimes.
 
 ---
 
-## Featured Study: MODISONLTD (NSE) Zero-Shot Forecasting Evaluation
+## Studies & Experiments
 
-Located in the [`MODISONANALYSIS/`](MODISONANALYSIS/) directory:
-
-* **Objective**: Evaluate TimesFM 3.0's zero-shot forecasting capabilities on Indian equities (**Modison Limited**, `MODISONLTD.NS` / BSE: `506261`).
-* **Cutoff Constraint**: Historical context data strictly up to **August 1, 2026** (Closing price: ₹268.40 on July 31, 2026).
-* **Target Horizon**: 23 trading days spanning **August 3, 2026 through September 2, 2026**.
+### 1. [NIFTY 50 Macro Forecasting Study](NIFTY/) (`NIFTY/`)
+* **Asset**: India's benchmark **NIFTY 50 Index (`^NSEI`)**.
+* **Cutoff Date**: December 31, 2025 (Closing level: 26,129.60).
+* **Horizon**: **164 trading days** (January 1, 2026 – September 2, 2026).
 * **Key Findings**:
-  * **Pre-Earnings Period (Aug 3 – Aug 13)**: The model demonstrated high baseline zero-shot accuracy with a **7.27% MAPE** (< 5.5% MAPE in the first week) and 100% of actual prices staying within the 80% confidence interval ($P_{10} - P_{90}$).
-  * **The Fundamental Catalyst (Aug 13)**: Modison Ltd released blowout Q1 FY27 earnings (Revenue up +101.6% YoY to ₹270.47 Cr, PAT up +604.9% YoY to ₹33.84 Cr), catalyzing a +94% rally to ₹520.65.
-  * **ML Boundary Analysis**: Illustrates the empirical boundary between statistical autoregressive foundation modeling and exogenous fundamental corporate announcements.
+  * **Overall 8-Month MAPE**: **5.82%** (MAE: 1,388 index points).
+  * **Q1 2026 MAPE**: **3.96%**.
+  * **80% CI Coverage**: **83.5%** of trading sessions stayed within the model's predicted $[P_{10}, P_{90}]$ distribution envelope.
+  * Demonstrates that foundation models excel at broad macroeconomic indices characterized by continuous liquidity and bounded volatility.
+
+### 2. [MODISONLTD Microcap Study](MODISONANALYSIS/) (`MODISONANALYSIS/`)
+* **Asset**: Modison Limited (`MODISONLTD.NS` / BSE: `506261`).
+* **Cutoff Date**: August 1, 2026 (Closing price: ₹268.40 on July 31, 2026).
+* **Horizon**: 23 trading days (August 3, 2026 – September 2, 2026).
+* **Key Findings**:
+  * Pre-earnings MAPE was **7.27%** (< 5% in week 1).
+  * On August 13, 2026, Modison released blowout Q1 FY27 results (Revenue +102%, PAT +605%), sparking a +94% rally to ₹520.65.
+  * Illustrates the empirical boundary between statistical autoregressive foundation modeling and exogenous fundamental corporate announcements.
 
 ---
 
-## Repository Contents
+## Repository Structure
 
 ```
 timesfm-3.0-pytorch/
 ├── README.md
-└── MODISONANALYSIS/
+├── .gitignore
+├── NIFTY/                                  # NIFTY 50 8-Month Macro Benchmark
+│   ├── README.md                           # Detailed evaluation report
+│   ├── timesfm3_nifty_analysis.ipynb       # Interactive, executed Jupyter Notebook
+│   ├── timesfm_nifty_experiment.py         # Standalone GPU execution script
+│   ├── timesfm3_nifty_forecast_vs_actual.png # High-resolution benchmark chart
+│   └── nifty_results.json                  # Complete point forecasts, quantiles, and metrics
+└── MODISONANALYSIS/                        # MODISONLTD Corporate Event Benchmark
     ├── README.md                           # Comprehensive evaluation report
-    ├── timesfm3_modison_analysis.ipynb     # Interactive, fully executed Jupyter Notebook
+    ├── timesfm3_modison_analysis.ipynb     # Interactive, executed Jupyter Notebook
     ├── timesfm_modison_experiment.py       # Standalone GPU execution script
-    ├── timesfm3_forecast_vs_actual.png     # High-resolution benchmark visualization
-    ├── timesfm_results.json                # Complete point forecasts, quantiles, and metrics
-    └── filings/
-        ├── a83fbfdb_q1_results_2026.pdf    # BSE Filing: Q1 FY27 Unaudited Financial Results
-        └── fade292d_annual_report_2026.pdf # BSE Filing: Annual Report FY25-26
-```
-
-### Getting Started
-
-To run the interactive analysis:
-```bash
-cd MODISONANALYSIS
-jupyter notebook timesfm3_modison_analysis.ipynb
-```
-
-Or run the GPU inference script directly:
-```bash
-python MODISONANALYSIS/timesfm_modison_experiment.py
+    ├── timesfm3_exa_experiment.py          # Script with Exa event covariates
+    ├── timesfm3_forecast_vs_actual.png     # High-resolution benchmark chart
+    ├── timesfm_results.json                # JSON dataset of forecasts and metrics
+    └── filings/                            # Official BSE PDF filings
 ```
 
 ---
@@ -52,4 +54,4 @@ python MODISONANALYSIS/timesfm_modison_experiment.py
 ## Citations & References
 * **TimesFM 3.0**: Google Research ([`google/timesfm-3.0-pytorch`](https://huggingface.co/google/timesfm-3.0-pytorch))
 * **TimesFM GitHub**: [google-research/timesfm](https://github.com/google-research/timesfm)
-* **Google Research Blog**: [TimesFM 3: A Zero-Shot Foundation Model for Multivariate Forecasting](https://research.google/blog/timesfm-3-a-zero-shot-foundation-model-for-multivariate-forecasting/)
+* **Exa MCP Server**: [exa-labs/exa-mcp-server](https://github.com/exa-labs/exa-mcp-server)
