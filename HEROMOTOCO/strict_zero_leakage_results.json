@@ -1,0 +1,32 @@
+{
+  "ticker": "HEROMOTOCO.NS",
+  "cutoff_date": "2023-12-31",
+  "horizon_days": 663,
+  "protocol": "Strict Zero-Leakage: Blind-Box Entity Anonymization + 3-Branch Scenario Tree",
+  "actual_terminal_price": 5555.0,
+  "pure_baseline": {
+    "terminal_price": 14441.9833984375,
+    "mape": 92.86622411548365,
+    "mae": 4380.344085831448
+  },
+  "weighted_model": {
+    "terminal_price": 4235.530944824219,
+    "mape": 15.199537930439048,
+    "mae": 763.2834327202936
+  },
+  "scenarios": {
+    "bear": {
+      "target": 2560.0,
+      "terminal_forecast": 2678.593994140625
+    },
+    "base": {
+      "target": 4400.0,
+      "terminal_forecast": 4333.24267578125
+    },
+    "bull": {
+      "target": 5805.0,
+      "terminal_forecast": 5597.04443359375
+    }
+  },
+  "envelope_coverage_pct": 82.50377073906485
+}
