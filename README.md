@@ -81,6 +81,12 @@ timesfm-3.0-pytorch/
 │   ├── run_colab_gpu.sh                    # 1-Click Automated Cloud GPU Runner
 │   ├── hybrid_agentic_pipeline.py          # Production Pipeline Script (v3.0 Strict Zero-Leakage)
 │   └── hybrid_agentic_pipeline.ipynb       # Interactive Jupyter Notebook
+├── MULTI_AGENT_SANDBOX/                    # 🌟 Air-Gapped Multi-Agent Triad (Zero-Leakage Guaranteed)
+│   ├── README.md                           # Multi-agent architecture & A2A protocol specification
+│   ├── multi_agent_system.py               # Complete 3-Agent Triad (Main -> Process -> Output)
+│   ├── test_multi_agent_flow.py            # End-to-end verification test script
+│   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
+│   └── test_run_output/                    # Verified test run charts & executive reports
 ├── HEROMOTOCO/                             # Multi-Year Large-Cap Benchmark (2024 to Sep 2026, 663 Days)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_heromotoco_analysis.ipynb  # Executed Jupyter Notebook
