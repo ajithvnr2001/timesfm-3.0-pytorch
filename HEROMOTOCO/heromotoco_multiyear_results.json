@@ -1,0 +1,21 @@
+{
+  "ticker": "HEROMOTOCO.NS",
+  "cutoff_date": "2023-12-31",
+  "horizon_days": 663,
+  "last_price_at_cutoff": 3735.570068359375,
+  "actual_terminal_price": 5555.0,
+  "pure_baseline": {
+    "terminal_price": 14442.6806640625,
+    "terminal_error_pct": 159.99425137826282,
+    "mae": 4380.348836447139,
+    "mape": 92.86604009792877
+  },
+  "hybrid_model": {
+    "target_fair_value": 5670.0,
+    "terminal_price": 5475.61962890625,
+    "terminal_error_pct": -1.4289895786453646,
+    "mae": 507.3667220493967,
+    "mape": 11.439818696778472
+  },
+  "error_reduction_pct": 88.41720737335346
+}

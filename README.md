@@ -21,7 +21,15 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [Multi-Year Foundation Model Benchmark: CUPID LIMITED](CUPID/) (`CUPID/`)
+### 1. [Multi-Year Large-Cap Benchmark: HEROMOTOCO](HEROMOTOCO/) (`HEROMOTOCO/`)
+* **Asset**: Hero MotoCorp Limited (`HEROMOTOCO.NS`).
+* **Cutoff Date**: December 31, 2023 (Strict Zero Lookahead).
+* **Horizon**: **663 trading days (2.7 years)** from January 2024 to September 2026.
+* **Key Findings**:
+  * **TimesFM 3.0 Pure Baseline**: Suffered severe runaway trend extrapolation, exploding to **₹14,442.68** (**+160.0% error**, MAPE: **92.87%**).
+  * **Hybrid Agent Harness Model**: Conditioned on 2023 Harley-Davidson partnership, premiumization, and peer valuation re-rating, accurately tracked the cycle to **₹5,475.62** vs actual **₹5,555.00** (**error only -1.4%**, **88.4% error reduction**!).
+
+### 2. [Multi-Year Foundation Model Benchmark: CUPID LIMITED](CUPID/) (`CUPID/`)
 * **Asset**: Cupid Limited (`CUPID.NS`).
 * **Cutoff Date**: December 31, 2023 (Zero Lookahead).
 * **Horizon**: **664 trading days (2.7 years)** across 2024, 2025, and 2026.
@@ -67,6 +75,12 @@ timesfm-3.0-pytorch/
 ├── .gitignore
 ├── HYBRID_GUIDE/                           # Comprehensive Architectural & Best Practices Guide
 │   └── README.md                           # In-depth guide on LLM+TimesFM integration & leak-free backtesting
+├── HEROMOTOCO/                             # Multi-Year Large-Cap Benchmark (2024 to Sep 2026, 663 Days)
+│   ├── README.md                           # Comprehensive evaluation report
+│   ├── timesfm3_heromotoco_analysis.ipynb  # Executed Jupyter Notebook
+│   ├── timesfm_heromotoco_experiment.py    # Standalone GPU execution script
+│   ├── timesfm3_heromotoco_multiyear_forecast.png # High-resolution benchmark chart
+│   └── heromotoco_multiyear_results.json   # Raw predictions and metrics
 ├── CUPID/                                  # Multi-Year Benchmark (2024 to Sep 2026, 664 Days)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_cupid_analysis.ipynb       # Executed Jupyter Notebook
