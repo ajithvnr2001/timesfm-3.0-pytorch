@@ -1,22 +1,30 @@
 # TimesFM 3.0 Research & Benchmarking
 
-Comprehensive research, benchmarking, and real-world evaluation of Google Research's **TimesFM 3.0** (`google/timesfm-3.0-pytorch`) time-series foundation model across equities, macro indices, and corporate event regimes.
+Comprehensive research, benchmarking, and real-world evaluation of Google Research's **TimesFM 3.0** (`google/timesfm-3.0-pytorch`) time-series foundation model across equities, macro indices, and options derivatives.
 
 ---
 
 ## Studies & Experiments
 
-### 1. [NIFTY 50 Macro Forecasting Study](NIFTY/) (`NIFTY/`)
+### 1. [NIFTY Options & Volatility Study](OPTIONS/) (`OPTIONS/`)
+* **Instruments**: Continuous 30-Day Constant Maturity **ATM Calls**, **ATM Puts**, **Straddles**, and **India VIX (`^INDIAVIX`)**.
+* **Cutoff Date**: January 31, 2026.
+* **Horizon**: **145 trading days** (February 2, 2026 – September 2, 2026).
+* **Key Findings**:
+  * **ATM Call Option MAPE**: **14.97%** (and **14.21%** in multivariate mode).
+  * **80% CI Coverage**: **79.3%** for Calls, **74.5%** for Puts, **77.2%** for Straddles.
+  * Successfully captured baseline option decay and volatility channels across a 7-month forward window.
+
+### 2. [NIFTY 50 Macro Index Study](NIFTY/) (`NIFTY/`)
 * **Asset**: India's benchmark **NIFTY 50 Index (`^NSEI`)**.
 * **Cutoff Date**: December 31, 2025 (Closing level: 26,129.60).
 * **Horizon**: **164 trading days** (January 1, 2026 – September 2, 2026).
 * **Key Findings**:
   * **Overall 8-Month MAPE**: **5.82%** (MAE: 1,388 index points).
   * **Q1 2026 MAPE**: **3.96%**.
-  * **80% CI Coverage**: **83.5%** of trading sessions stayed within the model's predicted $[P_{10}, P_{90}]$ distribution envelope.
-  * Demonstrates that foundation models excel at broad macroeconomic indices characterized by continuous liquidity and bounded volatility.
+  * **80% CI Coverage**: **83.5%** of trading sessions stayed within the predicted $[P_{10}, P_{90}]$ distribution cone.
 
-### 2. [MODISONLTD Microcap Study](MODISONANALYSIS/) (`MODISONANALYSIS/`)
+### 3. [MODISONLTD Microcap Corporate Study](MODISONANALYSIS/) (`MODISONANALYSIS/`)
 * **Asset**: Modison Limited (`MODISONLTD.NS` / BSE: `506261`).
 * **Cutoff Date**: August 1, 2026 (Closing price: ₹268.40 on July 31, 2026).
 * **Horizon**: 23 trading days (August 3, 2026 – September 2, 2026).
@@ -33,6 +41,12 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 timesfm-3.0-pytorch/
 ├── README.md
 ├── .gitignore
+├── OPTIONS/                                # NIFTY Options & Volatility Benchmark
+│   ├── README.md                           # Detailed evaluation report
+│   ├── timesfm3_options_analysis.ipynb     # Interactive, executed Jupyter Notebook
+│   ├── timesfm_options_experiment.py       # Standalone GPU execution script
+│   ├── timesfm3_options_forecast_vs_actual.png # 4-panel high-resolution benchmark chart
+│   └── options_results.json                # Complete point forecasts, quantiles, and metrics
 ├── NIFTY/                                  # NIFTY 50 8-Month Macro Benchmark
 │   ├── README.md                           # Detailed evaluation report
 │   ├── timesfm3_nifty_analysis.ipynb       # Interactive, executed Jupyter Notebook
