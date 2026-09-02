@@ -1,0 +1,20 @@
+{
+  "MODISONLTD.NS": {
+    "trailing_eps": 22.35,
+    "trailing_pe": 22.35,
+    "sector_pe": 40.0,
+    "fair_value_target": 491.70,
+    "sigmoid_steepness": 0.20,
+    "sigmoid_midpoint": 11.5,
+    "catalyst_summary": "FY26 PAT surged 194% YoY to Rs. 72.55 Cr. AGM approved borrowing limit increase to Rs. 500 Cr for capacity expansion."
+  },
+  "CUPID.NS": {
+    "trailing_eps": 6.80,
+    "trailing_pe": 40.4,
+    "sector_pe": 45.0,
+    "fair_value_target": 305.00,
+    "sigmoid_steepness": 0.18,
+    "sigmoid_midpoint": 15.0,
+    "catalyst_summary": "Halwasiya takeover, strategic transition from OEM to direct-to-consumer FMCG brand."
+  }
+}

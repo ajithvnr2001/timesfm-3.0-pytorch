@@ -433,10 +433,19 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
             actuals = test_df["Close"].values[:len(pred)]
             actual_dates = test_df.index[:len(pred)]
             plt.plot(actual_dates, actuals, label="Actual Ground Truth Prices", color="#107c41", linewidth=2.5, marker="o", markersize=3)
-            mae = float(np.mean(np.abs(pred[:len(actuals)] - actuals)))
-            mape = float(np.mean(np.abs((actuals - pred[:len(actuals)]) / actuals)) * 100)
-            metric_str = f"MAE: Rs. {mae:.2f} | MAPE: {mape:.2f}%"
+            
+            valid_mask = ~np.isnan(actuals) & ~np.isnan(pred[:len(actuals)])
+            if valid_mask.any():
+                clean_act = actuals[valid_mask]
+                clean_pr = pred[:len(actuals)][valid_mask]
+                mae = float(np.mean(np.abs(clean_pr - clean_act)))
+                mape = float(np.mean(np.abs((clean_act - clean_pr) / clean_act)) * 100)
+                metric_str = f"MAE: Rs. {mae:.2f} | MAPE: {mape:.2f}%"
+            else:
+                mae, mape = 0.0, 0.0
+                metric_str = "Backtest (No valid ground truth ticks)"
         else:
+            mae, mape = None, None
             metric_str = "Live Forward Prediction"
 
         plt.title(f"{ticker} — Hybrid LLM + Exa + TimesFM 3.0 Forecast ({mode.upper()} Mode)\n{metric_str}", fontsize=12, fontweight="bold")
