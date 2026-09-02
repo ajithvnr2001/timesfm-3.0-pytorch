@@ -1,6 +1,9 @@
 # Zero-Leakage Multi-Agent Sandboxing Architecture
 ### True Air-Gapped Information Barriers for Financial Foundation Models (TimesFM 3.0)
 
+> [!IMPORTANT]
+> **Complete End-to-End Master Guide**: For the comprehensive architectural breakdown, mathematical proofs, A2A wire protocol walkthrough, and real-world benchmark analyses, read the [Master Multi-Agent Guide](MASTER_MULTI_AGENT_GUIDE.md).
+
 ---
 
 ## 1. Executive Summary: The True 100% Reliable Solution

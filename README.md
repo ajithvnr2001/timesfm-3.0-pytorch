@@ -92,6 +92,7 @@ timesfm-3.0-pytorch/
 │   └── hybrid_agentic_pipeline.ipynb       # Interactive Jupyter Notebook
 ├── MULTI_AGENT_SANDBOX/                    # 🌟 Air-Gapped Multi-Agent Triad (Zero-Leakage Guaranteed)
 │   ├── README.md                           # Multi-agent architecture & A2A protocol specification
+│   ├── MASTER_MULTI_AGENT_GUIDE.md         # 🌟 Definitive End-to-End Multi-Agent Guide
 │   ├── multi_agent_system.py               # Complete 3-Agent Triad (Main -> Process -> Output)
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
