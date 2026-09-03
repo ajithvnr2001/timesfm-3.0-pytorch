@@ -2,7 +2,10 @@
 ### True Air-Gapped Information Barriers for Financial Foundation Models (TimesFM 3.0)
 
 > [!IMPORTANT]
-> **Complete End-to-End Master Guide**: For the comprehensive architectural breakdown, mathematical proofs, A2A wire protocol walkthrough, and real-world benchmark analyses, read the [Master Multi-Agent Guide](MASTER_MULTI_AGENT_GUIDE.md).
+> **Complete Guides & LLM Instructions**:
+> * 🌟 **[Master Multi-Agent Architectural Guide](MASTER_MULTI_AGENT_GUIDE.md)**: Mathematical proofs, A2A wire protocol, and real-world benchmark analyses.
+> * 🌟 **[Qualitative Intelligence & Macroeconomic Integration Guide](QUALITATIVE_DATA_AND_MACRO_GUIDE.md)**: How earnings concalls, Fed interest rates, and India macro trends are fetched, evaluated by the LLM, and translated into foundation model math.
+> * 🌟 **[Master LLM Autonomous Instructions](LLM_AGENT_INSTRUCTIONS.md)**: The standalone operational system prompt for any cloned LLM (Claude, ChatGPT, Gemini, Codex, Antigravity) to execute this entire pipeline end-to-end.
 
 ---
 

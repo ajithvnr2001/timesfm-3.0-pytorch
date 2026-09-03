@@ -93,6 +93,8 @@ timesfm-3.0-pytorch/
 ├── MULTI_AGENT_SANDBOX/                    # 🌟 Air-Gapped Multi-Agent Triad (Zero-Leakage Guaranteed)
 │   ├── README.md                           # Multi-agent architecture & A2A protocol specification
 │   ├── MASTER_MULTI_AGENT_GUIDE.md         # 🌟 Definitive End-to-End Multi-Agent Guide
+│   ├── QUALITATIVE_DATA_AND_MACRO_GUIDE.md # 🌟 Concalls, Fed Policy & India Macro Integration Guide
+│   ├── LLM_AGENT_INSTRUCTIONS.md           # 🌟 Master Autonomous Instructions for Any LLM Agent
 │   ├── multi_agent_system.py               # Complete 3-Agent Triad (Main -> Process -> Output)
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
