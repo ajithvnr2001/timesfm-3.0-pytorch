@@ -51,7 +51,14 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [🌟 Day-by-Day Forecast vs. Actual Market Outcome Audit: September 3, 2026](DAYWISE_ANALYSIS/) (`DAYWISE_ANALYSIS/`)
+### 1. [🌟 Live In-Depth Market Forecast: Tomorrow, Friday, September 4, 2026](FORECAST_SEP4_2026/) (`FORECAST_SEP4_2026/`)
+* **Focus**: Granular hour-by-hour NIFTY 50 forecast, new weekly options cycle playbook (Sep 10 expiry), and Step 2 daily projections for Gold, Hindustan Zinc, and Modison.
+* **Key Levels**:
+  * **NIFTY 50**: Pivot Point **23,924.10**, Support 1 **23,822.80**, Resistance 1 **23,974.75**, Resistance 2 **24,076.05**.
+  * **Options Strategy**: Morning 23,900 CE reversal long from Support 1 (23,822) targeting 23,970; Friday Institutional Iron Condor for weekend theta harvesting.
+  * **Stocks & Commodities**: Gold ($4,435 - $4,500), Hindustan Zinc (accumulating toward ₹599.35), Modison (re-testing ₹500 - ₹509).
+
+### 2. [🌟 Day-by-Day Forecast vs. Actual Market Outcome Audit: September 3, 2026](DAYWISE_ANALYSIS/) (`DAYWISE_ANALYSIS/`)
 * **Focus**: Full ground-truth verification of all live predictions across Equities, Derivatives, and Commodities for the September 3, 2026 market session.
 * **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
 * **Key Findings**:
@@ -165,6 +172,12 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Tomorrow: Friday, Sep 4, 2026
+│   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
+│   ├── tomorrow_nifty_intraday_results.json # Hourly quantiles and microstructure phases
+│   ├── tomorrow_cross_asset_results.json   # Step 2 target scenarios & pivot matrix
+│   ├── timesfm3_nifty_intraday_sep4_forecast.png # High-resolution hourly intraday plot
+│   └── tomorrow_cross_asset_forecast_sep4_2026.png # 4-panel cross-asset target matrix
 ├── DAYWISE_ANALYSIS/                       # 🌟 Live Day-by-Day Forecast vs Actual Ground Truth Audit
 │   ├── README.md                           # Master cross-asset verification report
 │   ├── daywise_outcomes_sep3_2026.json     # Raw ground-truth machine-readable audit dataset

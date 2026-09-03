@@ -1,0 +1,60 @@
+{
+  "NIFTY_50": {
+    "ticker": "^NSEI",
+    "last_close": 23873.44921875,
+    "pivots": {
+      "PP": 23924.1,
+      "R1": 23974.75,
+      "S1": 23822.8,
+      "R2": 24076.05,
+      "S2": 23772.15,
+      "R3": 24126.7,
+      "S3": 23670.85
+    },
+    "expected_close_tomorrow": 23955.2,
+    "trading_range_tomorrow": [
+      23795.0,
+      24035.0
+    ],
+    "options_new_cycle": "September 10, 2026 Expiry"
+  },
+  "GOLD_FUTURES": {
+    "ticker": "GC=F",
+    "unit": "USD/oz",
+    "last_close": 4468.4,
+    "step_2_forecast": {
+      "bear": 4409.49,
+      "base": 4438.06,
+      "bull": 4456.28,
+      "weighted": 4435.47,
+      "envelope_lower": 4365.39,
+      "envelope_upper": 4500.84
+    }
+  },
+  "HINDUSTAN_ZINC": {
+    "ticker": "HINDZINC.NS",
+    "unit": "INR",
+    "last_close": 587.95,
+    "step_2_forecast": {
+      "bear": 589.3,
+      "base": 599.35,
+      "bull": 606.06,
+      "weighted": 598.51,
+      "envelope_lower": 583.41,
+      "envelope_upper": 612.12
+    }
+  },
+  "MODISON_LIMITED": {
+    "ticker": "MODISONLTD.NS",
+    "unit": "INR",
+    "last_close": 494.65,
+    "step_2_forecast": {
+      "bear": 493.36,
+      "base": 509.22,
+      "bull": 522.67,
+      "weighted": 508.62,
+      "envelope_lower": 488.43,
+      "envelope_upper": 527.9
+    }
+  }
+}
