@@ -65,7 +65,14 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 * **Starting Price**: **₹597.00**.
 * **Key Findings**: Base Case projects steady accumulation to **₹608.39 (+1.91%)**, with Bull boundary at **₹636.37 (+6.59%)** supported by silver byproduct margins and high dividend yields.
 
-### 3. [5-Year Monthly Large-Cap Benchmark: INFOSYS](INFOSYS_MONTHLY/) (`INFOSYS_MONTHLY/`)
+### 3. [Live 1-Month Daily Forecast: MODISON LIMITED](MODISON_LIVE/) (`MODISON_LIVE/`)
+* **Asset**: Modison Limited (`MODISONLTD.NS`).
+* **Start Date**: September 3, 2026 | **Horizon**: **22 Trading Days (Sep 3 to Oct 2, 2026)**.
+* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+* **Starting Price**: **₹499.45**.
+* **Key Findings**: Following an explosive volume surge to ₹499.45, the Base Case projects steady consolidation toward **₹517.12 (+3.54%)**, with Bull boundary extending to **₹568.34 (+13.79%)** on EV/renewable contact diversification.
+
+### 4. [5-Year Monthly Large-Cap Benchmark: INFOSYS](INFOSYS_MONTHLY/) (`INFOSYS_MONTHLY/`)
 * **Asset**: Infosys Limited (`INFY.NS`).
 * **Cutoff Date**: December 31, 2020 (Strict Zero Lookahead).
 * **Horizon**: **60 monthly bars (5 full years, 2021 to 2025)**.
@@ -157,6 +164,10 @@ timesfm-3.0-pytorch/
 │   ├── README.md                           # Daily 22-day schedule & analysis
 │   ├── hindzinc_1month_live_forecast.png   # High-resolution forecast chart
 │   └── hindzinc_1month_live_results.json   # Raw day-by-day JSON schedule
+├── MODISON_LIVE/                           # 🌟 Live 1-Month Daily Forecast: Modison Limited (NSE)
+│   ├── README.md                           # Daily 22-day schedule & analysis
+│   ├── modison_1month_live_forecast.png    # High-resolution forecast chart
+│   └── modison_1month_live_results.json    # Raw day-by-day JSON schedule
 ├── INFOSYS_MONTHLY/                        # 🌟 5-Year Monthly Benchmark (2021 to 2025, 60 Months)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_infosys_monthly_analysis.ipynb # Executed Jupyter Notebook
