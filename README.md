@@ -4,6 +4,36 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ---
 
+## 📚 Master Documentation Suite
+
+| Guide | Target Audience / Objective | Core Content |
+| :--- | :--- | :--- |
+| 🌟 **[USER_GUIDE.md](USER_GUIDE.md)** | **Traders, Investors & Portfolio Managers** | Non-technical manual, interpreting Bear/Base/Bull scenarios, Scenario Envelope Coverage, and capital risk management. |
+| 🌟 **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | **Software Engineers & Quants** | Internal class hierarchy, PyTorch tensor contracts, adding new data feeds, Docker/Kubernetes sandboxing, and CI testing. |
+| 🌟 **[LLM_GUIDE.md](LLM_GUIDE.md)** | **AI Agents (Claude, ChatGPT, Gemini, Codex)** | Universal meta-prompt allowing any cloned AI assistant to understand and autonomously execute the system end-to-end. |
+| 🌟 **[MODES_GUIDE.md](MODES_GUIDE.md)** | **System Operators** | Detailed walkthrough of the 4 modes: `multi-agent`, `backtest`, `live`, and `intraday`. |
+| 🌟 **[MULTI_AGENT_SANDBOX/](MULTI_AGENT_SANDBOX/)** | **Zero-Leakage Institutional Desks** | Complete Air-Gapped Triad (`MainIngestionAgent` ➔ `ProcessSandboxAgent` ➔ `OutputSynthesisAgent`). |
+| 🌟 **[QUALITATIVE_GUIDE](MULTI_AGENT_SANDBOX/QUALITATIVE_DATA_AND_MACRO_GUIDE.md)** | **Macro & Fundamental Researchers** | Concalls, US Fed interest rate regimes, and India macro trends translated into foundation model math. |
+
+---
+
+## 🚀 Quickstart: Unified CLI Entry-Point (`run_pipeline.py`)
+
+Run any asset in any mode using the root dispatcher:
+
+```bash
+# 1. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage)
+python3 run_pipeline.py --mode multi-agent --ticker INFY.NS --cutoff 2020-12-31 --horizon 60
+
+# 2. Live Forward Projection Mode (Real-Time Future Horizon)
+python3 run_pipeline.py --mode live --ticker RELIANCE.NS --horizon 64
+
+# 3. High-Frequency Intraday & Options Mode
+python3 run_pipeline.py --mode intraday --ticker ^NSEI
+```
+
+---
+
 ## 📖 Architectural Guides
 
 ### 🌟 [The Comprehensive Architectural Guide: Integrating LLMs with TimesFM 3.0](HYBRID_GUIDE/) (`HYBRID_GUIDE/`)
@@ -80,7 +110,13 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ```
 timesfm-3.0-pytorch/
-├── README.md
+├── README.md                               # Central Repository Dashboard
+├── run_pipeline.py                         # 🌟 Unified CLI Entry-Point (All Modes)
+├── USER_GUIDE.md                           # 🌟 Plain-English User & Investor Manual
+├── DEVELOPER_GUIDE.md                      # 🌟 Software Engineering & Extensibility Guide
+├── LLM_GUIDE.md                            # 🌟 Universal Meta-Prompt for Any AI Agent
+├── MODES_GUIDE.md                          # 🌟 Complete 4-Mode Execution Guide
+├── requirements.txt                        # Master dependencies
 ├── .gitignore
 ├── HYBRID_GUIDE/                           # Comprehensive Architectural & Best Practices Guide
 │   ├── README.md                           # Master architectural & mathematical guide
