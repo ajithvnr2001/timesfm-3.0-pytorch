@@ -51,7 +51,15 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [🌟 Live In-Depth Market Forecast: Tomorrow, Friday, September 4, 2026](FORECAST_SEP4_2026/) (`FORECAST_SEP4_2026/`)
+### 1. [🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)](EXCEL_DATA/) (`EXCEL_DATA/`)
+* **Focus**: Full quantitative health check and AI-driven decision matrix across all 28 direct equity holdings (₹4.02L) and 8 mutual funds (₹9.86L) totaling ₹13.88L.
+* **Key Actions**:
+  * **Strong Sell (Penny / Broken Traps)**: Exit 100% of `VIKASECO` (-79%), `SARVESHWAR` (-61%), `TRIDENT` (-52%), `SWISSMLTRY` (-34%), and `VAIBHAVGBL` (-45%) to stop wealth erosion and harvest tax losses.
+  * **Trim Partial Profits (Multi-Baggers)**: Harvest 35% profits on `MODISONLTD` (+70%, +₹23,711 profit!), `SILVERBEES-E` (+154%), and `MANAPPURAM` (+78%).
+  * **Strong Keep / Hold (Secular Compounders)**: Never sell `CDSL` (+40%), `GOLDBEES-E` (+103%), `NIFTYBEES` (+6%), `HINDZINC` (7-10% dividend), and `TMCV` (+68%).
+  * **Capital Redeployment**: Unlocks ~₹70,400 cash to reinvest into `NIFTYBEES`, `CDSL`, and `HINDZINC`.
+
+### 2. [🌟 Live In-Depth Market Forecast: Tomorrow, Friday, September 4, 2026](FORECAST_SEP4_2026/) (`FORECAST_SEP4_2026/`)
 * **Focus**: Granular hour-by-hour NIFTY 50 forecast, new weekly options cycle playbook (Sep 10 expiry), and Step 2 daily projections for Gold, Hindustan Zinc, and Modison.
 * **Key Levels**:
   * **NIFTY 50**: Pivot Point **23,924.10**, Support 1 **23,822.80**, Resistance 1 **23,974.75**, Resistance 2 **24,076.05**.
@@ -172,6 +180,14 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── EXCEL_DATA/                             # 🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)
+│   ├── README.md                           # Master 28-stock audit & action recommendation matrix
+│   ├── holdings-ZRJ225.xlsx                # Downloaded raw Zerodha holdings statement
+│   ├── portfolio_audit_results.json        # Machine-readable quantitative audit & targets
+│   ├── portfolio_pnl_distribution.png      # High-resolution profit & loss waterfall chart
+│   ├── portfolio_action_and_sector_matrix.png # Action matrix & sector distribution plot
+│   ├── portfolio_deep_dive.ipynb           # Interactive Jupyter Notebook
+│   └── portfolio_analyzer.py               # Standalone analysis script
 ├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Tomorrow: Friday, Sep 4, 2026
 │   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
 │   ├── tomorrow_nifty_intraday_results.json # Hourly quantiles and microstructure phases
