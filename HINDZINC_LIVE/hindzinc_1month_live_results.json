@@ -1,0 +1,260 @@
+{
+  "asset_name": "Hindustan Zinc Limited",
+  "ticker": "HINDZINC.NS",
+  "unit": "INR",
+  "forecast_start_date": "2026-09-03",
+  "forecast_end_date": "2026-10-02",
+  "last_historical_date": "2026-09-01",
+  "last_close": 597.0,
+  "terminal_forecasts": {
+    "weighted": 605.49,
+    "base": 608.39,
+    "bull": 636.37,
+    "bear": 568.82,
+    "pure_baseline": 579.39
+  },
+  "daily_schedule": [
+    {
+      "step": 1,
+      "date": "2026-09-03",
+      "day": "Thu",
+      "bear": 590.42,
+      "base": 599.41,
+      "bull": 605.41,
+      "weighted": 598.66,
+      "envelope_lower": 584.52,
+      "envelope_upper": 611.46
+    },
+    {
+      "step": 2,
+      "date": "2026-09-04",
+      "day": "Fri",
+      "bear": 589.3,
+      "base": 599.35,
+      "bull": 606.06,
+      "weighted": 598.51,
+      "envelope_lower": 583.41,
+      "envelope_upper": 612.12
+    },
+    {
+      "step": 3,
+      "date": "2026-09-07",
+      "day": "Mon",
+      "bear": 588.17,
+      "base": 599.46,
+      "bull": 606.91,
+      "weighted": 598.5,
+      "envelope_lower": 582.29,
+      "envelope_upper": 612.97
+    },
+    {
+      "step": 4,
+      "date": "2026-09-08",
+      "day": "Tue",
+      "bear": 587.84,
+      "base": 600.38,
+      "bull": 608.2,
+      "weighted": 599.2,
+      "envelope_lower": 581.96,
+      "envelope_upper": 614.28
+    },
+    {
+      "step": 5,
+      "date": "2026-09-09",
+      "day": "Wed",
+      "bear": 586.54,
+      "base": 600.33,
+      "bull": 608.81,
+      "weighted": 599.0,
+      "envelope_lower": 580.68,
+      "envelope_upper": 614.9
+    },
+    {
+      "step": 6,
+      "date": "2026-09-10",
+      "day": "Thu",
+      "bear": 584.74,
+      "base": 600.12,
+      "bull": 610.2,
+      "weighted": 598.8,
+      "envelope_lower": 578.89,
+      "envelope_upper": 616.3
+    },
+    {
+      "step": 7,
+      "date": "2026-09-11",
+      "day": "Fri",
+      "bear": 584.66,
+      "base": 601.58,
+      "bull": 612.83,
+      "weighted": 600.16,
+      "envelope_lower": 578.81,
+      "envelope_upper": 618.96
+    },
+    {
+      "step": 8,
+      "date": "2026-09-14",
+      "day": "Mon",
+      "bear": 583.78,
+      "base": 602.14,
+      "bull": 614.3,
+      "weighted": 600.59,
+      "envelope_lower": 577.94,
+      "envelope_upper": 620.44
+    },
+    {
+      "step": 9,
+      "date": "2026-09-15",
+      "day": "Tue",
+      "bear": 581.77,
+      "base": 601.88,
+      "bull": 614.99,
+      "weighted": 600.13,
+      "envelope_lower": 575.95,
+      "envelope_upper": 621.14
+    },
+    {
+      "step": 10,
+      "date": "2026-09-16",
+      "day": "Wed",
+      "bear": 580.05,
+      "base": 602.11,
+      "bull": 616.37,
+      "weighted": 600.16,
+      "envelope_lower": 574.25,
+      "envelope_upper": 622.53
+    },
+    {
+      "step": 11,
+      "date": "2026-09-17",
+      "day": "Thu",
+      "bear": 578.47,
+      "base": 602.62,
+      "bull": 618.6,
+      "weighted": 600.58,
+      "envelope_lower": 572.69,
+      "envelope_upper": 624.79
+    },
+    {
+      "step": 12,
+      "date": "2026-09-18",
+      "day": "Fri",
+      "bear": 576.99,
+      "base": 602.44,
+      "bull": 619.49,
+      "weighted": 600.34,
+      "envelope_lower": 571.22,
+      "envelope_upper": 625.69
+    },
+    {
+      "step": 13,
+      "date": "2026-09-21",
+      "day": "Mon",
+      "bear": 575.98,
+      "base": 603.42,
+      "bull": 621.67,
+      "weighted": 601.13,
+      "envelope_lower": 570.22,
+      "envelope_upper": 627.89
+    },
+    {
+      "step": 14,
+      "date": "2026-09-22",
+      "day": "Tue",
+      "bear": 575.11,
+      "base": 604.72,
+      "bull": 624.6,
+      "weighted": 602.29,
+      "envelope_lower": 569.35,
+      "envelope_upper": 630.85
+    },
+    {
+      "step": 15,
+      "date": "2026-09-23",
+      "day": "Wed",
+      "bear": 573.92,
+      "base": 604.95,
+      "bull": 625.66,
+      "weighted": 602.37,
+      "envelope_lower": 568.18,
+      "envelope_upper": 631.91
+    },
+    {
+      "step": 16,
+      "date": "2026-09-24",
+      "day": "Thu",
+      "bear": 573.44,
+      "base": 605.82,
+      "bull": 628.14,
+      "weighted": 603.3,
+      "envelope_lower": 567.7,
+      "envelope_upper": 634.42
+    },
+    {
+      "step": 17,
+      "date": "2026-09-25",
+      "day": "Fri",
+      "bear": 572.74,
+      "base": 606.49,
+      "bull": 630.01,
+      "weighted": 603.93,
+      "envelope_lower": 567.01,
+      "envelope_upper": 636.31
+    },
+    {
+      "step": 18,
+      "date": "2026-09-28",
+      "day": "Mon",
+      "bear": 571.68,
+      "base": 606.19,
+      "bull": 630.44,
+      "weighted": 603.63,
+      "envelope_lower": 565.96,
+      "envelope_upper": 636.75
+    },
+    {
+      "step": 19,
+      "date": "2026-09-29",
+      "day": "Tue",
+      "bear": 570.98,
+      "base": 607.1,
+      "bull": 632.66,
+      "weighted": 604.46,
+      "envelope_lower": 565.27,
+      "envelope_upper": 638.98
+    },
+    {
+      "step": 20,
+      "date": "2026-09-30",
+      "day": "Wed",
+      "bear": 571.49,
+      "base": 608.21,
+      "bull": 634.4,
+      "weighted": 605.58,
+      "envelope_lower": 565.77,
+      "envelope_upper": 640.74
+    },
+    {
+      "step": 21,
+      "date": "2026-10-01",
+      "day": "Thu",
+      "bear": 569.17,
+      "base": 607.6,
+      "bull": 634.54,
+      "weighted": 604.73,
+      "envelope_lower": 563.48,
+      "envelope_upper": 640.88
+    },
+    {
+      "step": 22,
+      "date": "2026-10-02",
+      "day": "Fri",
+      "bear": 568.82,
+      "base": 608.39,
+      "bull": 636.37,
+      "weighted": 605.49,
+      "envelope_lower": 563.13,
+      "envelope_upper": 642.73
+    }
+  ]
+}

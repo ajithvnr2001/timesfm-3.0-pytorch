@@ -1,0 +1,260 @@
+{
+  "asset_name": "Gold Continuous Futures",
+  "ticker": "GC=F",
+  "unit": "USD/oz",
+  "forecast_start_date": "2026-09-03",
+  "forecast_end_date": "2026-10-02",
+  "last_historical_date": "2026-09-02",
+  "last_close": 4431.39990234375,
+  "terminal_forecasts": {
+    "weighted": 4463.85,
+    "base": 4473.9,
+    "bull": 4547.21,
+    "bear": 4360.39,
+    "pure_baseline": 4348.27
+  },
+  "daily_schedule": [
+    {
+      "step": 1,
+      "date": "2026-09-03",
+      "day": "Thu",
+      "bear": 4415.45,
+      "base": 4440.7,
+      "bull": 4456.45,
+      "weighted": 4438.33,
+      "envelope_lower": 4371.3,
+      "envelope_upper": 4501.01
+    },
+    {
+      "step": 2,
+      "date": "2026-09-04",
+      "day": "Fri",
+      "bear": 4409.49,
+      "base": 4438.06,
+      "bull": 4456.28,
+      "weighted": 4435.47,
+      "envelope_lower": 4365.39,
+      "envelope_upper": 4500.84
+    },
+    {
+      "step": 3,
+      "date": "2026-09-07",
+      "day": "Mon",
+      "bear": 4409.79,
+      "base": 4442.68,
+      "bull": 4462.96,
+      "weighted": 4439.53,
+      "envelope_lower": 4365.69,
+      "envelope_upper": 4507.59
+    },
+    {
+      "step": 4,
+      "date": "2026-09-08",
+      "day": "Tue",
+      "bear": 4409.87,
+      "base": 4444.86,
+      "bull": 4466.56,
+      "weighted": 4441.54,
+      "envelope_lower": 4365.78,
+      "envelope_upper": 4511.22
+    },
+    {
+      "step": 5,
+      "date": "2026-09-09",
+      "day": "Wed",
+      "bear": 4407.27,
+      "base": 4446.39,
+      "bull": 4470.38,
+      "weighted": 4442.61,
+      "envelope_lower": 4363.2,
+      "envelope_upper": 4515.09
+    },
+    {
+      "step": 6,
+      "date": "2026-09-10",
+      "day": "Thu",
+      "bear": 4397.32,
+      "base": 4439.02,
+      "bull": 4465.82,
+      "weighted": 4435.29,
+      "envelope_lower": 4353.34,
+      "envelope_upper": 4510.47
+    },
+    {
+      "step": 7,
+      "date": "2026-09-11",
+      "day": "Fri",
+      "bear": 4399.24,
+      "base": 4445.83,
+      "bull": 4475.25,
+      "weighted": 4441.54,
+      "envelope_lower": 4355.24,
+      "envelope_upper": 4520.0
+    },
+    {
+      "step": 8,
+      "date": "2026-09-14",
+      "day": "Mon",
+      "bear": 4397.51,
+      "base": 4448.05,
+      "bull": 4480.95,
+      "weighted": 4443.64,
+      "envelope_lower": 4353.53,
+      "envelope_upper": 4525.75
+    },
+    {
+      "step": 9,
+      "date": "2026-09-15",
+      "day": "Tue",
+      "bear": 4394.68,
+      "base": 4449.38,
+      "bull": 4484.54,
+      "weighted": 4444.49,
+      "envelope_lower": 4350.73,
+      "envelope_upper": 4529.38
+    },
+    {
+      "step": 10,
+      "date": "2026-09-16",
+      "day": "Wed",
+      "bear": 4391.84,
+      "base": 4453.23,
+      "bull": 4492.52,
+      "weighted": 4447.7,
+      "envelope_lower": 4347.92,
+      "envelope_upper": 4537.44
+    },
+    {
+      "step": 11,
+      "date": "2026-09-17",
+      "day": "Thu",
+      "bear": 4384.05,
+      "base": 4450.64,
+      "bull": 4493.19,
+      "weighted": 4444.63,
+      "envelope_lower": 4340.21,
+      "envelope_upper": 4538.12
+    },
+    {
+      "step": 12,
+      "date": "2026-09-18",
+      "day": "Fri",
+      "bear": 4381.18,
+      "base": 4452.52,
+      "bull": 4497.88,
+      "weighted": 4446.03,
+      "envelope_lower": 4337.37,
+      "envelope_upper": 4542.86
+    },
+    {
+      "step": 13,
+      "date": "2026-09-21",
+      "day": "Mon",
+      "bear": 4382.9,
+      "base": 4459.17,
+      "bull": 4506.75,
+      "weighted": 4452.0,
+      "envelope_lower": 4339.07,
+      "envelope_upper": 4551.81
+    },
+    {
+      "step": 14,
+      "date": "2026-09-22",
+      "day": "Tue",
+      "bear": 4382.04,
+      "base": 4464.47,
+      "bull": 4517.43,
+      "weighted": 4457.1,
+      "envelope_lower": 4338.22,
+      "envelope_upper": 4562.61
+    },
+    {
+      "step": 15,
+      "date": "2026-09-23",
+      "day": "Wed",
+      "bear": 4375.33,
+      "base": 4461.41,
+      "bull": 4516.11,
+      "weighted": 4453.56,
+      "envelope_lower": 4331.57,
+      "envelope_upper": 4561.27
+    },
+    {
+      "step": 16,
+      "date": "2026-09-24",
+      "day": "Thu",
+      "bear": 4374.11,
+      "base": 4465.55,
+      "bull": 4524.3,
+      "weighted": 4457.37,
+      "envelope_lower": 4330.37,
+      "envelope_upper": 4569.54
+    },
+    {
+      "step": 17,
+      "date": "2026-09-25",
+      "day": "Fri",
+      "bear": 4372.12,
+      "base": 4467.89,
+      "bull": 4528.66,
+      "weighted": 4459.14,
+      "envelope_lower": 4328.4,
+      "envelope_upper": 4573.94
+    },
+    {
+      "step": 18,
+      "date": "2026-09-28",
+      "day": "Mon",
+      "bear": 4365.48,
+      "base": 4464.11,
+      "bull": 4527.48,
+      "weighted": 4455.3,
+      "envelope_lower": 4321.83,
+      "envelope_upper": 4572.75
+    },
+    {
+      "step": 19,
+      "date": "2026-09-29",
+      "day": "Tue",
+      "bear": 4363.09,
+      "base": 4465.74,
+      "bull": 4532.34,
+      "weighted": 4456.72,
+      "envelope_lower": 4319.46,
+      "envelope_upper": 4577.66
+    },
+    {
+      "step": 20,
+      "date": "2026-09-30",
+      "day": "Wed",
+      "bear": 4364.96,
+      "base": 4469.38,
+      "bull": 4536.41,
+      "weighted": 4460.04,
+      "envelope_lower": 4321.31,
+      "envelope_upper": 4581.78
+    },
+    {
+      "step": 21,
+      "date": "2026-10-01",
+      "day": "Thu",
+      "bear": 4360.63,
+      "base": 4468.91,
+      "bull": 4538.98,
+      "weighted": 4459.36,
+      "envelope_lower": 4317.02,
+      "envelope_upper": 4584.37
+    },
+    {
+      "step": 22,
+      "date": "2026-10-02",
+      "day": "Fri",
+      "bear": 4360.39,
+      "base": 4473.9,
+      "bull": 4547.21,
+      "weighted": 4463.85,
+      "envelope_lower": 4316.78,
+      "envelope_upper": 4592.69
+    }
+  ]
+}

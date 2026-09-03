@@ -51,7 +51,21 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [5-Year Monthly Large-Cap Benchmark: INFOSYS](INFOSYS_MONTHLY/) (`INFOSYS_MONTHLY/`)
+### 1. [Live 1-Month Daily Forecast: GOLD Continuous Futures](GOLD_LIVE/) (`GOLD_LIVE/`)
+* **Asset**: Gold Continuous Futures (`GC=F`).
+* **Start Date**: September 3, 2026 | **Horizon**: **22 Trading Days (Sep 3 to Oct 2, 2026)**.
+* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+* **Starting Price**: **$4,431.40 / oz**.
+* **Key Findings**: Base Case projects steady accumulation toward **$4,473.90 / oz (+0.96%)**, with Bull boundary at **$4,547.21 / oz** driven by central bank buying and Fed rate easing.
+
+### 2. [Live 1-Month Daily Forecast: HINDUSTAN ZINC](HINDZINC_LIVE/) (`HINDZINC_LIVE/`)
+* **Asset**: Hindustan Zinc Limited (`HINDZINC.NS`).
+* **Start Date**: September 3, 2026 | **Horizon**: **22 Trading Days (Sep 3 to Oct 2, 2026)**.
+* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+* **Starting Price**: **₹597.00**.
+* **Key Findings**: Base Case projects steady accumulation to **₹608.39 (+1.91%)**, with Bull boundary at **₹636.37 (+6.59%)** supported by silver byproduct margins and high dividend yields.
+
+### 3. [5-Year Monthly Large-Cap Benchmark: INFOSYS](INFOSYS_MONTHLY/) (`INFOSYS_MONTHLY/`)
 * **Asset**: Infosys Limited (`INFY.NS`).
 * **Cutoff Date**: December 31, 2020 (Strict Zero Lookahead).
 * **Horizon**: **60 monthly bars (5 full years, 2021 to 2025)**.
@@ -135,6 +149,14 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── GOLD_LIVE/                              # 🌟 Live 1-Month Daily Forecast: Gold Futures (GC=F)
+│   ├── README.md                           # Daily 22-day schedule & analysis
+│   ├── gold_1month_live_forecast.png       # High-resolution forecast chart
+│   └── gold_1month_live_results.json       # Raw day-by-day JSON schedule
+├── HINDZINC_LIVE/                          # 🌟 Live 1-Month Daily Forecast: Hindustan Zinc (NSE)
+│   ├── README.md                           # Daily 22-day schedule & analysis
+│   ├── hindzinc_1month_live_forecast.png   # High-resolution forecast chart
+│   └── hindzinc_1month_live_results.json   # Raw day-by-day JSON schedule
 ├── INFOSYS_MONTHLY/                        # 🌟 5-Year Monthly Benchmark (2021 to 2025, 60 Months)
 │   ├── README.md                           # Comprehensive evaluation report
 │   ├── timesfm3_infosys_monthly_analysis.ipynb # Executed Jupyter Notebook
