@@ -1,0 +1,273 @@
+{
+  "ticker": "RAYMONDREL.NS",
+  "bse_code": "544199",
+  "isin": "INE1SY401010",
+  "sector": "Real Estate Development",
+  "as_of_date": "2026-09-03",
+  "market_summary": {
+    "yesterday_close_sep2": 506.05,
+    "today_close_sep3": 531.35,
+    "today_high": 538.9,
+    "today_low": 514.0,
+    "today_change_pct": 5.0,
+    "shares_outstanding_cr": 6.65,
+    "market_cap_cr": 3533.48,
+    "gdv_pipeline_cr": 40000.0,
+    "thane_landbank_acres": 100.0
+  },
+  "pivots_for_tomorrow_sep4": {
+    "PP": 528.08,
+    "R1": 542.17,
+    "S1": 517.27,
+    "R2": 552.98,
+    "S2": 503.18,
+    "R3": 567.07,
+    "S3": 492.37
+  },
+  "scenarios": {
+    "bear": {
+      "prob": 0.25,
+      "target_1m": 490.0,
+      "label": "Bear Scenario (25% prob): Rs. 490.00 (-7.8%)",
+      "rationale": "Broader real estate sector consolidation, rising mortgage rates, delayed approvals retesting Rs. 490 floor.",
+      "color": "#d83b01"
+    },
+    "base": {
+      "prob": 0.5,
+      "target_1m": 575.0,
+      "label": "Base Scenario (50% prob): Rs. 575.00 (+8.2%)",
+      "rationale": "Steady Thane presales momentum, orderly launch of Bandra JDA, re-rating toward Rs. 575.",
+      "color": "#0078d4"
+    },
+    "bull": {
+      "prob": 0.25,
+      "target_1m": 635.0,
+      "label": "Bull Scenario (25% prob): Rs. 635.00 (+19.5%)",
+      "rationale": "Accelerated Thane township bookings, institutional block re-rating toward 1.5x NAV peer multiples (Lodha/Oberoi parity).",
+      "color": "#107c41"
+    }
+  },
+  "weighted_1month_target": 568.75,
+  "daily_schedule": [
+    {
+      "step": 1,
+      "date": "2026-09-04",
+      "bear_target": 528.36,
+      "base_target": 535.65,
+      "bull_target": 543.26,
+      "weighted_expected": 535.73,
+      "envelope_lower_p10": 519.5,
+      "envelope_upper_p90": 552.46
+    },
+    {
+      "step": 2,
+      "date": "2026-09-07",
+      "bear_target": 525.96,
+      "base_target": 538.58,
+      "bull_target": 550.7,
+      "weighted_expected": 538.45,
+      "envelope_lower_p10": 515.53,
+      "envelope_upper_p90": 562.39
+    },
+    {
+      "step": 3,
+      "date": "2026-09-08",
+      "bear_target": 523.75,
+      "base_target": 541.15,
+      "bull_target": 557.05,
+      "weighted_expected": 540.77,
+      "envelope_lower_p10": 512.72,
+      "envelope_upper_p90": 570.36
+    },
+    {
+      "step": 4,
+      "date": "2026-09-09",
+      "bear_target": 521.64,
+      "base_target": 543.5,
+      "bull_target": 562.78,
+      "weighted_expected": 542.86,
+      "envelope_lower_p10": 510.47,
+      "envelope_upper_p90": 577.3
+    },
+    {
+      "step": 5,
+      "date": "2026-09-10",
+      "bear_target": 519.61,
+      "base_target": 545.72,
+      "bull_target": 568.09,
+      "weighted_expected": 544.79,
+      "envelope_lower_p10": 508.58,
+      "envelope_upper_p90": 583.57
+    },
+    {
+      "step": 6,
+      "date": "2026-09-11",
+      "bear_target": 517.65,
+      "base_target": 547.82,
+      "bull_target": 573.09,
+      "weighted_expected": 546.6,
+      "envelope_lower_p10": 506.93,
+      "envelope_upper_p90": 589.37
+    },
+    {
+      "step": 7,
+      "date": "2026-09-14",
+      "bear_target": 515.73,
+      "base_target": 549.84,
+      "bull_target": 577.85,
+      "weighted_expected": 548.32,
+      "envelope_lower_p10": 505.46,
+      "envelope_upper_p90": 594.8
+    },
+    {
+      "step": 8,
+      "date": "2026-09-15",
+      "bear_target": 513.85,
+      "base_target": 551.79,
+      "bull_target": 582.4,
+      "weighted_expected": 549.96,
+      "envelope_lower_p10": 504.14,
+      "envelope_upper_p90": 599.95
+    },
+    {
+      "step": 9,
+      "date": "2026-09-16",
+      "bear_target": 512.01,
+      "base_target": 553.68,
+      "bull_target": 586.79,
+      "weighted_expected": 551.54,
+      "envelope_lower_p10": 502.92,
+      "envelope_upper_p90": 604.85
+    },
+    {
+      "step": 10,
+      "date": "2026-09-17",
+      "bear_target": 510.19,
+      "base_target": 555.51,
+      "bull_target": 591.04,
+      "weighted_expected": 553.06,
+      "envelope_lower_p10": 501.8,
+      "envelope_upper_p90": 609.56
+    },
+    {
+      "step": 11,
+      "date": "2026-09-18",
+      "bear_target": 508.41,
+      "base_target": 557.3,
+      "bull_target": 595.15,
+      "weighted_expected": 554.54,
+      "envelope_lower_p10": 500.76,
+      "envelope_upper_p90": 614.1
+    },
+    {
+      "step": 12,
+      "date": "2026-09-21",
+      "bear_target": 506.65,
+      "base_target": 559.05,
+      "bull_target": 599.16,
+      "weighted_expected": 555.98,
+      "envelope_lower_p10": 499.79,
+      "envelope_upper_p90": 618.49
+    },
+    {
+      "step": 13,
+      "date": "2026-09-22",
+      "bear_target": 504.91,
+      "base_target": 560.77,
+      "bull_target": 603.07,
+      "weighted_expected": 557.38,
+      "envelope_lower_p10": 498.87,
+      "envelope_upper_p90": 622.75
+    },
+    {
+      "step": 14,
+      "date": "2026-09-23",
+      "bear_target": 503.19,
+      "base_target": 562.45,
+      "bull_target": 606.89,
+      "weighted_expected": 558.74,
+      "envelope_lower_p10": 498.0,
+      "envelope_upper_p90": 626.9
+    },
+    {
+      "step": 15,
+      "date": "2026-09-24",
+      "bear_target": 501.49,
+      "base_target": 564.1,
+      "bull_target": 610.63,
+      "weighted_expected": 560.08,
+      "envelope_lower_p10": 497.18,
+      "envelope_upper_p90": 630.94
+    },
+    {
+      "step": 16,
+      "date": "2026-09-25",
+      "bear_target": 499.81,
+      "base_target": 565.73,
+      "bull_target": 614.29,
+      "weighted_expected": 561.39,
+      "envelope_lower_p10": 496.4,
+      "envelope_upper_p90": 634.88
+    },
+    {
+      "step": 17,
+      "date": "2026-09-28",
+      "bear_target": 498.14,
+      "base_target": 567.33,
+      "bull_target": 617.88,
+      "weighted_expected": 562.67,
+      "envelope_lower_p10": 495.65,
+      "envelope_upper_p90": 638.75
+    },
+    {
+      "step": 18,
+      "date": "2026-09-29",
+      "bear_target": 496.48,
+      "base_target": 568.9,
+      "bull_target": 621.42,
+      "weighted_expected": 563.93,
+      "envelope_lower_p10": 494.93,
+      "envelope_upper_p90": 642.53
+    },
+    {
+      "step": 19,
+      "date": "2026-09-30",
+      "bear_target": 494.84,
+      "base_target": 570.46,
+      "bull_target": 624.89,
+      "weighted_expected": 565.16,
+      "envelope_lower_p10": 494.25,
+      "envelope_upper_p90": 646.25
+    },
+    {
+      "step": 20,
+      "date": "2026-10-01",
+      "bear_target": 493.22,
+      "base_target": 571.99,
+      "bull_target": 628.31,
+      "weighted_expected": 566.38,
+      "envelope_lower_p10": 493.59,
+      "envelope_upper_p90": 649.9
+    },
+    {
+      "step": 21,
+      "date": "2026-10-02",
+      "bear_target": 491.6,
+      "base_target": 573.5,
+      "bull_target": 631.68,
+      "weighted_expected": 567.57,
+      "envelope_lower_p10": 492.95,
+      "envelope_upper_p90": 653.49
+    },
+    {
+      "step": 22,
+      "date": "2026-10-05",
+      "bear_target": 490.0,
+      "base_target": 575.0,
+      "bull_target": 635.0,
+      "weighted_expected": 568.75,
+      "envelope_lower_p10": 492.34,
+      "envelope_upper_p90": 657.02
+    }
+  ]
+}

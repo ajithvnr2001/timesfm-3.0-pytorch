@@ -51,7 +51,14 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)](EXCEL_DATA/) (`EXCEL_DATA/`)
+### 1. [🌟 Raymond Realty (RAYMONDREL) Multidimensional Forecast Deep Dive](RAYMONDREL_ANALYSIS/) (`RAYMONDREL_ANALYSIS/`)
+* **Focus**: Multidimensional analysis (TimesFM 3.0 + Exa Regulatory Data) following today's (Sep 3) **+5.00% surge to ₹531.35**.
+* **Key Insights**:
+  * **Pillar 1 (Microstructure)**: Broken out from post-demerger base of ₹506–₹520 on 2.8x volume expansion. Tomorrow pivots: PP ₹528.08, R1 ₹542.17, S1 ₹517.27.
+  * **Pillar 2 (Fundamentals)**: 100-acre Thane landbank (₹25,000 Cr GDV) + Mumbai JDAs (₹15,000 Cr GDV) = **₹40,000 Cr GDV portfolio**. Trading at only **0.88x NAV** vs peers at 2.6x to 3.5x NAV!
+  * **Targets**: Base Target **₹575.00 (+8.2%)**, Bull Target **₹635.00 (+19.5%)**, Weighted 1-Month Expected **₹568.75 (+7.04%)**.
+
+### 2. [🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)](EXCEL_DATA/) (`EXCEL_DATA/`)
 * **Focus**: Full quantitative health check and AI-driven decision matrix across all 28 direct equity holdings (₹4.02L) and 8 mutual funds (₹9.86L) totaling ₹13.88L.
 * **Key Actions**:
   * **Strong Sell (Penny / Broken Traps)**: Exit 100% of `VIKASECO` (-79%), `SARVESHWAR` (-61%), `TRIDENT` (-52%), `SWISSMLTRY` (-34%), and `VAIBHAVGBL` (-45%) to stop wealth erosion and harvest tax losses.
@@ -180,6 +187,13 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── RAYMONDREL_ANALYSIS/                    # 🌟 Raymond Realty (RAYMONDREL) Multidimensional Forecast
+│   ├── README.md                           # Master 22-day schedule, technical matrix & GDV analysis
+│   ├── raymondrel_prediction_results.json  # Raw machine-readable scenario forecast dataset
+│   ├── raymondrel_multidim_forecast_22d.png # High-resolution 22-day forecast fan chart
+│   ├── raymondrel_technical_breakout_matrix.png # Breakout levels & real estate peer valuation matrix
+│   ├── raymondrel_predictive_deep_dive.ipynb # Interactive Jupyter Notebook
+│   └── raymondrel_deep_prediction.py       # Standalone multidimensional forecast engine script
 ├── EXCEL_DATA/                             # 🌟 Zerodha Portfolio Deep Dive & Multi-Horizon Forward Forecasts (ZRJ225)
 │   ├── README.md                           # Master 28-stock audit, price forecasts & action matrix
 │   ├── holdings-ZRJ225.xlsx                # Downloaded raw Zerodha holdings statement
