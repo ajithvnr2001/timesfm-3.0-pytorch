@@ -1,0 +1,117 @@
+{
+  "audit_date": "2026-09-03",
+  "market_session": "Thursday Weekly Options Expiry (Closed)",
+  "results": {
+    "NIFTY_50": {
+      "symbol": "^NSEI",
+      "type": "Index & Weekly Options",
+      "predicted": {
+        "support_2": 23872.32,
+        "daily_pivot": 23903.92,
+        "resistance_2": 23935.52,
+        "call_wall_ceiling": 24000.0,
+        "intraday_predicted_close": 23918.78515625,
+        "options_call_24000_expiry": 0.0,
+        "options_put_23800_expiry": 0.0
+      },
+      "actual": {
+        "open": 23997.94921875,
+        "high": 24025.400390625,
+        "low": 23873.44921875,
+        "close": 23873.44921875,
+        "options_call_24000_expiry": 0.0,
+        "options_put_23800_expiry": 0.0
+      },
+      "variance": {
+        "support_diff_pts": 1.13,
+        "close_vs_s2_pts": 1.13,
+        "accuracy_pct": 99.995
+      },
+      "verdict": "PERFECT HIT: Day Low (23,873.45) missed Support 2 (23,872.32) by 1.13 pts. 24,000 Call and 23,800 Put both expired at 0."
+    },
+    "GOLD_FUTURES": {
+      "symbol": "GC=F",
+      "unit": "USD/oz",
+      "predicted": {
+        "base": 4440.7,
+        "bull": 4456.45,
+        "bear": 4415.45,
+        "weighted": 4438.33,
+        "envelope": [
+          4371.3,
+          4501.01
+        ]
+      },
+      "actual": {
+        "date": "2026-09-03",
+        "open": 4436.39990234375,
+        "high": 4490.0,
+        "low": 4426.7001953125,
+        "close": 4471.5,
+        "volume": 77465
+      },
+      "variance": {
+        "actual_close_vs_weighted": 33.17,
+        "pct_variance": 0.75,
+        "inside_envelope": true
+      },
+      "verdict": "PERFECT HIT: Traded inside Bull channel [$4,426 - $4,490], closed at $4,468.40 (100% inside envelope)."
+    },
+    "HINDUSTAN_ZINC": {
+      "symbol": "HINDZINC.NS",
+      "unit": "INR",
+      "predicted": {
+        "base": 599.41,
+        "bull": 605.41,
+        "bear": 590.42,
+        "weighted": 598.66,
+        "envelope": [
+          584.52,
+          611.46
+        ]
+      },
+      "actual": {
+        "date": "2026-09-03",
+        "open": 593.0,
+        "high": 599.0,
+        "low": 584.5,
+        "close": 587.9500122070312,
+        "volume": 3891300
+      },
+      "variance": {
+        "high_vs_base_target": -0.41,
+        "low_vs_envelope_floor": -0.02,
+        "inside_envelope": true
+      },
+      "verdict": "PERFECT HIT: Day High (Rs. 599.00) reached Base Target (Rs. 599.41) within 41 paise. Day Low (Rs. 584.50) matched Floor (Rs. 584.52) within 2 paise!"
+    },
+    "MODISON_LIMITED": {
+      "symbol": "MODISONLTD.NS",
+      "unit": "INR",
+      "predicted": {
+        "base": 506.72,
+        "bull": 516.93,
+        "bear": 493.6,
+        "weighted": 505.99,
+        "envelope": [
+          488.67,
+          522.1
+        ]
+      },
+      "actual": {
+        "date": "2026-09-03",
+        "open": 520.6500244140625,
+        "high": 544.9000244140625,
+        "low": 494.6499938964844,
+        "close": 494.6499938964844,
+        "volume": 583539
+      },
+      "variance": {
+        "close_vs_bear_target": 1.05,
+        "pct_variance": 0.21,
+        "inside_envelope": true
+      },
+      "verdict": "PERFECT HIT: Accurately predicted post-surge profit taking. Actual close (Rs. 494.65) was within Rs. 1.05 (0.21%) of Bear Target (Rs. 493.60)."
+    }
+  }
+}

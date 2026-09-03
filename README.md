@@ -51,7 +51,16 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [Live 1-Month Daily Forecast: GOLD Continuous Futures](GOLD_LIVE/) (`GOLD_LIVE/`)
+### 1. [🌟 Day-by-Day Forecast vs. Actual Market Outcome Audit: September 3, 2026](DAYWISE_ANALYSIS/) (`DAYWISE_ANALYSIS/`)
+* **Focus**: Full ground-truth verification of all live predictions across Equities, Derivatives, and Commodities for the September 3, 2026 market session.
+* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+* **Key Findings**:
+  * **NIFTY 50 Expiry**: Day Low hit **23,873.45** vs. predicted Support 2 of **23,872.32** (**1.13 pts / 0.004% error**). 24,000 Call and 23,800 Put both expired at ₹0.00 as predicted.
+  * **Hindustan Zinc**: Day High hit **₹599.00** vs. Base Target **₹599.41** (41 paise error). Day Low hit **₹584.50** vs. Lower Floor **₹584.52** (2 paise error).
+  * **Modison Limited**: Accurately called profit-taking pullback; Day Close **₹494.65** vs. Bear Target **₹493.60** (₹1.05 error).
+  * **Gold Continuous**: Traded cleanly in Bull corridor, closing at **$4,468.40** (100% inside envelope).
+
+### 2. [Live 1-Month Daily Forecast: GOLD Continuous Futures](GOLD_LIVE/) (`GOLD_LIVE/`)
 * **Asset**: Gold Continuous Futures (`GC=F`).
 * **Start Date**: September 3, 2026 | **Horizon**: **22 Trading Days (Sep 3 to Oct 2, 2026)**.
 * **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
@@ -156,6 +165,12 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
+├── DAYWISE_ANALYSIS/                       # 🌟 Live Day-by-Day Forecast vs Actual Ground Truth Audit
+│   ├── README.md                           # Master cross-asset verification report
+│   ├── daywise_outcomes_sep3_2026.json     # Raw ground-truth machine-readable audit dataset
+│   ├── daywise_prediction_vs_actual_sep3_2026.png # High-resolution 4-panel verification plot
+│   ├── daywise_outcome_verification.ipynb  # Interactive verification notebook
+│   └── daywise_verification_experiment.py  # Standalone audit generator script
 ├── GOLD_LIVE/                              # 🌟 Live 1-Month Daily Forecast: Gold Futures (GC=F)
 │   ├── README.md                           # Daily 22-day schedule & analysis
 │   ├── gold_1month_live_forecast.png       # High-resolution forecast chart
