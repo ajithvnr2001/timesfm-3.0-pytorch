@@ -180,13 +180,17 @@ timesfm-3.0-pytorch/
 │   ├── test_multi_agent_flow.py            # End-to-end verification test script
 │   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
 │   └── test_run_output/                    # Verified test run charts & executive reports
-├── EXCEL_DATA/                             # 🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)
-│   ├── README.md                           # Master 28-stock audit & action recommendation matrix
+├── EXCEL_DATA/                             # 🌟 Zerodha Portfolio Deep Dive & Multi-Horizon Forward Forecasts (ZRJ225)
+│   ├── README.md                           # Master 28-stock audit, price forecasts & action matrix
 │   ├── holdings-ZRJ225.xlsx                # Downloaded raw Zerodha holdings statement
+│   ├── portfolio_forward_forecasts.json    # Complete multi-horizon price targets (T+1 to T+66) & 22-day trajectories
 │   ├── portfolio_audit_results.json        # Machine-readable quantitative audit & targets
+│   ├── portfolio_top_holdings_forecast_trajectories.png # 6-panel forward trajectory plot
+│   ├── portfolio_expected_returns_1m.png   # Color-coded expected 1-month return bar chart
 │   ├── portfolio_pnl_distribution.png      # High-resolution profit & loss waterfall chart
 │   ├── portfolio_action_and_sector_matrix.png # Action matrix & sector distribution plot
 │   ├── portfolio_deep_dive.ipynb           # Interactive Jupyter Notebook
+│   ├── generate_portfolio_forecasts.py     # Multi-horizon forecast engine script
 │   └── portfolio_analyzer.py               # Standalone analysis script
 ├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Tomorrow: Friday, Sep 4, 2026
 │   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
