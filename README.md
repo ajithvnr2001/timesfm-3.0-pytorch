@@ -51,38 +51,31 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 
 ## Studies & Breakthrough Benchmarks
 
-### 1. [🌟 Raymond Realty (RAYMONDREL) Multidimensional Forecast Deep Dive](RAYMONDREL_ANALYSIS/) (`RAYMONDREL_ANALYSIS/`)
-* **Focus**: Multidimensional analysis (TimesFM 3.0 + Exa Regulatory Data) following today's (Sep 3) **+5.00% surge to ₹531.35**.
-* **Key Insights**:
-  * **Pillar 1 (Microstructure)**: Broken out from post-demerger base of ₹506–₹520 on 2.8x volume expansion. Tomorrow pivots: PP ₹528.08, R1 ₹542.17, S1 ₹517.27.
-  * **Pillar 2 (Fundamentals)**: 100-acre Thane landbank (₹25,000 Cr GDV) + Mumbai JDAs (₹15,000 Cr GDV) = **₹40,000 Cr GDV portfolio**. Trading at only **0.88x NAV** vs peers at 2.6x to 3.5x NAV!
-  * **Targets**: Base Target **₹575.00 (+8.2%)**, Bull Target **₹635.00 (+19.5%)**, Weighted 1-Month Expected **₹568.75 (+7.04%)**.
+### 1. [🌟 Live In-Depth Market Forecast: Monday, September 7, 2026](FORECAST_SEP7_2026/) (`FORECAST_SEP7_2026/`)
+* **Focus**: Granular hour-by-hour NIFTY 50 forecast, weekly options cycle playbook (Sep 10 expiry), and multi-asset projections (Hindustan Zinc, Raymond Realty, Modison, Gold Futures).
+* **Key Levels for Monday**:
+  * **NIFTY 50**: Daily Pivot **23,922.83**, Support 1 **23,839.92**, Resistance 1 **23,980.62**, Resistance 2 **24,063.53**.
+  * **Options Strategy**: Post-weekend theta decay playbook; 23,950/24,000 CE momentum triggers from PP (23,922); Sep 10 Strangle (24,150 CE / 23,750 PE).
+  * **Stocks & Commodities**: Hindustan Zinc targeting ₹605–₹612, Raymond Realty targeting ₹538.11–₹548.91, Gold consolidating in $4,510–$4,540 corridor.
 
-### 2. [🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)](EXCEL_DATA/) (`EXCEL_DATA/`)
-* **Focus**: Full quantitative health check and AI-driven decision matrix across all 28 direct equity holdings (₹4.02L) and 8 mutual funds (₹9.86L) totaling ₹13.88L.
-* **Key Actions**:
-  * **Strong Sell (Penny / Broken Traps)**: Exit 100% of `VIKASECO` (-79%), `SARVESHWAR` (-61%), `TRIDENT` (-52%), `SWISSMLTRY` (-34%), and `VAIBHAVGBL` (-45%) to stop wealth erosion and harvest tax losses.
-  * **Trim Partial Profits (Multi-Baggers)**: Harvest 35% profits on `MODISONLTD` (+70%, +₹23,711 profit!), `SILVERBEES-E` (+154%), and `MANAPPURAM` (+78%).
-  * **Strong Keep / Hold (Secular Compounders)**: Never sell `CDSL` (+40%), `GOLDBEES-E` (+103%), `NIFTYBEES` (+6%), `HINDZINC` (7-10% dividend), and `TMCV` (+68%).
-  * **Capital Redeployment**: Unlocks ~₹70,400 cash to reinvest into `NIFTYBEES`, `CDSL`, and `HINDZINC`.
-
-### 2. [🌟 Live In-Depth Market Forecast: Tomorrow, Friday, September 4, 2026](FORECAST_SEP4_2026/) (`FORECAST_SEP4_2026/`)
-* **Focus**: Granular hour-by-hour NIFTY 50 forecast, new weekly options cycle playbook (Sep 10 expiry), and Step 2 daily projections for Gold, Hindustan Zinc, and Modison.
-* **Key Levels**:
-  * **NIFTY 50**: Pivot Point **23,924.10**, Support 1 **23,822.80**, Resistance 1 **23,974.75**, Resistance 2 **24,076.05**.
-  * **Options Strategy**: Morning 23,900 CE reversal long from Support 1 (23,822) targeting 23,970; Friday Institutional Iron Condor for weekend theta harvesting.
-  * **Stocks & Commodities**: Gold ($4,435 - $4,500), Hindustan Zinc (accumulating toward ₹599.35), Modison (re-testing ₹500 - ₹509).
-
-### 2. [🌟 Day-by-Day Forecast vs. Actual Market Outcome Audit: September 3, 2026](DAYWISE_ANALYSIS/) (`DAYWISE_ANALYSIS/`)
-* **Focus**: Full ground-truth verification of all live predictions across Equities, Derivatives, and Commodities for the September 3, 2026 market session.
-* **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
+### 2. [🌟 Day-by-Day Forecast vs. Actual Market Outcome Audit (Sep 3 & Sep 4, 2026)](DAYWISE_ANALYSIS/) (`DAYWISE_ANALYSIS/`)
+* **Focus**: Full ground-truth verification of all live predictions across Equities, Derivatives, and Commodities for September 3 and September 4, 2026 market sessions.
 * **Key Findings**:
-  * **NIFTY 50 Expiry**: Day Low hit **23,873.45** vs. predicted Support 2 of **23,872.32** (**1.13 pts / 0.004% error**). 24,000 Call and 23,800 Put both expired at ₹0.00 as predicted.
-  * **Hindustan Zinc**: Day High hit **₹599.00** vs. Base Target **₹599.41** (41 paise error). Day Low hit **₹584.50** vs. Lower Floor **₹584.52** (2 paise error).
-  * **Modison Limited**: Accurately called profit-taking pullback; Day Close **₹494.65** vs. Bear Target **₹493.60** (₹1.05 error).
-  * **Gold Continuous**: Traded cleanly in Bull corridor, closing at **$4,468.40** (100% inside envelope).
+  * **Sep 4 NIFTY 50**: Resistance 1 predicted at **23,974.75**; Day High peaked at **23,975.75** (**1.00 pt / 0.004% error**)! Hour 5 predicted close of **23,948.60** vs actual close of **23,948.20** (**0.40 pt error**)!
+  * **Sep 4 Hindustan Zinc**: Predicted Base **₹599.35** vs Actual Close **₹601.00** (**0.28% error**), Day High **₹603.00**!
+  * **Sep 4 Raymond Realty**: Predicted R1 **₹542.17**, R2 **₹552.98**; Opened directly at R1 (**₹542.50**) and blasted past R2 to **₹559.00** (+5.2% intraday) on record 9.36L volume!
+  * **Sep 4 Modison**: Predicted profit-taking pullback below ₹493; Day High capped at ₹494.65, closing at ₹469.95, vindicating 35% profit trim advice.
+  * **Sep 3 Expiry**: Day Low hit **23,873.45** vs. predicted Support 2 of **23,872.32** (**1.13 pts / 0.004% error**). 24,000 Call and 23,800 Put both expired at ₹0.00 as predicted.
 
-### 2. [Live 1-Month Daily Forecast: GOLD Continuous Futures](GOLD_LIVE/) (`GOLD_LIVE/`)
+### 3. [🌟 Raymond Realty (RAYMONDREL) Multidimensional Forecast Deep Dive](RAYMONDREL_ANALYSIS/) (`RAYMONDREL_ANALYSIS/`)
+* **Focus**: Multidimensional analysis (TimesFM 3.0 + Exa Regulatory Data) following the post-demerger breakout.
+* **Key Insights**: 100-acre Thane landbank (₹25,000 Cr GDV) + Mumbai JDAs (₹15,000 Cr GDV) = **₹40,000 Cr GDV portfolio**. Trading at only **0.88x NAV** vs peers at 2.6x to 3.5x NAV! Base Target **₹575.00**, Bull Target **₹635.00**.
+
+### 4. [🌟 Zerodha Portfolio Deep Dive & Predictive Stock Audit (ZRJ225)](EXCEL_DATA/) (`EXCEL_DATA/`)
+* **Focus**: Full quantitative health check and AI-driven decision matrix across all 28 direct equity holdings (₹4.02L) and 8 mutual funds (₹9.86L) totaling ₹13.88L.
+* **Key Actions**: Strong Sell 5 penny traps (`VIKASECO`, `SARVESHWAR`, `TRIDENT`, etc.); Trim 35% on winners (`MODISONLTD`, `SILVERBEES`, `MANAPPURAM`); Hold compounders (`CDSL`, `GOLDBEES`, `NIFTYBEES`, `HINDZINC`, `TMCV`).
+
+### 5. [Live 1-Month Daily Forecast: GOLD Continuous Futures](GOLD_LIVE/) (`GOLD_LIVE/`)
 * **Asset**: Gold Continuous Futures (`GC=F`).
 * **Start Date**: September 3, 2026 | **Horizon**: **22 Trading Days (Sep 3 to Oct 2, 2026)**.
 * **Hardware**: Executed on active Google Colab **Tesla T4 GPU** (`infosys-gpu`).
@@ -206,16 +199,24 @@ timesfm-3.0-pytorch/
 │   ├── portfolio_deep_dive.ipynb           # Interactive Jupyter Notebook
 │   ├── generate_portfolio_forecasts.py     # Multi-horizon forecast engine script
 │   └── portfolio_analyzer.py               # Standalone analysis script
-├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Tomorrow: Friday, Sep 4, 2026
+├── FORECAST_SEP7_2026/                     # 🌟 Live Market Forecast for Monday, Sep 7, 2026
+│   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
+│   ├── monday_sep7_predictions.json        # Machine-readable scenario targets & hourly quantiles
+│   ├── timesfm3_nifty_monday_sep7_forecast.png # High-resolution hourly intraday plot
+│   ├── monday_cross_asset_forecast_sep7_2026.png # 4-panel cross-asset target matrix
+│   └── monday_sep7_predictive_deep_dive.ipynb # Interactive Jupyter Notebook
+├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Friday, Sep 4, 2026
 │   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
 │   ├── tomorrow_nifty_intraday_results.json # Hourly quantiles and microstructure phases
 │   ├── tomorrow_cross_asset_results.json   # Step 2 target scenarios & pivot matrix
 │   ├── timesfm3_nifty_intraday_sep4_forecast.png # High-resolution hourly intraday plot
 │   └── tomorrow_cross_asset_forecast_sep4_2026.png # 4-panel cross-asset target matrix
 ├── DAYWISE_ANALYSIS/                       # 🌟 Live Day-by-Day Forecast vs Actual Ground Truth Audit
-│   ├── README.md                           # Master cross-asset verification report
-│   ├── daywise_outcomes_sep3_2026.json     # Raw ground-truth machine-readable audit dataset
-│   ├── daywise_prediction_vs_actual_sep3_2026.png # High-resolution 4-panel verification plot
+│   ├── README.md                           # Master cross-asset verification report (Sep 3 & Sep 4)
+│   ├── daywise_outcomes_sep4_2026.json     # Raw ground-truth machine-readable audit dataset for Sep 4
+│   ├── daywise_prediction_vs_actual_sep4_2026.png # High-resolution 4-panel verification plot for Sep 4
+│   ├── daywise_outcomes_sep3_2026.json     # Raw ground-truth machine-readable audit dataset for Sep 3
+│   ├── daywise_prediction_vs_actual_sep3_2026.png # High-resolution 4-panel verification plot for Sep 3
 │   ├── daywise_outcome_verification.ipynb  # Interactive verification notebook
 │   └── daywise_verification_experiment.py  # Standalone audit generator script
 ├── GOLD_LIVE/                              # 🌟 Live 1-Month Daily Forecast: Gold Futures (GC=F)

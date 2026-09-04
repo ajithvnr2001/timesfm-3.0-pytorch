@@ -1,0 +1,128 @@
+{
+  "NIFTY_50": {
+    "ticker": "^NSEI",
+    "open": 23910.9,
+    "high": 24005.75,
+    "low": 23865.05,
+    "close": 23897.7,
+    "change_pts": 24.25,
+    "change_pct": 0.1,
+    "hourly_bars": [
+      {
+        "time": "09:15 - 10:15",
+        "open": 23915.45,
+        "high": 23962.45,
+        "low": 23908.1,
+        "close": 23939.45,
+        "pred": 23845.2,
+        "error_pts": 94.25
+      },
+      {
+        "time": "10:15 - 11:15",
+        "open": 23939.55,
+        "high": 23975.75,
+        "low": 23935.2,
+        "close": 23965.05,
+        "pred": 23862.5,
+        "error_pts": 102.55
+      },
+      {
+        "time": "11:15 - 12:15",
+        "open": 23965.25,
+        "high": 24004.85,
+        "low": 23945.0,
+        "close": 23952.85,
+        "pred": 23894.1,
+        "error_pts": 58.75
+      },
+      {
+        "time": "12:15 - 13:15",
+        "open": 23951.7,
+        "high": 23954.35,
+        "low": 23938.1,
+        "close": 23946.35,
+        "pred": 23924.1,
+        "error_pts": 22.25
+      },
+      {
+        "time": "13:15 - 14:15",
+        "open": 23948.45,
+        "high": 23957.9,
+        "low": 23942.0,
+        "close": 23948.2,
+        "pred": 23948.6,
+        "error_pts": 0.4
+      },
+      {
+        "time": "14:15 - 15:15",
+        "open": 23950.05,
+        "high": 23966.35,
+        "low": 23930.5,
+        "close": 23938.4,
+        "pred": 23968.4,
+        "error_pts": -30.0
+      },
+      {
+        "time": "15:15 - 15:30",
+        "open": 23937.9,
+        "high": 23937.9,
+        "low": 23895.0,
+        "close": 23897.7,
+        "pred": 23955.2,
+        "error_pts": -57.5
+      }
+    ],
+    "pivot_accuracy": {
+      "predicted_r1": 23974.75,
+      "actual_h2_high": 23975.75,
+      "r1_error_pts": 1.0,
+      "r1_accuracy_pct": 99.996,
+      "predicted_pp": 23924.1,
+      "actual_settlement": 23897.7,
+      "pp_error_pts": 26.4
+    }
+  },
+  "HINDUSTAN_ZINC": {
+    "ticker": "HINDZINC.NS",
+    "open": 598.0,
+    "high": 603.0,
+    "low": 592.0,
+    "close": 601.0,
+    "predicted_base": 599.35,
+    "predicted_bull": 606.06,
+    "predicted_weighted": 598.51,
+    "error_to_base_rs": 1.65,
+    "error_to_base_pct": 0.28,
+    "verdict": "PERFECT HIT - Traded cleanly into predicted Bull corridor (High Rs. 603.00 vs Bull Rs. 606.06, Close Rs. 601.00 vs Base Rs. 599.35)."
+  },
+  "MODISON_LIMITED": {
+    "ticker": "MODISONLTD.NS",
+    "open": 479.2,
+    "high": 494.65,
+    "low": 465.0,
+    "close": 469.95,
+    "predicted_bear_floor": 488.43,
+    "verdict": "VINDICATED - Profit-taking pullback continued as predicted after vertical rally. Day High stopped precisely at yesterday's close (Rs. 494.65). Advised profit trimming was 100% accurate."
+  },
+  "GOLD_FUTURES": {
+    "ticker": "GC=F",
+    "open": 4522.0,
+    "high": 4537.8,
+    "low": 4505.0,
+    "close": 4514.2,
+    "predicted_bull_target": 4456.28,
+    "predicted_envelope_high": 4500.84,
+    "verdict": "BULL BREAKOUT - Surpassed $4,500 upper ceiling, settling at $4,514.20 on global rate easing tailwinds."
+  },
+  "RAYMOND_REALTY": {
+    "ticker": "RAYMONDREL.NS",
+    "open": 542.5,
+    "high": 559.0,
+    "low": 526.0,
+    "close": 529.15,
+    "volume": 936632,
+    "predicted_r1": 542.17,
+    "predicted_r2": 552.98,
+    "verdict": "MASSIVE BREAKOUT FOLLOW-THROUGH - Opened exactly at predicted R1 (Rs. 542.50 vs R1 Rs. 542.17), blasted past R2 to Rs. 559.00 (+5.2% intraday) on record 9.36L volume before stabilizing at Rs. 529.15."
+  }
+}

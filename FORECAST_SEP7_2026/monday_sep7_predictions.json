@@ -1,0 +1,160 @@
+{
+  "date": "2026-09-07",
+  "pivots": {
+    "PP": 23922.83,
+    "R1": 23980.62,
+    "S1": 23839.92,
+    "R2": 24063.53,
+    "S2": 23782.13,
+    "R3": 24121.32,
+    "S3": 23699.22
+  },
+  "hourly_forecast": [
+    {
+      "hour": 1,
+      "time": "09:15 - 10:15 IST",
+      "phase": "Weekend Sentiment Digestion / PP Test",
+      "pred": 23918.5,
+      "p25": 23880.0,
+      "p75": 23950.0,
+      "p10": 23840.0,
+      "p90": 23980.0,
+      "bias": "Neutral Reversion"
+    },
+    {
+      "hour": 2,
+      "time": "10:15 - 11:15 IST",
+      "phase": "Morning Resistance Test (R1 23,980)",
+      "pred": 23952.2,
+      "p25": 23910.0,
+      "p75": 23990.0,
+      "p10": 23860.0,
+      "p90": 24020.0,
+      "bias": "Bullish Drift"
+    },
+    {
+      "hour": 3,
+      "time": "11:15 - 12:15 IST",
+      "phase": "Pre-Noon Consolidation",
+      "pred": 23940.8,
+      "p25": 23905.0,
+      "p75": 23975.0,
+      "p10": 23850.0,
+      "p90": 24005.0,
+      "bias": "Rangebound"
+    },
+    {
+      "hour": 4,
+      "time": "12:15 - 13:15 IST",
+      "phase": "European Pre-Open Positioning",
+      "pred": 23962.4,
+      "p25": 23925.0,
+      "p75": 24000.0,
+      "p10": 23875.0,
+      "p90": 24035.0,
+      "bias": "Mild Bullish Push"
+    },
+    {
+      "hour": 5,
+      "time": "13:15 - 14:15 IST",
+      "phase": "Afternoon Trend Continuation",
+      "pred": 23985.6,
+      "p25": 23940.0,
+      "p75": 24030.0,
+      "p10": 23890.0,
+      "p90": 24065.0,
+      "bias": "R1 Challenge"
+    },
+    {
+      "hour": 6,
+      "time": "14:15 - 15:15 IST",
+      "phase": "Power Hour Institutional Inflows",
+      "pred": 24012.8,
+      "p25": 23965.0,
+      "p75": 24060.0,
+      "p10": 23910.0,
+      "p90": 24095.0,
+      "bias": "24,000 Call Wall Challenge"
+    },
+    {
+      "hour": 7,
+      "time": "15:15 - 15:30 IST",
+      "phase": "Closing Settlement Auction",
+      "pred": 23995.5,
+      "p25": 23950.0,
+      "p75": 24040.0,
+      "p10": 23900.0,
+      "p90": 24075.0,
+      "bias": "Settlement near 24,000"
+    }
+  ],
+  "cross_asset": {
+    "NIFTY_50": {
+      "ticker": "^NSEI",
+      "last_close": 23897.7,
+      "pivots": {
+        "PP": 23922.83,
+        "R1": 23980.62,
+        "S1": 23839.92,
+        "R2": 24063.53,
+        "S2": 23782.13,
+        "R3": 24121.32,
+        "S3": 23699.22
+      },
+      "expected_close_monday": 23995.5,
+      "trading_range_monday": [
+        23840.0,
+        24095.0
+      ],
+      "options_focus": "Sep 10 Expiry (24,000 CE & 23,900 PE)"
+    },
+    "HINDUSTAN_ZINC": {
+      "ticker": "HINDZINC.NS",
+      "last_close": 601.0,
+      "step_3_forecast": {
+        "bear": 594.2,
+        "base": 604.8,
+        "bull": 612.5,
+        "weighted": 604.1,
+        "envelope_lower": 588.0,
+        "envelope_upper": 618.5
+      }
+    },
+    "MODISON_LIMITED": {
+      "ticker": "MODISONLTD.NS",
+      "last_close": 469.95,
+      "step_3_forecast": {
+        "bear": 458.0,
+        "base": 476.5,
+        "bull": 488.2,
+        "weighted": 474.8,
+        "envelope_lower": 450.0,
+        "envelope_upper": 495.0
+      }
+    },
+    "RAYMOND_REALTY": {
+      "ticker": "RAYMONDREL.NS",
+      "last_close": 529.15,
+      "step_2_forecast": {
+        "bear": 525.87,
+        "base": 538.83,
+        "bull": 548.91,
+        "weighted": 538.11,
+        "envelope_lower": 515.7,
+        "envelope_upper": 561.51
+      }
+    },
+    "GOLD_FUTURES": {
+      "ticker": "GC=F",
+      "last_close": 4514.2,
+      "step_3_forecast": {
+        "bear": 4480.0,
+        "base": 4525.0,
+        "bull": 4550.0,
+        "weighted": 4520.0,
+        "envelope_lower": 4460.0,
+        "envelope_upper": 4570.0
+      }
+    }
+  }
+}
