@@ -7,11 +7,11 @@
 
 | Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
 | :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. 5555.00** | Rs. 6208.52 | **Rs. 4995.14** | Rs. 4050.46 |
-| **Terminal Error (%)** | — | +11.76% (Exploded) | **-10.08%** | -27.08% |
-| **Multi-Year MAE** | — | Rs. 636.43 | — | **Rs. 846.42** |
-| **Multi-Year MAPE** | — | 14.36% | — | **16.78%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **61.7% of all trading days** |
+| **Terminal Price** | **Rs. 5555.00** | Rs. 6208.52 | **Rs. 3488.48** | Rs. 3023.34 |
+| **Terminal Error (%)** | — | +11.76% (Exploded) | **-37.20%** | -45.57% |
+| **Multi-Year MAE** | — | Rs. 636.43 | — | **Rs. 1328.12** |
+| **Multi-Year MAPE** | — | 14.36% | — | **26.36%** |
+| **Scenario Envelope Coverage** | — | 0% | — | **18.3% of all trading days** |
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `74fce1e5`
+* **Ingress Message ID**: `9ebfd44e`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.

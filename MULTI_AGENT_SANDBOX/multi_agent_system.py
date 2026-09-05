@@ -58,6 +58,24 @@ try:
 except ImportError:
     HAS_TIMESFM = False
 
+# Statement-driven scenario builder and honest volatility forecaster
+try:
+    from scenario_builder import build_scenarios
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.scenario_builder import build_scenarios
+    except ImportError:
+        build_scenarios = None
+
+try:
+    from covfree_forecaster import forecast_covfree
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+    except ImportError:
+        forecast_covfree = None
+
+
 
 # ==============================================================================
 # A2A (Agent-to-Agent) Communication Protocol Standards
@@ -137,14 +155,25 @@ class MainIngestionAgent:
         ctx_len = min(64, len(train_df))
         context_series = train_df["Close"].values[-ctx_len:].astype(float).tolist()
 
-        # Extract/Heuristic fundamental valuation (Bear, Base, Bull)
-        eps = max(1.0, last_price / 20.0) # Conservative baseline EPS
-        scenarios = {
-            "bear": {"probability": 0.25, "target_price": eps * 16.0, "label": "Bear (16x P/E)"},
-            "base": {"probability": 0.50, "target_price": eps * 22.0, "label": "Base (22x P/E)"},
-            "bull": {"probability": 0.25, "target_price": eps * 27.5, "label": "Bull (27.5x P/E)"}
-        }
-        weighted_target = sum(s["probability"] * s["target_price"] for s in scenarios.values())
+        # Statement-driven fundamental valuation (Bear, Base, Bull) via scenario_builder
+        scenarios = None
+        if build_scenarios is not None:
+            try:
+                fund_res = build_scenarios(ticker, current_price=last_price, as_of=cutoff_date)
+                scenarios = fund_res["scenarios"]
+                weighted_target = fund_res["weighted_target"]
+                print(f"[{self.agent_id}] Statement-driven Valuation (EPS={fund_res['eps']:.2f} via {fund_res['eps_source']}, Sector P/E={fund_res['sector_pe']:.1f}, CAGR={fund_res['eps_cagr']}):")
+            except Exception as e:
+                print(f"[{self.agent_id}] scenario_builder notice: {e}. Using fallback.")
+
+        if scenarios is None:
+            eps = max(1.0, last_price / 20.0) # Conservative baseline EPS
+            scenarios = {
+                "bear": {"probability": 0.25, "target_pe": 16.0, "target_price": round(eps * 16.0, 2), "label": "Bear (16x P/E)"},
+                "base": {"probability": 0.50, "target_pe": 22.0, "target_price": round(eps * 22.0, 2), "label": "Base (22x P/E)"},
+                "bull": {"probability": 0.25, "target_pe": 27.5, "target_price": round(eps * 27.5, 2), "label": "Bull (27.5x P/E)"}
+            }
+            weighted_target = sum(s["probability"] * s["target_price"] for s in scenarios.values())
 
         print(f"[{self.agent_id}] Synthesized 3-Branch Fundamental Scenarios:")
         print(f"  • Bear (25%): Rs. {scenarios['bear']['target_price']:.2f}")
@@ -152,19 +181,38 @@ class MainIngestionAgent:
         print(f"  • Bull (25%): Rs. {scenarios['bull']['target_price']:.2f}")
         print(f"  • Expected Target: Rs. {weighted_target:.2f}")
 
-        # Construct Dynamic S-curve Covariates for TimesFM 3.0
-        k = 0.006
-        t0 = horizon * 0.45
+        # Construct Dynamic Covariates: Honest volatility blend via covfree_forecaster
+        ann_vol = 0.25
+        if len(context_series) >= 2:
+            ctx_arr = np.array(context_series, dtype=float)
+            returns = np.diff(ctx_arr) / ctx_arr[:-1]
+            std_v = float(np.std(returns) * np.sqrt(252))
+            if not np.isnan(std_v) and std_v > 0:
+                ann_vol = std_v
+
         covariates = {}
         for sc_name, sc_data in scenarios.items():
             tgt = sc_data["target_price"]
             cov = np.zeros(ctx_len + horizon, dtype=float)
             cov[:ctx_len] = [(c - last_price) / 500.0 for c in context_series]
-            for h in range(horizon):
-                step = h + 1
-                prog = 1.0 / (1.0 + np.exp(-k * (step - t0)))
-                p_proj = last_price + prog * (tgt - last_price)
-                cov[ctx_len + h] = (p_proj - last_price) / 500.0
+            if forecast_covfree is not None:
+                try:
+                    p_proj, _, _ = forecast_covfree(last_price, tgt, ann_vol, horizon)
+                    cov[ctx_len:] = (p_proj - last_price) / 500.0
+                except Exception:
+                    k = 0.006
+                    t0 = horizon * 0.45
+                    for h in range(horizon):
+                        step = h + 1
+                        prog = 1.0 / (1.0 + np.exp(-k * (step - t0)))
+                        cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
+            else:
+                k = 0.006
+                t0 = horizon * 0.45
+                for h in range(horizon):
+                    step = h + 1
+                    prog = 1.0 / (1.0 + np.exp(-k * (step - t0)))
+                    cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
             covariates[sc_name] = cov.tolist()
 
         # Package into strict A2A Message (Air-gapped payload)
@@ -293,9 +341,26 @@ class ProcessSandboxAgent:
                 forecast_results[sc_name] = s_preds
             else:
                 tgt = scenarios[sc_name]["target_price"]
-                k = 0.006
-                t0 = horizon * 0.45
-                s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
+                s_preds = None
+                if forecast_covfree is not None:
+                    try:
+                        if len(ctx) >= 2:
+                            returns = np.diff(ctx) / ctx[:-1]
+                            ann_vol = float(np.std(returns) * np.sqrt(252))
+                            if np.isnan(ann_vol) or ann_vol <= 0:
+                                ann_vol = 0.25
+                        else:
+                            ann_vol = 0.25
+                        point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
+                        s_preds = point.tolist()
+                        forecast_results[f"{sc_name}_q10"] = q10.tolist()
+                        forecast_results[f"{sc_name}_q90"] = q90.tolist()
+                    except Exception as ex:
+                        print(f"[{self.agent_id}] forecast_covfree fallback notice: {ex}")
+                if s_preds is None:
+                    k = 0.006
+                    t0 = horizon * 0.45
+                    s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
                 forecast_results[sc_name] = s_preds
 
         # 3. Weighted Path

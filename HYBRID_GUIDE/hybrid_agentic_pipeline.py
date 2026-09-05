@@ -59,6 +59,25 @@ try:
 except ImportError:
     HAS_OPENAI = False
 
+# Statement-driven scenario builder and honest volatility forecaster
+try:
+    from scenario_builder import build_scenarios
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.scenario_builder import build_scenarios
+    except ImportError:
+        build_scenarios = None
+
+try:
+    from covfree_forecaster import forecast_covfree, annualized_vol
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree, annualized_vol
+    except ImportError:
+        forecast_covfree = None
+        annualized_vol = None
+
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Strict Zero-Leakage Hybrid LLM + Exa + TimesFM 3.0 Forecasting Pipeline")
@@ -268,29 +287,48 @@ You MUST output a 3-branch scenario tree:
 
     # Offline / Heuristic Mode
     if provider == "heuristic" or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
-        eps_match = re.search(r"(?:Diluted EPS|EPS)[^\d]*([\d,]+\.?\d*)", effective_text, re.IGNORECASE)
-        eps = float(eps_match.group(1).replace(",", "")) if eps_match else max(1.0, current_price / 20.0)
-        trailing_pe = current_price / eps
-        sector_pe = 38.0
+        fund_res = None
+        if build_scenarios is not None:
+            try:
+                fund_res = build_scenarios(ticker, current_price=current_price, as_of=cutoff_date)
+            except Exception as e:
+                print(f"  • scenario_builder notice: {e}. Falling back to statement regex.")
 
-        if mode == "backtest":
-            # Formulate 3 discrete scenarios
-            bear_tgt = eps * 16.0
-            base_tgt = eps * 22.0
-            bull_tgt = eps * 27.5
-            weighted_tgt = (0.25 * bear_tgt) + (0.50 * base_tgt) + (0.25 * bull_tgt)
-
-            scenarios = {
-                "bear": {"probability": 0.25, "target_price": bear_tgt, "target_pe": 16.0},
-                "base": {"probability": 0.50, "target_price": base_tgt, "target_pe": 22.0},
-                "bull": {"probability": 0.25, "target_price": bull_tgt, "target_pe": 27.5}
-            }
-            print(f"  • Heuristic Scenarios: Bear = Rs. {bear_tgt:.2f} | Base = Rs. {base_tgt:.2f} | Bull = Rs. {bull_tgt:.2f}")
-            print(f"  • Expected Weighted Target = Rs. {weighted_tgt:.2f}")
+        if fund_res:
+            eps = fund_res["eps"]
+            sector_pe = fund_res["sector_pe"]
+            trailing_pe = current_price / eps if eps > 0 else 20.0
+            scenarios = fund_res["scenarios"]
+            weighted_tgt = fund_res["weighted_target"]
+            print(f"  • Statement-driven Fundamental Scenarios (via scenario_builder, EPS={eps:.2f}, Sector P/E={sector_pe:.1f}):")
+            print(f"    Bear = Rs. {scenarios['bear']['target_price']:.2f} | Base = Rs. {scenarios['base']['target_price']:.2f} | Bull = Rs. {scenarios['bull']['target_price']:.2f}")
+            print(f"    Expected Weighted Target = Rs. {weighted_tgt:.2f}")
+            if mode != "backtest":
+                scenarios = None
         else:
-            target_multiple = min(sector_pe * 0.60, max(18.0, trailing_pe * 1.5))
-            weighted_tgt = eps * target_multiple
-            scenarios = None
+            eps_match = re.search(r"(?:Diluted EPS|EPS)[^\d]*([\d,]+\.?\d*)", effective_text, re.IGNORECASE)
+            eps = float(eps_match.group(1).replace(",", "")) if eps_match else max(1.0, current_price / 20.0)
+            trailing_pe = current_price / eps
+            sector_pe = 38.0
+
+            if mode == "backtest":
+                # Formulate 3 discrete scenarios
+                bear_tgt = eps * 16.0
+                base_tgt = eps * 22.0
+                bull_tgt = eps * 27.5
+                weighted_tgt = (0.25 * bear_tgt) + (0.50 * base_tgt) + (0.25 * bull_tgt)
+
+                scenarios = {
+                    "bear": {"probability": 0.25, "target_price": bear_tgt, "target_pe": 16.0},
+                    "base": {"probability": 0.50, "target_price": base_tgt, "target_pe": 22.0},
+                    "bull": {"probability": 0.25, "target_price": bull_tgt, "target_pe": 27.5}
+                }
+                print(f"  • Heuristic Scenarios: Bear = Rs. {bear_tgt:.2f} | Base = Rs. {base_tgt:.2f} | Bull = Rs. {bull_tgt:.2f}")
+                print(f"  • Expected Weighted Target = Rs. {weighted_tgt:.2f}")
+            else:
+                target_multiple = min(sector_pe * 0.60, max(18.0, trailing_pe * 1.5))
+                weighted_tgt = eps * target_multiple
+                scenarios = None
 
         return {
             "trailing_eps": eps,
@@ -424,11 +462,23 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
 
         cov_path = np.zeros(ctx_len + horizon, dtype=np.float32)
         cov_path[:ctx_len] = (df["Close"].values - last_price) / 100.0
-        for h in range(horizon):
-            step = h + 1
-            progress = 1.0 / (1.0 + np.exp(-k * (step - t0)))
-            projected = last_price + progress * (target_price - last_price)
-            cov_path[ctx_len + h] = (projected - last_price) / 100.0
+        if forecast_covfree is not None:
+            try:
+                ann_vol = annualized_vol(df["Close"]) if annualized_vol else 0.25
+                p_proj, _, _ = forecast_covfree(last_price, target_price, ann_vol, horizon)
+                cov_path[ctx_len:] = (p_proj - last_price) / 100.0
+            except Exception:
+                for h in range(horizon):
+                    step = h + 1
+                    progress = 1.0 / (1.0 + np.exp(-k * (step - t0)))
+                    projected = last_price + progress * (target_price - last_price)
+                    cov_path[ctx_len + h] = (projected - last_price) / 100.0
+        else:
+            for h in range(horizon):
+                step = h + 1
+                progress = 1.0 / (1.0 + np.exp(-k * (step - t0)))
+                projected = last_price + progress * (target_price - last_price)
+                cov_path[ctx_len + h] = (projected - last_price) / 100.0
         batch_past_future.append(cov_path)
 
     context_tensor = np.stack(batch_contexts, axis=0)
@@ -459,12 +509,30 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
         for i in range(batch_size):
             last_p = float(batch_train_dfs[i].iloc[-1]["Close"])
             tgt_p = batch_valuations[i]["fair_value_target"]
-            k = batch_valuations[i].get("sigmoid_steepness", 0.18)
-            t0 = batch_valuations[i].get("sigmoid_midpoint", horizon / 2.0)
-            p = np.array([last_p + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt_p - last_p) for h in range(horizon)])
+            c_series = batch_train_dfs[i]["Close"]
+            ann_vol = 0.25
+            if annualized_vol is not None:
+                try:
+                    ann_vol = annualized_vol(c_series)
+                    if np.isnan(ann_vol) or ann_vol <= 0:
+                        ann_vol = 0.25
+                except Exception:
+                    ann_vol = 0.25
+            p = None
+            if forecast_covfree is not None:
+                try:
+                    p, q10, q90 = forecast_covfree(last_p, tgt_p, ann_vol, horizon)
+                except Exception as ex:
+                    print(f"  • forecast_covfree fallback notice: {ex}")
+            if p is None:
+                k = batch_valuations[i].get("sigmoid_steepness", 0.18)
+                t0 = batch_valuations[i].get("sigmoid_midpoint", horizon / 2.0)
+                p = np.array([last_p + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt_p - last_p) for h in range(horizon)])
+                q10 = p * 0.90
+                q90 = p * 1.10
             preds.append(p)
-            q10s.append(p * 0.90)
-            q90s.append(p * 1.10)
+            q10s.append(q10)
+            q90s.append(q90)
         preds = np.array(preds)
         q10s = np.array(q10s)
         q90s = np.array(q90s)
