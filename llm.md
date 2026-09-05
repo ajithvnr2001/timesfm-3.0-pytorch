@@ -412,17 +412,17 @@ ALL TESTS PASSED
 ### Level 2: Subsystem & API Connectivity Testing
 
 #### Test 2A: Test AkashML GLM-5.3 Semantic Reasoner
-Verifies API authentication, JSON extraction, and response parsing:
+Verifies API authentication, neural inference, and response parsing:
 ```bash
 python3 -c "
 import sys
 sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
 from llm_reasoner import invoke_akashml_reasoner
-resp = invoke_akashml_reasoner('Output valid JSON with key status=OK: {"status": "OK"}')
-print('AkashML Status:', resp.get('status'))
+resp = invoke_akashml_reasoner('Output valid JSON with key status=OK: {\"status\": \"OK\"}')
+print('AkashML Success:', resp.get('success'), '| Model:', resp.get('model'))
 "
 ```
-*Expected Result*: `AkashML Status: OK`
+*Expected Result*: `AkashML Success: True | Model: zai-org/GLM-5.3`
 
 #### Test 2B: Test Exa Neural Search Pre-Cutoff Ingestion
 Verifies pre-cutoff date enforcement and regulatory boilerplate filtering:
