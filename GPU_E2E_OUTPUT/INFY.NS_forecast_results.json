@@ -1,0 +1,41 @@
+{
+  "ticker": "INFY.NS",
+  "mode": "backtest",
+  "is_anonymized": true,
+  "last_price": 1429.6358642578125,
+  "fundamental_valuation": {
+    "trailing_eps": 71.48179321289062,
+    "trailing_pe": 20.0,
+    "sector_pe": 38.0,
+    "fair_value_target": 1563.6642265319824,
+    "scenarios": {
+      "bear": {
+        "probability": 0.25,
+        "target_price": 1143.70869140625,
+        "target_pe": 16.0
+      },
+      "base": {
+        "probability": 0.5,
+        "target_price": 1572.5994506835937,
+        "target_pe": 22.0
+      },
+      "bull": {
+        "probability": 0.25,
+        "target_price": 1965.7493133544922,
+        "target_pe": 27.5
+      }
+    },
+    "sigmoid_steepness": 0.18,
+    "sigmoid_midpoint": 7.0,
+    "is_anonymized": true
+  },
+  "terminal_prediction": 1538.1925048828125,
+  "p10_terminal": 1533.1024169921875,
+  "p90_terminal": 1544.2838134765625,
+  "plot_saved": "/content/gpu_output/INFY.NS_forecast_plot.png",
+  "metrics": {
+    "mae": 56.154532296316965,
+    "mape": 3.9896879026422902
+  },
+  "envelope_coverage_pct": 100.0
+}

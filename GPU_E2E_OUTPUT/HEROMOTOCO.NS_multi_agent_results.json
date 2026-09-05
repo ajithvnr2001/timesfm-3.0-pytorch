@@ -1,0 +1,21 @@
+{
+  "ticker": "HEROMOTOCO.NS",
+  "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
+  "a2a_message_id": "cae24b3f",
+  "metrics": {
+    "actual_terminal": 5555.0,
+    "pure_baseline_terminal": 14443.087890625,
+    "pure_baseline_error_pct": 160.00158218946893,
+    "weighted_terminal": 2869.6478271484375,
+    "weighted_error_pct": -48.34117322865099,
+    "bull_terminal": 3467.36083984375,
+    "bull_error_pct": -37.581263009113414,
+    "pure_mae": 4380.43716821915,
+    "pure_mape": 92.86772209940213,
+    "weighted_mae": 1423.4460505374775,
+    "weighted_mape": 28.38709790410028,
+    "envelope_coverage_pct": 17.94871794871795
+  },
+  "chart_saved": "/content/timesfm_repo/MULTI_AGENT_SANDBOX/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png",
+  "report_saved": "/content/timesfm_repo/MULTI_AGENT_SANDBOX/test_run_output/HEROMOTOCO.NS_executive_report.md"
+}

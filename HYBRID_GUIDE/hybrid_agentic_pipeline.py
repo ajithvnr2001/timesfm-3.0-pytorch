@@ -481,27 +481,23 @@ def execute_hybrid_forecaster(batch_train_dfs: list, batch_valuations: list, hor
                 cov_path[ctx_len + h] = (projected - last_price) / 100.0
         batch_past_future.append(cov_path)
 
-    context_tensor = np.stack(batch_contexts, axis=0)
-    past_only_tensor = np.expand_dims(np.stack(batch_past_only, axis=0), axis=1)
-    past_future_tensor = np.expand_dims(np.stack(batch_past_future, axis=0), axis=1)
-
     device = "cuda" if (HAS_TORCH and torch.cuda.is_available()) else "cpu"
     print(f"  • Running TimesFM 3.0 on {device}...")
 
     if HAS_TIMESFM:
         forecaster = TimesFM3Forecaster.from_pretrained("google/timesfm-3.0-pytorch", device=device)
-        res = forecaster.predict(
-            context=context_tensor,
+        batch_results = list(forecaster.predict_batch(
+            contexts=batch_contexts,
             horizon=horizon,
-            past_only_covariates=past_only_tensor,
-            past_future_covariates=past_future_tensor,
+            past_only_covariates=batch_past_only,
+            past_future_covariates=batch_past_future,
             padding_mode="edge",
             return_quantiles=True,
             make_positive=True
-        )
-        preds = res.forecast[:, :horizon].astype(float)
-        q10s = res.quantiles[:, :horizon, 0].astype(float)
-        q90s = res.quantiles[:, :horizon, 8].astype(float)
+        ))
+        preds = np.array([r.forecast[:horizon].astype(float) for r in batch_results])
+        q10s = np.array([r.quantiles[:horizon, 0].astype(float) for r in batch_results])
+        q90s = np.array([r.quantiles[:horizon, 8].astype(float) for r in batch_results])
     else:
         preds = []
         q10s = []
