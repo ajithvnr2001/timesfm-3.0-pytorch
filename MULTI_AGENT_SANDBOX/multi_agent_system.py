@@ -237,6 +237,12 @@ class MainIngestionAgent:
                     cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
             covariates[sc_name] = cov.tolist()
 
+        # Macro 1-year drift and EMA200 trend
+        full_close = train_df["Close"].values.astype(float)
+        ret_1y = float((full_close[-1] - full_close[-min(252, len(full_close))]) / full_close[-min(252, len(full_close))])
+        ema200 = float(train_df["Close"].ewm(span=200).mean().iloc[-1]) if len(train_df) >= 50 else float(np.mean(full_close))
+        is_downtrend = bool((last_price < ema200) and (ret_1y < -0.05))
+
         # Relative volume ratio (normalized to historical trailing mean)
         vol_series = train_df["Volume"].values[-ctx_len:].astype(float) if "Volume" in train_df else np.ones(ctx_len)
         mean_vol = float(np.mean(vol_series)) if len(vol_series) > 0 else 1.0
@@ -254,7 +260,8 @@ class MainIngestionAgent:
             "past_volume_ratio": norm_vol,
             "covariates": covariates,
             "scenarios": scenarios,
-            "weighted_target": weighted_target
+            "weighted_target": weighted_target,
+            "macro_momentum": {"ret_1y": ret_1y, "is_downtrend": is_downtrend}
         }
         sec_meta = {
             "isolation_level": "AIR_GAPPED_NUMERICAL",
@@ -362,8 +369,15 @@ class ProcessSandboxAgent:
                     steps += step_h
                 forecast_results["pure_baseline"] = p_preds
         else:
-            # Empirical time-series momentum fallback conditioned on historical drift
-            if len(ctx) >= 5:
+            # Empirical time-series momentum fallback conditioned on historical macro drift
+            macro_mom = payload.get("macro_momentum", {})
+            is_down = macro_mom.get("is_downtrend", False)
+            ret_1y = macro_mom.get("ret_1y", 0.0)
+
+            if is_down and ret_1y < 0:
+                # Structural bear market: baseline reflects annual negative momentum
+                daily_drift = float(max(-0.002, min(-0.0003, ret_1y / 252.0)))
+            elif len(ctx) >= 5:
                 rets = np.diff(ctx) / ctx[:-1]
                 weights = np.exp(np.linspace(-1.5, 0, len(rets)))
                 weights /= weights.sum()

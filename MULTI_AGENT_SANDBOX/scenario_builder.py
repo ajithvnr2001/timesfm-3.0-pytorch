@@ -78,8 +78,28 @@ def get_comprehensive_financial_data(tk, as_of=None, current_price=None):
     latest_q_eps = q_eps[0] if q_eps else None
     run_rate_eps = (latest_q_eps * 4.0) if (latest_q_eps and latest_q_eps > 0) else None
 
+    # 1Y return and EMA200 trend
+    is_downtrend = False
+    ret_1y = 0.0
+    try:
+        hist = tk.history(period="max")
+        train_c = hist.loc[hist.index <= as_of]["Close"] if as_of else hist["Close"]
+        if len(train_c) >= 252:
+            ret_1y = float((train_c.iloc[-1] - train_c.iloc[-252]) / train_c.iloc[-252])
+        elif len(train_c) > 0:
+            ret_1y = float((train_c.iloc[-1] - train_c.iloc[0]) / train_c.iloc[0])
+        ema200 = float(train_c.ewm(span=200).mean().iloc[-1]) if len(train_c) >= 50 else float(train_c.mean())
+        if current_price:
+            is_downtrend = (current_price < ema200) and (ret_1y < -0.05)
+    except Exception:
+        pass
+
     # Effective EPS priority selection
-    if forward_eps and forward_eps > (trailing_eps or 0) * 1.1:
+    if is_downtrend and earn_g < 0.08:
+        # De-rating regime: use conservative trailing EPS (forward estimates risk downward revision)
+        eff_eps = float(trailing_eps) if (trailing_eps and trailing_eps > 0) else (float(current_price) / 20.0 if current_price else 10.0)
+        eps_source = "trailing_ttm_derating"
+    elif forward_eps and forward_eps > (trailing_eps or 0) * 1.1:
         eff_eps = float(forward_eps)
         eps_source = "analyst_forward_consensus"
     elif run_rate_eps and run_rate_eps > (trailing_eps or 0) * 1.1:
@@ -104,6 +124,8 @@ def get_comprehensive_financial_data(tk, as_of=None, current_price=None):
         "eps_source": eps_source,
         "rev_growth": rev_g,
         "earn_growth": earn_g,
+        "is_downtrend": is_downtrend,
+        "ret_1y": ret_1y,
         "info": info
     }
 
@@ -126,26 +148,30 @@ def compute_institutional_target(ticker: str, start_price: float, fin_data: dict
     earn_g = fin_data["earn_growth"]
     rev_g = fin_data["rev_growth"]
     eps_source = fin_data["eps_source"]
+    is_downtrend = fin_data.get("is_downtrend", False)
     
-    trailing_pe = (start_price / trailing_eps) if (trailing_eps and trailing_eps > 0) else sec_pe
+    trailing_pe = (start_price / trailing_eps) if (trailing_eps and trailing_eps > 0) else (start_price / base_eps)
     
-    # Multiple calibration aligned with institutional growth dynamics
-    if industry in ["Computer Hardware", "Specialty Industrial Machinery", "Precision Engineering", "Communication Equipment"]:
-        target_pe = sec_pe
-    elif industry in ["Auto Parts", "Drug Manufacturers - Specialty & Generic", "Pharmaceuticals"]:
-        target_pe = sec_pe
-    elif industry in ["Household & Personal Products", "Personal Products"]:
-        if earn_g > 1.0 or rev_g > 1.0:
-            target_pe = min(220.0, max(sec_pe, trailing_pe * 2.1))
-        else:
-            target_pe = sec_pe
+    # TWO-SIDED MULTIPLE CALIBRATION:
+    # 1. De-rating regime: sluggish earnings (<8%) in a structural downtrend (e.g. TCS)
+    if is_downtrend and earn_g < 0.08:
+        target_pe = round(min(17.0, max(12.0, trailing_pe * (0.70 + earn_g * 1.5))), 1)
+        regime = "DE_RATING_BEAR"
+    # 2. Super-growth consumer FMCG multiple expansion
+    elif industry in ["Household & Personal Products", "Personal Products"] and (earn_g > 1.0 or rev_g > 1.0):
+        target_pe = min(220.0, max(sec_pe, trailing_pe * 2.1))
+        regime = "EXPANSION_BULL"
+    # 3. Small-cap industrial re-rating (e.g. Modison)
     elif industry in ["Electrical Equipment & Parts"]:
         target_pe = min(12.0, max(8.0, trailing_pe * 2.25))
+        regime = "RERATING_BULL"
+    # 4. Standard institutional growth benchmark
     else:
         target_pe = sec_pe
+        regime = "SECTOR_BENCHMARK"
         
     target_price = round(base_eps * target_pe, 2)
-    return target_price, base_eps, target_pe, eps_source
+    return target_price, base_eps, target_pe, eps_source, regime
 
 def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent_news=None):
     tk = yf.Ticker(ticker)
@@ -166,8 +192,8 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
     if not recent_news and as_of:
         recent_news = fetch_pre_cutoff_catalysts(ticker, as_of)
 
-    # Compute baseline institutional ground truth target
-    inst_target, base_eps, target_pe, eps_source = compute_institutional_target(ticker, current_price, fin_data)
+    # Compute baseline institutional ground truth target (two-sided)
+    inst_target, base_eps, target_pe, eps_source, regime = compute_institutional_target(ticker, current_price, fin_data)
     
     # 1. Attempt institutional AkashML LLM reasoning (zai-org/GLM-5.3) conditioned on complete data
     if use_llm and current_price and eps:
@@ -192,7 +218,7 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
             )
             sc = llm_res["scenarios"]
             wt = llm_res["weighted_target"]
-            # Ensure LLM target is bounded rationally within +/- 20% of institutional data benchmark
+            # Ensure LLM target is bounded rationally within +/- 25% of institutional data benchmark
             if 0.70 * inst_target <= wt <= 1.35 * inst_target:
                 return {
                     "ticker": ticker, "eps": eps, "eps_source": eps_src, "eps_cagr": cagr,
@@ -200,6 +226,7 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
                     "scenarios": sc, "weighted_target": wt,
                     "thesis": llm_res.get("thesis", ""),
                     "recent_news": recent_news,
+                    "regime": regime,
                     "source": llm_res.get("source", "llm_akashml")
                 }
         except Exception as e:
@@ -219,7 +246,8 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
     return {"ticker": ticker, "eps": base_eps, "eps_source": eps_src, "eps_cagr": cagr,
             "industry": industry, "sector_pe": sector_pe, "price": current_price,
             "scenarios": sc, "weighted_target": wt,
-            "thesis": f"Institutional valuation using effective EPS of Rs. {base_eps:.2f} ({eps_src}) and growth-calibrated multiple band ({base_pe}x).",
+            "regime": regime,
+            "thesis": f"Institutional valuation ({regime}) using effective EPS of Rs. {base_eps:.2f} ({eps_src}) and calibrated multiple band ({base_pe}x).",
             "source": "institutional_formula"}
 
 if __name__ == "__main__":
