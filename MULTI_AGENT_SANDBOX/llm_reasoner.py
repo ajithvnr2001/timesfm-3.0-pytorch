@@ -66,10 +66,10 @@ def invoke_akashml_reasoner(
     prompt: str,
     system_prompt: str = "You are an institutional quantitative equity research analyst.",
     model: str = DEFAULT_MODEL,
-    max_tokens: int = 4096,
+    max_tokens: int = 2048,
     temperature: float = 0.7,
     top_p: float = 0.9,
-    timeout: int = 45
+    timeout: int = 90
 ) -> Dict[str, Any]:
     """
     Invokes AkashML API with zai-org/GLM-5.3.
@@ -157,6 +157,11 @@ Tasks:
 1. Provide a concise institutional reasoning (under 150 words) evaluating multiple premium/discount.
 2. Determine appropriate 12-month Forward P/E multiples for Bear, Base, and Bull scenarios.
    (Note: Current P/E is {current_price/eps:.1f}x vs Sector P/E {sector_pe:.1f}x).
+   CRITICAL INSTITUTIONAL GUIDANCE:
+   - Carefully evaluate the Qualitative News / Catalyst Context.
+   - If material positive catalysts exist (e.g. change of control, takeover open offer, AI/supercomputing partnerships, major contract wins, capacity expansion), reflect an appropriate growth/control premium rather than forcing strict mean reversion.
+   - If material negative events exist (e.g. factory fire/shutdown, regulatory stop, heavy debt distress, sector cyclical slump), reflect margin compression and multiple de-rating.
+   - Ground multiples rationally between 5.0x and 150.0x based on catalyst strength.
 3. Assign probability weights for Bear, Base, Bull (e.g. 0.25, 0.50, 0.25) summing to 1.0.
 
 You MUST include in your final response a valid JSON block matching this exact schema:

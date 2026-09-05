@@ -183,6 +183,8 @@ class MainIngestionAgent:
                 print(f"[{self.agent_id}] Valuation Engine: {source} (EPS={fund_res['eps']:.2f} via {fund_res['eps_source']}, Sector P/E={fund_res['sector_pe']:.1f}):")
                 if thesis:
                     print(f"[{self.agent_id}] Qualitative Thesis: \"{thesis}\"")
+                if fund_res.get("recent_news"):
+                    print(f"[{self.agent_id}] Pre-Cutoff Catalysts: \"{fund_res['recent_news'][:120]}...\"")
             except Exception as e:
                 print(f"[{self.agent_id}] scenario_builder notice: {e}. Using fallback.")
 
