@@ -1,0 +1,46 @@
+{
+  "message_id": "a2a-sample-9f82",
+  "sender": "Main_Ingestion_Agent",
+  "recipient": "Process_Sandbox_Agent",
+  "protocol_version": "a2a/v1.0",
+  "timestamp": "2026-09-02T23:38:00Z",
+  "security_metadata": {
+    "isolation_level": "AIR_GAPPED_NUMERICAL",
+    "entity_masking": "ACTIVE",
+    "contains_real_ticker": false,
+    "contains_calendar_dates": false,
+    "prohibited_tokens": ["HEROMOTOCO", "HERO", "CUPID", "MODISON", "2023", "2024"]
+  },
+  "payload": {
+    "asset_pseudonym": "ASSET_ALPHA",
+    "context_length": 64,
+    "horizon": 663,
+    "last_known_scalar": 3735.57,
+    "numerical_context": [
+      3650.20, 3680.15, 3710.00, 3725.40, 3735.57
+    ],
+    "scenarios": {
+      "bear": {
+        "probability": 0.25,
+        "target_price": 2988.46,
+        "label": "Bear (16x P/E)"
+      },
+      "base": {
+        "probability": 0.50,
+        "target_price": 4109.13,
+        "label": "Base (22x P/E)"
+      },
+      "bull": {
+        "probability": 0.25,
+        "target_price": 5136.41,
+        "label": "Bull (27.5x P/E)"
+      }
+    },
+    "weighted_target": 4085.78,
+    "covariates": {
+      "bear": [-0.17, -0.11, -0.05, 0.00, -0.02, -0.05],
+      "base": [-0.17, -0.11, -0.05, 0.00, 0.01, 0.04],
+      "bull": [-0.17, -0.11, -0.05, 0.00, 0.05, 0.12]
+    }
+  }
+}

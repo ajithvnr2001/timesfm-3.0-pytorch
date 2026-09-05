@@ -210,6 +210,7 @@ timesfm-3.0-pytorch/
 │   ├── INTRADAY/                           # Hourly Index & Options Volatility scripts
 │   ├── MODISONANALYSIS/                    # MODISONLTD corporate event benchmark & filings
 │   ├── MODISON_LIVE/                       # Live Modison Ltd 1-month forecast
+│   ├── MULTI_AGENT_SANDBOX/                # Multi-Agent Triad module (v1 baseline)
 │   ├── NIFTY/                              # NIFTY 50 8-month macro benchmark
 │   ├── OPTIONS/                            # NIFTY options and volatility experiments
 │   ├── RAYMONDREL_ANALYSIS/                # Raymond Realty 22-day forecast & GDV

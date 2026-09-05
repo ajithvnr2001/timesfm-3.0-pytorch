@@ -14,7 +14,9 @@ EPS / growth / target are identical, the `as_of` argument is inert for
 fundamentals and the backtest is contaminated.
 """
 import os, sys, json
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MULTI_AGENT_SANDBOX"))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(REPO, "v2"))
+sys.path.insert(0, os.path.join(REPO, "v1", "MULTI_AGENT_SANDBOX"))
 
 import yfinance as yf
 from scenario_builder import get_comprehensive_financial_data, compute_institutional_target

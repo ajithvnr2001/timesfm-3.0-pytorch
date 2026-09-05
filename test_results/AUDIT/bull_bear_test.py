@@ -19,15 +19,15 @@ Bear cases : TCS.NS, plus a 2024 bear window for STLTECH
 import os, sys, json, warnings
 warnings.filterwarnings("ignore")
 
-REPO = "/root/timesfm_repo"
-sys.path.insert(0, REPO)
-sys.path.insert(0, os.path.join(REPO, "MULTI_AGENT_SANDBOX"))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(REPO, "v2"))
+sys.path.insert(0, os.path.join(REPO, "v1", "MULTI_AGENT_SANDBOX"))
 
 import pandas as pd
 import yfinance as yf
 from multi_agent_system import MultiAgentCoordinator
 
-OUT = os.path.join(REPO, "AUDIT", "BULL_BEAR_OUTPUT")
+OUT = os.path.join(REPO, "test_results", "AUDIT", "BULL_BEAR_OUTPUT")
 os.makedirs(OUT, exist_ok=True)
 
 CASES = [
