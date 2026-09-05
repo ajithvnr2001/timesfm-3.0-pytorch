@@ -231,6 +231,13 @@ class MainIngestionAgent:
                     cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
             covariates[sc_name] = cov.tolist()
 
+        # Relative volume ratio (normalized to historical trailing mean)
+        vol_series = train_df["Volume"].values[-ctx_len:].astype(float) if "Volume" in train_df else np.ones(ctx_len)
+        mean_vol = float(np.mean(vol_series)) if len(vol_series) > 0 else 1.0
+        if mean_vol <= 0 or np.isnan(mean_vol):
+            mean_vol = 1.0
+        norm_vol = (vol_series / mean_vol).tolist()
+
         # Package into strict A2A Message (Air-gapped payload)
         payload = {
             "asset_pseudonym": "ASSET_ALPHA",
@@ -238,6 +245,7 @@ class MainIngestionAgent:
             "horizon": horizon,
             "last_known_scalar": last_price,
             "numerical_context": context_series,
+            "past_volume_ratio": norm_vol,
             "covariates": covariates,
             "scenarios": scenarios,
             "weighted_target": weighted_target
@@ -309,36 +317,92 @@ class ProcessSandboxAgent:
 
         forecast_results = {}
 
-        # 1. Pure Baseline (Unanchored Autoregressive)
+        # Extract normalized past volume
+        vol_ratio = payload.get("past_volume_ratio")
+        if vol_ratio is not None and len(vol_ratio) == len(ctx):
+            past_only_vol = np.array(vol_ratio, dtype=np.float32).reshape(1, -1)
+        else:
+            past_only_vol = np.ones((1, len(ctx)), dtype=np.float32)
+
+        # 1. Pure Baseline (Unanchored Autoregressive with Z-Norm & Symmetric Averaging)
         print(f"[{self.agent_id}] Executing Pure TimesFM 3.0 Baseline (Unanchored)...")
         if self.forecaster:
-            curr_c = ctx.copy()
-            p_preds = []
-            steps = 0
-            while steps < horizon:
-                step_h = min(64, horizon - steps)
-                res = self.forecaster.predict(context=curr_c, horizon=step_h, padding_mode="edge", return_quantiles=False, make_positive=True)
-                patch = res.forecast[:step_h].astype(float)
-                p_preds.extend(patch)
-                curr_c = np.concatenate([curr_c[step_h:], patch.astype(np.float32)])
-                steps += step_h
-            forecast_results["pure_baseline"] = p_preds
+            try:
+                res = self.forecaster.predict(
+                    context=ctx,
+                    horizon=horizon,
+                    past_only_covariates=past_only_vol,
+                    use_znorm=True,
+                    return_quantiles=True,
+                    use_symmetric_averaging=True,
+                    make_positive=True,
+                    padding_mode="edge"
+                )
+                forecast_results["pure_baseline"] = res.forecast[:horizon].astype(float).tolist()
+                if res.quantiles is not None:
+                    forecast_results["pure_baseline_q10"] = res.quantiles[:horizon, 0].astype(float).tolist()
+                    forecast_results["pure_baseline_q90"] = res.quantiles[:horizon, 8].astype(float).tolist()
+            except Exception as e:
+                print(f"[{self.agent_id}] Pure baseline notice: {e}. Using iterative fallback.")
+                curr_c = ctx.copy()
+                p_preds = []
+                steps = 0
+                while steps < horizon:
+                    step_h = min(64, horizon - steps)
+                    res = self.forecaster.predict(context=curr_c, horizon=step_h, padding_mode="edge", return_quantiles=False, make_positive=True)
+                    patch = res.forecast[:step_h].astype(float)
+                    p_preds.extend(patch)
+                    curr_c = np.concatenate([curr_c[step_h:], patch.astype(np.float32)])
+                    steps += step_h
+                forecast_results["pure_baseline"] = p_preds
         else:
             # Mathematical extrapolation fallback
             forecast_results["pure_baseline"] = [float(last_val * (1.0 + 0.001 * h)) for h in range(horizon)]
 
-        # 2. Multi-Scenario Inferences
-        for sc_name, cov_arr in covariates.items():
-            print(f"[{self.agent_id}] Executing TimesFM 3.0 for Scenario: {sc_name.upper()}...")
-            if self.forecaster:
+        # 2. Multi-Scenario Inferences via Vectorized predict_batch
+        sc_names = list(covariates.keys())
+        sc_success = False
+
+        if self.forecaster and hasattr(self.forecaster, "predict_batch"):
+            try:
+                print(f"[{self.agent_id}] Executing TimesFM 3.0 Vectorized Scenarios ({', '.join(sc_names).upper()})...")
+                contexts = [ctx for _ in sc_names]
+                pos = [past_only_vol for _ in sc_names]
+                pfs = [np.array(covariates[sc], dtype=np.float32).reshape(1, -1) for sc in sc_names]
+
+                outs = list(self.forecaster.predict_batch(
+                    contexts=contexts,
+                    horizon=horizon,
+                    past_only_covariates=pos,
+                    past_future_covariates=pfs,
+                    ts_ids=sc_names,
+                    use_znorm=True,
+                    return_quantiles=True,
+                    use_symmetric_averaging=True,
+                    make_positive=True,
+                    padding_mode="edge"
+                ))
+
+                for o in outs:
+                    forecast_results[o.ts_id] = o.forecast[:horizon].astype(float).tolist()
+                    if o.quantiles is not None:
+                        forecast_results[f"{o.ts_id}_q10"] = o.quantiles[:horizon, 0].astype(float).tolist()
+                        forecast_results[f"{o.ts_id}_q90"] = o.quantiles[:horizon, 8].astype(float).tolist()
+                sc_success = True
+            except Exception as e:
+                print(f"[{self.agent_id}] Vectorized predict_batch notice: {e}. Falling back to single-series loop.")
+
+        if not sc_success and self.forecaster:
+            for sc_name in sc_names:
+                print(f"[{self.agent_id}] Executing TimesFM 3.0 for Scenario: {sc_name.upper()} (Single-series)...")
+                cov_np = np.array(covariates[sc_name], dtype=np.float32)
                 curr_c = ctx.copy()
                 s_preds = []
                 steps = 0
-                cov_np = np.array(cov_arr, dtype=np.float32)
                 while steps < horizon:
                     step_h = min(64, horizon - steps)
                     L = len(curr_c)
-                    past_only = np.ones((1, L), dtype=np.float32)
+                    past_only = past_only_vol[:, :L] if past_only_vol.shape[1] >= L else np.ones((1, L), dtype=np.float32)
                     past_future = np.expand_dims(cov_np[steps:steps + L + step_h], axis=0)
 
                     res = self.forecaster.predict(
@@ -347,6 +411,7 @@ class ProcessSandboxAgent:
                         past_only_covariates=past_only,
                         past_future_covariates=past_future,
                         padding_mode="edge",
+                        use_znorm=True,
                         return_quantiles=False,
                         make_positive=True
                     )
@@ -355,7 +420,10 @@ class ProcessSandboxAgent:
                     curr_c = np.concatenate([curr_c[step_h:], patch.astype(np.float32)])
                     steps += step_h
                 forecast_results[sc_name] = s_preds
-            else:
+                sc_success = True
+
+        if not sc_success:
+            for sc_name in sc_names:
                 tgt = scenarios[sc_name]["target_price"]
                 s_preds = None
                 if forecast_covfree is not None:

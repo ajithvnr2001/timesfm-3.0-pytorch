@@ -7,7 +7,7 @@
 
 | Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **30 Trading Days** | **Rs. 469.95** | Rs. 321.20 | **Rs. 583.88** | Rs. 483.39 | Rs. 394.00 | **Rs. 486.16** |
+| **30 Trading Days** | **Rs. 469.95** | Rs. 366.73 | **Rs. 586.37** | Rs. 484.03 | Rs. 391.73 | **Rs. 486.54** |
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `84e7ff1b`
+* **Ingress Message ID**: `3902f898`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.

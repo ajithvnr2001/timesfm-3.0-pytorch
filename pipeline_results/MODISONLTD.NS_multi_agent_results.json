@@ -1,12 +1,12 @@
 {
   "ticker": "MODISONLTD.NS",
   "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
-  "a2a_message_id": "84e7ff1b",
+  "a2a_message_id": "3902f898",
   "metrics": {},
   "chart_saved": "./pipeline_results/MODISONLTD.NS_multi_agent_forecast.png",
   "report_saved": "./pipeline_results/MODISONLTD.NS_executive_report.md",
   "institutional_scorecard": {
-    "timestamp": "2026-09-05T19:27:54.503405Z",
+    "timestamp": "2026-09-05T19:43:13.927650Z",
     "ticker": "MODISONLTD.NS",
     "last_close": 469.95,
     "horizon_days": 30,
@@ -25,7 +25,7 @@
       "corr_sector": 0.7
     },
     "fundamental_forensics": {
-      "audited_eps": 31.3,
+      "audited_eps": 31.31,
       "eps_source": "audited_vendor_trailing",
       "earnings_cagr": null,
       "sector_pe_benchmark": null,
@@ -35,9 +35,9 @@
       "weighted_fair_value": 497.84749999999997
     },
     "timesfm_probabilistic_forecast": {
-      "terminal_expected": 486.16,
-      "terminal_q10": 394.0,
-      "terminal_q90": 583.88
+      "terminal_expected": 486.54,
+      "terminal_q10": 386.52,
+      "terminal_q90": 596.4
     },
     "institutional_risk_and_sizing": {
       "annualized_volatility_pct": 58.74,
