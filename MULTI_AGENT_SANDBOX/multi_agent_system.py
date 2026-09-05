@@ -453,13 +453,23 @@ class ProcessSandboxAgent:
                     s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
                 forecast_results[sc_name] = s_preds
 
-        # 3. Weighted Path
-        weighted_path = (
+        # 3. Fundamental Scenario Weighted Path
+        fund_weighted = (
             scenarios["bear"]["probability"] * np.array(forecast_results["bear"]) +
             scenarios["base"]["probability"] * np.array(forecast_results["base"]) +
             scenarios["bull"]["probability"] * np.array(forecast_results["bull"])
-        ).tolist()
-        forecast_results["weighted_expected"] = weighted_path
+        )
+
+        # 4. Institutional Foundation Model Ensemble:
+        # Fuse TimesFM Empirical Market Structure with Fundamental Scenario Attractor
+        if "pure_baseline" in forecast_results:
+            pure_base_arr = np.array(forecast_results["pure_baseline"])
+            # Blend TimesFM empirical momentum with fundamental gravity (50/50 balanced fusion)
+            w_tfm = 0.50
+            fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
+            forecast_results["weighted_expected"] = fused_path
+        else:
+            forecast_results["weighted_expected"] = fund_weighted.tolist()
 
         out_msg = A2AMessage(
             sender=self.agent_id,

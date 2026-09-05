@@ -66,7 +66,7 @@ def invoke_akashml_reasoner(
     prompt: str,
     system_prompt: str = "You are an institutional quantitative equity research analyst.",
     model: str = DEFAULT_MODEL,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
     temperature: float = 0.7,
     top_p: float = 0.9,
     timeout: int = 90
@@ -154,7 +154,7 @@ Market Context:
 - Qualitative News / Catalyst Context: {recent_news or 'Standard quarterly operations'}
 
 Tasks:
-1. Provide a concise institutional reasoning (under 150 words) evaluating multiple premium/discount.
+1. Provide a concise institutional reasoning (under 80 words) evaluating multiple premium/discount.
 2. Determine appropriate 12-month Forward P/E multiples for Bear, Base, and Bull scenarios.
    (Note: Current P/E is {current_price/eps:.1f}x vs Sector P/E {sector_pe:.1f}x).
    CRITICAL INSTITUTIONAL GUIDANCE:
@@ -164,7 +164,7 @@ Tasks:
    - Ground multiples rationally between 5.0x and 150.0x based on catalyst strength.
 3. Assign probability weights for Bear, Base, Bull (e.g. 0.25, 0.50, 0.25) summing to 1.0.
 
-You MUST include in your final response a valid JSON block matching this exact schema:
+CRITICAL: Keep your internal thinking strictly under 100 words. You MUST output the final JSON block below:
 ```json
 {{
   "thesis": "<1-2 sentence institutional thesis>",

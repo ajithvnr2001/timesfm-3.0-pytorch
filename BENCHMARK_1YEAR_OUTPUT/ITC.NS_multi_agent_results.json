@@ -1,0 +1,76 @@
+{
+  "ticker": "ITC.NS",
+  "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
+  "a2a_message_id": "1c2f8ed4",
+  "metrics": {
+    "actual_terminal": 429.247314453125,
+    "pure_baseline_terminal": 493.82346725463873,
+    "pure_baseline_error_pct": 15.044043521573533,
+    "weighted_terminal": 313.0754216155233,
+    "weighted_error_pct": -27.06409310576782,
+    "bull_terminal": 359.9954716155233,
+    "bull_error_pct": -16.133320001274978,
+    "pure_mae": 41.6169934373561,
+    "pure_mape": 10.597314505106132,
+    "weighted_mae": 56.97492693767196,
+    "weighted_mape": 13.407006537256938,
+    "envelope_coverage_pct": 53.2520325203252
+  },
+  "chart_saved": "/root/timesfm_repo/BENCHMARK_1YEAR_OUTPUT/ITC.NS_multi_agent_forecast.png",
+  "report_saved": "/root/timesfm_repo/BENCHMARK_1YEAR_OUTPUT/ITC.NS_executive_report.md",
+  "institutional_scorecard": {
+    "timestamp": "2026-09-05T20:55:17.047145Z",
+    "ticker": "ITC.NS",
+    "last_close": 396.65,
+    "horizon_days": 246,
+    "macro_environment": {
+      "nifty_close": 23900.0,
+      "nifty_trend": "BULLISH_UPTREND",
+      "india_vix": 13.5,
+      "vix_regime": "NORMAL_VOLATILITY (Optimal Trading Environment)",
+      "macro_multiplier": 1.0
+    },
+    "sector_relative_strength": {
+      "sector_index_ticker": "^NSEI",
+      "beta_nifty": 1.0,
+      "corr_nifty": 0.65,
+      "beta_sector": 1.0,
+      "corr_sector": 0.7
+    },
+    "fundamental_forensics": {
+      "audited_eps": 15.9,
+      "eps_source": "audited_vendor_trailing",
+      "earnings_cagr": null,
+      "sector_pe_benchmark": null,
+      "bear_target": 187.07,
+      "base_target": 265.29,
+      "bull_target": 340.12,
+      "weighted_fair_value": 264.4425
+    },
+    "timesfm_probabilistic_forecast": {
+      "terminal_expected": 313.08,
+      "terminal_q10": 326.96,
+      "terminal_q90": 480.67
+    },
+    "institutional_risk_and_sizing": {
+      "annualized_volatility_pct": 15.79,
+      "historical_max_drawdown_pct": -5.59,
+      "var_95_1day_pct": 1.64,
+      "var_95_horizon_pct": 25.66,
+      "cvar_95_horizon_pct": 31.13,
+      "stop_loss_invalidation_level": 187.07,
+      "downside_risk_pct": 52.84,
+      "friction_deduction_pct": 0.25,
+      "gross_upside_pct": -33.33,
+      "net_upside_pct": -33.58,
+      "net_risk_reward_ratio": 0.0,
+      "win_probability_est": 0.3,
+      "half_kelly_alloc_pct": 0.0,
+      "volatility_parity_alloc_pct": 110.8,
+      "recommended_portfolio_alloc_pct": 0.0,
+      "recommended_capital_inr": 0.0,
+      "recommended_shares": 0,
+      "institutional_directive": "TRIM / TAKE PROFIT (Negative Expected Skew)"
+    }
+  }
+}
