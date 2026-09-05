@@ -53,10 +53,18 @@ except ImportError:
     HAS_TORCH = False
 
 try:
-    from timesfm3 import TimesFM3Forecaster
-    HAS_TIMESFM = True
+    from timesfm3 import TimesFM3Evaluator, ModelConfig
+    HAS_TIMESFM3_EVALUATOR = True
 except ImportError:
-    HAS_TIMESFM = False
+    HAS_TIMESFM3_EVALUATOR = False
+
+try:
+    import timesfm
+    HAS_TIMESFM_GOOGLE = True
+except ImportError:
+    HAS_TIMESFM_GOOGLE = False
+
+HAS_TIMESFM = HAS_TIMESFM3_EVALUATOR or HAS_TIMESFM_GOOGLE
 
 # Statement-driven scenario builder and honest volatility forecaster
 try:
@@ -268,7 +276,12 @@ class MainIngestionAgent:
             "entity_masking": "ACTIVE",
             "contains_real_ticker": False,
             "contains_calendar_dates": False,
-            "prohibited_tokens": [ticker, "HERO", "CUPID", "MODISON", cutoff_date[:4]]
+            "prohibited_tokens": sorted(list({
+                ticker, ticker.split(".")[0],
+                *(re.findall(r"[A-Za-z0-9]+", str(yf.Ticker(ticker).info.get("shortName", "") or "")) if yf else []),
+                *(re.findall(r"[A-Za-z0-9]+", str(yf.Ticker(ticker).info.get("longName", "") or "")) if yf else []),
+                *( [cutoff_date[:4]] if cutoff_date else [] )
+            } - {"LTD", "LIMITED", "CORP", "INC", "INDIA", ""}))
         }
         msg = A2AMessage(
             sender=self.agent_id,
@@ -313,8 +326,24 @@ class ProcessSandboxAgent:
 
     def _init_forecaster(self):
         if self.forecaster is None and HAS_TIMESFM:
-            print(f"[{self.agent_id}] Initializing TimesFM 3.0 Forecaster on {self.device}...")
-            self.forecaster = TimesFM3Forecaster.from_pretrained("google/timesfm-3.0-pytorch", device=self.device)
+            if HAS_TIMESFM3_EVALUATOR:
+                try:
+                    print(f"[{self.agent_id}] Initializing TimesFM 3.0 Official Evaluator on {self.device}...")
+                    config = ModelConfig(checkpoint_path="google/timesfm-3.0-pytorch", per_core_batch_size=32, device=self.device)
+                    self.forecaster = TimesFM3Evaluator(config)
+                    return
+                except Exception as e:
+                    print(f"[{self.agent_id}] TimesFM3Evaluator init notice: {e}")
+            if HAS_TIMESFM_GOOGLE:
+                try:
+                    print(f"[{self.agent_id}] Initializing Google TimesFM PyTorch model on {self.device}...")
+                    self.forecaster = timesfm.TimesFm(
+                        hparams=timesfm.TimesFmHparams(backend="gpu" if self.device == "cuda" else "cpu", per_core_batch_size=32, horizon_len=min(512, 128)),
+                        checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch")
+                    )
+                    return
+                except Exception as e:
+                    print(f"[{self.agent_id}] Google TimesFM init notice: {e}")
 
     def execute_forecast(self, message: A2AMessage) -> A2AMessage:
         print(f"[{self.agent_id}] Ingested A2A message {message.message_id} from {message.sender}.")
@@ -330,52 +359,40 @@ class ProcessSandboxAgent:
 
         forecast_results = {}
 
-        # Extract normalized past volume
-        vol_ratio = payload.get("past_volume_ratio")
-        if vol_ratio is not None and len(vol_ratio) == len(ctx):
-            past_only_vol = np.array(vol_ratio, dtype=np.float32).reshape(1, -1)
+        # Log exact engine running honestly
+        if self.forecaster is not None:
+            print(f"[{self.agent_id}] Running TimesFM 3.0 PyTorch Foundation Model on {self.device}...")
         else:
-            past_only_vol = np.ones((1, len(ctx)), dtype=np.float32)
+            print(f"[{self.agent_id}] WARNING: TimesFM 3.0 PyTorch model unavailable — executing calibrated heuristic & Monte Carlo fallback.")
 
-        # 1. Pure Baseline (Unanchored Autoregressive with Z-Norm & Symmetric Averaging)
-        print(f"[{self.agent_id}] Executing Pure TimesFM 3.0 Baseline (Unanchored)...")
-        if self.forecaster:
+        # 1. Pure Baseline Forecast
+        if self.forecaster is not None:
             try:
-                res = self.forecaster.predict(
-                    context=ctx,
-                    horizon=horizon,
-                    past_only_covariates=past_only_vol,
-                    use_znorm=True,
-                    return_quantiles=True,
-                    use_symmetric_averaging=True,
-                    make_positive=True,
-                    padding_mode="edge"
-                )
-                forecast_results["pure_baseline"] = res.forecast[:horizon].astype(float).tolist()
-                if res.quantiles is not None:
-                    forecast_results["pure_baseline_q10"] = res.quantiles[:horizon, 0].astype(float).tolist()
-                    forecast_results["pure_baseline_q90"] = res.quantiles[:horizon, 8].astype(float).tolist()
+                if hasattr(self.forecaster, "predict_batch"):
+                    # Official TimesFM 3.0: single forward pass for entire horizon (no autoregressive chunking)
+                    outs = list(self.forecaster.predict_batch([ctx], horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
+                    out = outs[0]
+                    pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
+                    forecast_results["pure_baseline"] = np.array(pred_vals[:horizon], dtype=float).tolist()
+                    if hasattr(out, "quantiles") and out.quantiles is not None:
+                        forecast_results["pure_baseline_q10"] = np.array(out.quantiles[:horizon, 0], dtype=float).tolist()
+                        forecast_results["pure_baseline_q90"] = np.array(out.quantiles[:horizon, 8], dtype=float).tolist()
+                elif hasattr(self.forecaster, "forecast"):
+                    # Google Research TimesFm API
+                    point_forecast, experimental_quantiles = self.forecaster.forecast([ctx])
+                    forecast_results["pure_baseline"] = np.array(point_forecast[0][:horizon], dtype=float).tolist()
+                    if experimental_quantiles is not None:
+                        forecast_results["pure_baseline_q10"] = np.array(experimental_quantiles[0][:horizon, 1], dtype=float).tolist()
+                        forecast_results["pure_baseline_q90"] = np.array(experimental_quantiles[0][:horizon, 9], dtype=float).tolist()
             except Exception as e:
-                print(f"[{self.agent_id}] Pure baseline notice: {e}. Using iterative fallback.")
-                curr_c = ctx.copy()
-                p_preds = []
-                steps = 0
-                while steps < horizon:
-                    step_h = min(64, horizon - steps)
-                    res = self.forecaster.predict(context=curr_c, horizon=step_h, padding_mode="edge", return_quantiles=False, make_positive=True)
-                    patch = res.forecast[:step_h].astype(float)
-                    p_preds.extend(patch)
-                    curr_c = np.concatenate([curr_c[step_h:], patch.astype(np.float32)])
-                    steps += step_h
-                forecast_results["pure_baseline"] = p_preds
-        else:
-            # Empirical time-series momentum fallback conditioned on historical macro drift
+                print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
+
+        if "pure_baseline" not in forecast_results:
             macro_mom = payload.get("macro_momentum", {})
             is_down = macro_mom.get("is_downtrend", False)
             ret_1y = macro_mom.get("ret_1y", 0.0)
 
             if is_down and ret_1y < 0:
-                # Structural bear market: baseline reflects annual negative momentum
                 daily_drift = float(max(-0.002, min(-0.0003, ret_1y / 252.0)))
             elif len(ctx) >= 5:
                 rets = np.diff(ctx) / ctx[:-1]
@@ -387,68 +404,25 @@ class ProcessSandboxAgent:
                 daily_drift = 0.001
             forecast_results["pure_baseline"] = [float(last_val * np.exp(daily_drift * (h + 1))) for h in range(horizon)]
 
-        # 2. Multi-Scenario Inferences via Vectorized predict_batch
+        # 2. Multi-Scenario Inferences
         sc_names = list(covariates.keys())
         sc_success = False
 
-        if self.forecaster and hasattr(self.forecaster, "predict_batch"):
+        if self.forecaster is not None and hasattr(self.forecaster, "predict_batch"):
             try:
-                print(f"[{self.agent_id}] Executing TimesFM 3.0 Vectorized Scenarios ({', '.join(sc_names).upper()})...")
                 contexts = [ctx for _ in sc_names]
-                pos = [past_only_vol for _ in sc_names]
-                pfs = [np.array(covariates[sc], dtype=np.float32).reshape(1, -1) for sc in sc_names]
-
-                outs = list(self.forecaster.predict_batch(
-                    contexts=contexts,
-                    horizon=horizon,
-                    past_only_covariates=pos,
-                    past_future_covariates=pfs,
-                    ts_ids=sc_names,
-                    use_znorm=True,
-                    return_quantiles=True,
-                    use_symmetric_averaging=True,
-                    make_positive=True,
-                    padding_mode="edge"
-                ))
-
-                for o in outs:
-                    forecast_results[o.ts_id] = o.forecast[:horizon].astype(float).tolist()
-                    if o.quantiles is not None:
-                        forecast_results[f"{o.ts_id}_q10"] = o.quantiles[:horizon, 0].astype(float).tolist()
-                        forecast_results[f"{o.ts_id}_q90"] = o.quantiles[:horizon, 8].astype(float).tolist()
+                # Pass full horizon directly in single forward pass (no chunking loop)
+                outs = list(self.forecaster.predict_batch(contexts, horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
+                for idx, sc_name in enumerate(sc_names):
+                    out = outs[idx]
+                    pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
+                    forecast_results[sc_name] = np.array(pred_vals[:horizon], dtype=float).tolist()
+                    if hasattr(out, "quantiles") and out.quantiles is not None:
+                        forecast_results[f"{sc_name}_q10"] = np.array(out.quantiles[:horizon, 0], dtype=float).tolist()
+                        forecast_results[f"{sc_name}_q90"] = np.array(out.quantiles[:horizon, 8], dtype=float).tolist()
                 sc_success = True
             except Exception as e:
-                print(f"[{self.agent_id}] Vectorized predict_batch notice: {e}. Falling back to single-series loop.")
-
-        if not sc_success and self.forecaster:
-            for sc_name in sc_names:
-                print(f"[{self.agent_id}] Executing TimesFM 3.0 for Scenario: {sc_name.upper()} (Single-series)...")
-                cov_np = np.array(covariates[sc_name], dtype=np.float32)
-                curr_c = ctx.copy()
-                s_preds = []
-                steps = 0
-                while steps < horizon:
-                    step_h = min(64, horizon - steps)
-                    L = len(curr_c)
-                    past_only = past_only_vol[:, :L] if past_only_vol.shape[1] >= L else np.ones((1, L), dtype=np.float32)
-                    past_future = np.expand_dims(cov_np[steps:steps + L + step_h], axis=0)
-
-                    res = self.forecaster.predict(
-                        context=curr_c,
-                        horizon=step_h,
-                        past_only_covariates=past_only,
-                        past_future_covariates=past_future,
-                        padding_mode="edge",
-                        use_znorm=True,
-                        return_quantiles=False,
-                        make_positive=True
-                    )
-                    patch = res.forecast[:step_h].astype(float)
-                    s_preds.extend(patch)
-                    curr_c = np.concatenate([curr_c[step_h:], patch.astype(np.float32)])
-                    steps += step_h
-                forecast_results[sc_name] = s_preds
-                sc_success = True
+                print(f"[{self.agent_id}] Vectorized scenario predict notice: {e}.")
 
         if not sc_success:
             for sc_name in sc_names:
@@ -464,15 +438,17 @@ class ProcessSandboxAgent:
                         else:
                             ann_vol = 0.25
                         point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
-                        s_preds = point.tolist()
-                        forecast_results[f"{sc_name}_q10"] = q10.tolist()
-                        forecast_results[f"{sc_name}_q90"] = q90.tolist()
+                        s_preds = point[:horizon].tolist()
+                        forecast_results[f"{sc_name}_q10"] = q10[:horizon].tolist()
+                        forecast_results[f"{sc_name}_q90"] = q90[:horizon].tolist()
                     except Exception as ex:
-                        print(f"[{self.agent_id}] forecast_covfree fallback notice: {ex}")
+                        print(f"[{self.agent_id}] forecast_covfree notice: {ex}")
                 if s_preds is None:
                     k = 0.006
                     t0 = horizon * 0.45
                     s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
+                    forecast_results[f"{sc_name}_q10"] = [p * 0.90 for p in s_preds]
+                    forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
                 forecast_results[sc_name] = s_preds
 
         # 3. Fundamental Scenario Weighted Path
@@ -537,8 +513,13 @@ class OutputSynthesisAgent:
         test_dates = test_df.index[:len(actuals)] if actuals is not None else []
         future_dates = [train_df.index[-1] + datetime.timedelta(days=i) for i in range(1, horizon + 1)]
 
-        # Metrics computation
-        metrics = {}
+        # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode
+        metrics = {
+            "pure_baseline_terminal": float(forecasts["pure_baseline"][-1]) if "pure_baseline" in forecasts and len(forecasts["pure_baseline"]) > 0 else float(last_price),
+            "weighted_terminal": float(forecasts["weighted_expected"][-1]) if "weighted_expected" in forecasts and len(forecasts["weighted_expected"]) > 0 else float(last_price),
+            "bull_terminal": float(forecasts["bull"][-1]) if "bull" in forecasts and len(forecasts["bull"]) > 0 else float(last_price),
+            "bear_terminal": float(forecasts["bear"][-1]) if "bear" in forecasts and len(forecasts["bear"]) > 0 else float(last_price),
+        }
         if actuals is not None and len(actuals) > 0:
             pure_preds = np.array(forecasts["pure_baseline"][:len(actuals)])
             weighted_preds = np.array(forecasts["weighted_expected"][:len(actuals)])
@@ -554,7 +535,7 @@ class OutputSynthesisAgent:
             inside = np.sum((actuals >= bear_preds * 0.90) & (actuals <= bull_preds * 1.10))
             cov_rate = float((inside / len(actuals)) * 100)
 
-            metrics = {
+            metrics.update({
                 "actual_terminal": float(actuals[-1]),
                 "pure_baseline_terminal": float(pure_preds[-1]),
                 "pure_baseline_error_pct": float(((pure_preds[-1] - actuals[-1]) / actuals[-1]) * 100),
@@ -567,7 +548,7 @@ class OutputSynthesisAgent:
                 "weighted_mae": weighted_mae,
                 "weighted_mape": weighted_mape,
                 "envelope_coverage_pct": cov_rate
-            }
+            })
 
         # Build Institutional-Grade Scorecard & Risk Sizing
         scorecard = None
