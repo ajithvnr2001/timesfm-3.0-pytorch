@@ -408,7 +408,9 @@ colab --auth=adc stop -s timesfm-gpu
 | `ModuleNotFoundError: No module named 'timesfm'` | TimesFM not installed in remote kernel environment | Run `colab --auth=adc install -s <name> git+https://github.com/google-research/timesfm.git`. |
 | `FileNotFoundError: /content/...` | Directory structure not created on remote VM prior to script run | Prefix script with `mkdir -p` or verify upload with `colab --auth=adc ls -s <name> content`. |
 | `401 Unauthorized / Token Expired` | ADC credentials need refresh | Check `gcloud auth application-default print-access-token` or switch to `--auth=adc`. |
-| `GPU Quota Exceeded / Unavailable` | High regional demand for T4 or A100 shapes | Fall back to alternative GPU shape (e.g. `--gpu L4`) or run the Covariate-Free CPU model directly on local machine. |
+| `503 Service Unavailable (T4)` | Google Colab compute pool in active region is temporarily at full capacity | Wait and retry after several minutes, or run the Covariate-Free CPU pipeline locally. |
+| `412 Precondition Failed (TooManyAssignmentsError)` | Account has reached concurrent VM assignment limit while another session (e.g. `[discos4]`) is active | The user tier allows limited concurrent assignments. Wait for existing session tasks or upgrade Colab quota. Do NOT terminate `[discos4]`. |
+| `GPU Quota Exceeded / Unavailable` | Account lacks entitlement for requested accelerator (e.g. L4 or A100) | Use `--gpu T4` (the entitled GPU shape) or use CPU runtime. |
 
 ---
 
