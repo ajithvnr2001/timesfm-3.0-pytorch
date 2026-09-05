@@ -362,8 +362,16 @@ class ProcessSandboxAgent:
                     steps += step_h
                 forecast_results["pure_baseline"] = p_preds
         else:
-            # Mathematical extrapolation fallback
-            forecast_results["pure_baseline"] = [float(last_val * (1.0 + 0.001 * h)) for h in range(horizon)]
+            # Empirical time-series momentum fallback conditioned on historical drift
+            if len(ctx) >= 5:
+                rets = np.diff(ctx) / ctx[:-1]
+                weights = np.exp(np.linspace(-1.5, 0, len(rets)))
+                weights /= weights.sum()
+                daily_drift = float(np.sum(rets * weights))
+                daily_drift = float(np.clip(daily_drift, -0.002, 0.006))
+            else:
+                daily_drift = 0.001
+            forecast_results["pure_baseline"] = [float(last_val * np.exp(daily_drift * (h + 1))) for h in range(horizon)]
 
         # 2. Multi-Scenario Inferences via Vectorized predict_batch
         sc_names = list(covariates.keys())
@@ -464,8 +472,8 @@ class ProcessSandboxAgent:
         # Fuse TimesFM Empirical Market Structure with Fundamental Scenario Attractor
         if "pure_baseline" in forecast_results:
             pure_base_arr = np.array(forecast_results["pure_baseline"])
-            # Blend TimesFM empirical momentum with fundamental gravity (50/50 balanced fusion)
-            w_tfm = 0.50
+            # Blend TimesFM empirical momentum with fundamental gravity
+            w_tfm = 0.40 if self.forecaster is not None else 0.15
             fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
             forecast_results["weighted_expected"] = fused_path
         else:
@@ -709,6 +717,15 @@ class OutputSynthesisAgent:
             "architecture": "3-Agent Air-Gapped Triad (Main ➔ Process ➔ Output)",
             "a2a_message_id": message.message_id,
             "metrics": metrics,
+            "predictions": {
+                "pure_baseline": forecasts.get("pure_baseline", []),
+                "weighted": forecasts.get("weighted_expected", []),
+                "scenarios": {
+                    "bear": forecasts.get("bear", []),
+                    "base": forecasts.get("base", []),
+                    "bull": forecasts.get("bull", [])
+                }
+            },
             "chart_saved": chart_path,
             "report_saved": report_path
         }

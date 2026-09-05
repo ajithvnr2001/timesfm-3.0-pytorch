@@ -20,7 +20,7 @@ def monte_carlo_paths(last, annual_vol, horizon, n_sims=500, seed=11):
     rets = rng.normal(0.0, daily_vol, (n_sims, horizon))
     return last*np.exp(np.cumsum(rets, axis=1))
 
-def forecast_covfree(last, target, annual_vol, horizon, target_reach=0.62,
+def forecast_covfree(last, target, annual_vol, horizon, target_reach=None,
                      n_sims=500, seed=11):
     """
     Honest hybrid:
@@ -30,12 +30,18 @@ def forecast_covfree(last, target, annual_vol, horizon, target_reach=0.62,
       - CI from the actual distribution of simulated paths (not +/-10%)
     Returns (point_forecast, q10, q90).
     """
-    paths = monte_carlo_paths(last, annual_vol, horizon, n_sims, seed)
-    med = np.median(paths, axis=0)
+    if target_reach is None:
+        target_reach = min(0.98, max(0.50, horizon / 180.0))
+    rng = np.random.default_rng(seed)
+    daily_vol = annual_vol * np.sqrt(1/252)
+    rets = rng.normal(0.0, daily_vol, (n_sims, horizon))
+    paths = last * np.exp(np.cumsum(rets, axis=1))
+    target_sims = rng.normal(target, target * 0.12, (n_sims, 1))
     w = np.linspace(0, target_reach, horizon)
-    point = (1-w)*med + w*target
-    q10 = np.percentile(paths, 10, axis=0)
-    q90 = np.percentile(paths, 90, axis=0)
+    drifted_paths = (1 - w) * paths + w * target_sims
+    point = np.median(drifted_paths, axis=0)
+    q10 = np.percentile(drifted_paths, 10, axis=0)
+    q90 = np.percentile(drifted_paths, 90, axis=0)
     return point, q10, q90
 
 def annualized_vol(close_series):

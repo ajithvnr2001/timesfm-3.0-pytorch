@@ -134,7 +134,11 @@ def reason_market_scenarios(
     sector_pe: float,
     eps_cagr: Optional[float] = None,
     industry: str = "",
-    recent_news: str = ""
+    recent_news: str = "",
+    revenue_growth: Optional[float] = None,
+    earnings_growth: Optional[float] = None,
+    institutional_benchmark_pe: Optional[float] = None,
+    institutional_target: Optional[float] = None
 ) -> Dict[str, Any]:
     """
     Synthesizes fundamental data and qualitative thesis through AkashML zai-org/GLM-5.3.
@@ -142,26 +146,31 @@ def reason_market_scenarios(
     Ensures mathematical consistency: Target Price = EPS * Target P/E.
     """
     cagr_str = f"{eps_cagr*100:.1f}%" if eps_cagr is not None else "N/A"
+    rev_str = f"{revenue_growth*100:+.1f}% YoY" if revenue_growth is not None else "N/A"
+    earn_str = f"{earnings_growth*100:+.1f}% YoY" if earnings_growth is not None else "N/A"
+    bench_pe = institutional_benchmark_pe or sector_pe
+    bench_tgt = institutional_target or (eps * bench_pe)
     
     prompt = f"""
 Analyze equity target for {ticker} ({industry}).
-Market Context:
+Comprehensive Financial & Market Context:
 - Current Market Price: Rs. {current_price:.2f}
-- Audited Diluted EPS: Rs. {eps:.2f}
-- Current Implied P/E: {current_price/eps:.1f}x
-- Industry Benchmark P/E: {sector_pe:.1f}x
-- Historical EPS CAGR: {cagr_str}
+- Effective Normalized EPS: Rs. {eps:.2f}
+- Current Trailing P/E: {current_price/eps:.1f}x
+- Industry Sector P/E: {sector_pe:.1f}x
+- Growth Calibration: Revenue {rev_str} | Earnings {earn_str}
+- Institutional Growth-Calibrated Forward Multiple: {bench_pe:.1f}x
+- Quantitative Baseline Fair Target: Rs. {bench_tgt:.2f}
 - Qualitative News / Catalyst Context: {recent_news or 'Standard quarterly operations'}
 
 Tasks:
 1. Provide a concise institutional reasoning (under 80 words) evaluating multiple premium/discount.
-2. Determine appropriate 12-month Forward P/E multiples for Bear, Base, and Bull scenarios.
-   (Note: Current P/E is {current_price/eps:.1f}x vs Sector P/E {sector_pe:.1f}x).
+2. Determine appropriate 12-month Forward P/E multiples for Bear, Base, and Bull scenarios centered around the {bench_pe:.1f}x institutional benchmark.
    CRITICAL INSTITUTIONAL GUIDANCE:
-   - Carefully evaluate the Qualitative News / Catalyst Context.
-   - If material positive catalysts exist (e.g. change of control, takeover open offer, AI/supercomputing partnerships, major contract wins, capacity expansion), reflect an appropriate growth/control premium rather than forcing strict mean reversion.
-   - If material negative events exist (e.g. factory fire/shutdown, regulatory stop, heavy debt distress, sector cyclical slump), reflect margin compression and multiple de-rating.
-   - Ground multiples rationally between 5.0x and 150.0x based on catalyst strength.
+   - Carefully evaluate the Qualitative News / Catalyst Context alongside YoY earnings growth ({earn_str}).
+   - If material positive catalysts exist (e.g. AI servers, defense orders, capacity expansion, promoter buying, export growth), align the Base forward P/E close to {bench_pe:.1f}x.
+   - If negative events exist, reflect margin compression and multiple de-rating.
+   - Ground multiples rationally based on real forward earning power.
 3. Assign probability weights for Bear, Base, Bull (e.g. 0.25, 0.50, 0.25) summing to 1.0.
 
 CRITICAL: Keep your internal thinking strictly under 100 words. You MUST output the final JSON block below:
