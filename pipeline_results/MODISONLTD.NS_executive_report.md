@@ -5,13 +5,9 @@
 
 ## 1. Multi-Agent Triad Performance Scorecard
 
-| Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
-| :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. 131.30** | Rs. 120.94 | **Rs. 134.36** | Rs. 114.39 |
-| **Terminal Error (%)** | — | -7.89% (Exploded) | **+2.33%** | -12.88% |
-| **Multi-Year MAE** | — | Rs. 4.30 | — | **Rs. 5.42** |
-| **Multi-Year MAPE** | — | 3.48% | — | **4.30%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **100.0% of all trading days** |
+| Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **30 Trading Days** | **Rs. 469.95** | Rs. 321.20 | **Rs. 583.88** | Rs. 483.39 | Rs. 394.00 | **Rs. 486.16** |
 
 ---
 
@@ -23,7 +19,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `ba3d3093`
+* **Ingress Message ID**: `84e7ff1b`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
@@ -40,17 +36,17 @@
 ### B. Value at Risk (VaR) & Tail Risk Profile
 | Metric | Horizon Risk (% of Equity) | Interpretation |
 | :--- | :--- | :--- |
-| **Parametric 95% 1-Day VaR** | **5.81%** | 95% confidence max expected single-day loss |
-| **Parametric 95% Horizon VaR** | **31.84%** | Cumulative 30-day volatility exposure |
-| **Conditional VaR (CVaR / Expected Shortfall)** | **27.83%** | Average loss in worst 5% tail-risk scenarios |
-| **Historical Max Drawdown** | **-24.74%** | Deepest peak-to-trough historical correction |
+| **Parametric 95% 1-Day VaR** | **6.09%** | 95% confidence max expected single-day loss |
+| **Parametric 95% Horizon VaR** | **33.34%** | Cumulative 30-day volatility exposure |
+| **Conditional VaR (CVaR / Expected Shortfall)** | **27.34%** | Average loss in worst 5% tail-risk scenarios |
+| **Historical Max Drawdown** | **-22.65%** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `-4.23%`
+* **Gross Potential Upside**: `+5.94%`
 * **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
-* **Net Horizon Upside**: `**-4.48%**`
-* **Objective Invalidation Stop-Loss**: `Rs. 79.62` (Downside: `-32.2%`)
-* **Asymmetric Risk/Reward Ratio (RRR)**: `**0.0x**`
+* **Net Horizon Upside**: `**+5.69%**`
+* **Objective Invalidation Stop-Loss**: `Rs. 344.19` (Downside: `-26.8%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: `**0.21x**`
 * **Half-Kelly Capital Allocation**: `0.0%`
 * **Recommended Portfolio Exposure**: `**0.0%**` (Rs. 0.00 | **0 shares**)
 * **Institutional Executive Directive**: `**TRIM / TAKE PROFIT (Negative Expected Skew)**`

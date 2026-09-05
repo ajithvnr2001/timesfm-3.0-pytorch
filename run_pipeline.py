@@ -41,8 +41,8 @@ def main():
     parser.add_argument(
         "--cutoff",
         type=str,
-        default="2024-01-01",
-        help="Strict point-in-time cutoff date YYYY-MM-DD (for backtest and multi-agent modes)"
+        default=None,
+        help="Strict point-in-time cutoff date YYYY-MM-DD (omit or leave empty for live real-time market analysis)"
     )
     parser.add_argument(
         "--horizon",

@@ -147,15 +147,22 @@ class MainIngestionAgent:
                 sanitized = re.sub(rf"\b{y}\b", token, sanitized)
         return sanitized
 
-    def process(self, ticker: str, cutoff_date: str, horizon: int) -> tuple[A2AMessage, pd.DataFrame, pd.DataFrame]:
-        print(f"[{self.agent_id}] Ingesting historical series for {ticker} up to {cutoff_date}...")
+    def process(self, ticker: str, cutoff_date: str = None, horizon: int = 30) -> tuple[A2AMessage, pd.DataFrame, pd.DataFrame]:
         df = yf.Ticker(ticker).history(period="max")
         df.index = pd.to_datetime(df.index).tz_localize(None)
         df.dropna(subset=["Close"], inplace=True)
         df["Date_str"] = df.index.strftime("%Y-%m-%d")
 
-        train_df = df[df["Date_str"] <= cutoff_date].copy()
-        test_df = df[df["Date_str"] > cutoff_date].iloc[:horizon].copy()
+        is_live = cutoff_date is None or str(cutoff_date).strip().lower() in ["", "none", "live", "latest"]
+        if is_live:
+            train_df = df.copy()
+            test_df = pd.DataFrame(columns=df.columns)
+            cutoff_date = train_df.iloc[-1]["Date_str"]
+            print(f"[{self.agent_id}] Ingesting LIVE real-time market data for {ticker} (Latest Session: {cutoff_date})...")
+        else:
+            print(f"[{self.agent_id}] Ingesting historical backtest series for {ticker} up to {cutoff_date}...")
+            train_df = df[df["Date_str"] <= cutoff_date].copy()
+            test_df = df[df["Date_str"] > cutoff_date].iloc[:horizon].copy()
 
         if train_df.empty:
             raise ValueError(f"No historical ticks found for {ticker} before {cutoff_date}")
@@ -537,6 +544,19 @@ class OutputSynthesisAgent:
         plt.savefig(chart_path)
         plt.close()
 
+        if actuals is not None and len(actuals) > 0:
+            scorecard_table = f"""| Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
+| :--- | :--- | :--- | :--- | :--- |
+| **Terminal Price** | **Rs. {metrics.get('actual_terminal', 0):.2f}** | Rs. {metrics.get('pure_baseline_terminal', 0):.2f} | **Rs. {metrics.get('bull_terminal', 0):.2f}** | Rs. {metrics.get('weighted_terminal', 0):.2f} |
+| **Terminal Error (%)** | — | {metrics.get('pure_baseline_error_pct', 0):+.2f}% (Exploded) | **{metrics.get('bull_error_pct', 0):+.2f}%** | {metrics.get('weighted_error_pct', 0):+.2f}% |
+| **Multi-Year MAE** | — | Rs. {metrics.get('pure_mae', 0):.2f} | — | **Rs. {metrics.get('weighted_mae', 0):.2f}** |
+| **Multi-Year MAPE** | — | {metrics.get('pure_mape', 0):.2f}% | — | **{metrics.get('weighted_mape', 0):.2f}%** |
+| **Scenario Envelope Coverage** | — | 0% | — | **{metrics.get('envelope_coverage_pct', 0):.1f}% of all trading days** |"""
+        else:
+            scorecard_table = f"""| Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **{horizon} Trading Days** | **Rs. {last_price:,.2f}** | Rs. {forecasts['pure_baseline'][-1]:,.2f} | **Rs. {forecasts['bull'][-1]:,.2f}** | Rs. {forecasts['base'][-1]:,.2f} | Rs. {forecasts['bear'][-1]:,.2f} | **Rs. {forecasts['weighted_expected'][-1]:,.2f}** |"""
+
         # Save Markdown Report
         md_report = f"""# Multi-Agent Zero-Leakage Forecast Report: {real_ticker}
 ### Architecture: MainAgent (Ingestion) ➔ ProcessAgent (Sandbox TimesFM) ➔ OutputAgent (Reporting)
@@ -545,13 +565,7 @@ class OutputSynthesisAgent:
 
 ## 1. Multi-Agent Triad Performance Scorecard
 
-| Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
-| :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. {metrics.get('actual_terminal', 0):.2f}** | Rs. {metrics.get('pure_baseline_terminal', 0):.2f} | **Rs. {metrics.get('bull_terminal', 0):.2f}** | Rs. {metrics.get('weighted_terminal', 0):.2f} |
-| **Terminal Error (%)** | — | {metrics.get('pure_baseline_error_pct', 0):+.2f}% (Exploded) | **{metrics.get('bull_error_pct', 0):+.2f}%** | {metrics.get('weighted_error_pct', 0):+.2f}% |
-| **Multi-Year MAE** | — | Rs. {metrics.get('pure_mae', 0):.2f} | — | **Rs. {metrics.get('weighted_mae', 0):.2f}** |
-| **Multi-Year MAPE** | — | {metrics.get('pure_mape', 0):.2f}% | — | **{metrics.get('weighted_mape', 0):.2f}%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **{metrics.get('envelope_coverage_pct', 0):.1f}% of all trading days** |
+{scorecard_table}
 
 ---
 
