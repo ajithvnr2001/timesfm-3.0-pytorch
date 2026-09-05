@@ -328,7 +328,11 @@ if torch.cuda.is_available():
 
 **Method 2: Execute a local Python file with environment variables and custom timeout**
 ```bash
-colab --auth=adc exec -s timesfm-gpu   --file /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py   --env AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"   --env EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"   --timeout 180.0
+colab --auth=adc exec -s timesfm-gpu \
+  --file /root/timesfm_repo/v2/test_multi_agent_flow.py \
+  --env AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL" \
+  --env EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f" \
+  --timeout 180.0
 ```
 
 #### 3. How to Install Packages on Remote VM
@@ -428,14 +432,14 @@ colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/t
 colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
 
 # 5. Run the unit security tests inside remote GPU environment
-colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/MULTI_AGENT_SANDBOX/test_agents.py"
+colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/test_agents.py"
 
 # 6. Execute full multi-agent backtest with 300s timeout
-colab --auth=adc exec -s timesfm-gpu --timeout 300.0 "python3 /content/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
+colab --auth=adc exec -s timesfm-gpu --timeout 300.0 "python3 /content/timesfm_repo/v2/test_multi_agent_flow.py"
 
 # 7. Download generated visualization and report
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_heromotoco_forecast.png
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_run_output/HEROMOTOCO.NS_executive_report.md ./remote_heromotoco_report.md
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_heromotoco_forecast.png
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/test_run_output/HEROMOTOCO.NS_executive_report.md ./remote_heromotoco_report.md
 
 # 8. Stop the GPU VM when finished
 colab --auth=adc stop -s timesfm-gpu
@@ -462,18 +466,28 @@ colab --auth=adc stop -s timesfm-gpu
 ### A. Directory Structure
 ```
 /root/timesfm_repo/
-├── MULTI_AGENT_SANDBOX/
-│   ├── multi_agent_system.py       # Core 3-Agent Triad Coordinator & Orchestrator
-│   ├── scenario_builder.py         # Two-Sided Financial Valuation & Catalyst Engine
-│   ├── llm_reasoner.py             # AkashML GLM-5.3 JSON reasoning client
-│   ├── covfree_forecaster.py       # Monte Carlo Horizon-Aware bridge simulator
-│   ├── institutional_engine.py     # VaR, CVaR, Kelly allocation & sizing logic
-│   └── sample_a2a_payload.json     # Anonymized A2A protocol schema
-├── run_2026_prediction_benchmark.py # Full 2026 blindfold evaluation suite
-├── run_10stock_fixed_benchmark.py  # 2024 calendar benchmark suite
-├── BENCHMARK_2026_OUTPUT/          # Generated PNG plots, MD reports, JSON scorecards (2026)
-├── BENCHMARK_FIXED_OUTPUT/         # Generated PNG plots, MD reports, JSON scorecards (2024)
-└── TCS_2026_OUTPUT/                # Dedicated TCS audit artifacts
+├── v1/                                     # Legacy standalone experiments & historical runs
+├── v2/                                     # Production multi-agent air-gapped system & benchmarks
+│   ├── run_pipeline.py                     # Unified master CLI dispatcher
+│   ├── multi_agent_system.py               # Core 3-Agent Triad Coordinator & Orchestrator
+│   ├── scenario_builder.py                 # Two-Sided Financial Valuation & Catalyst Engine
+│   ├── llm_reasoner.py                     # AkashML GLM-5.3 JSON reasoning client
+│   ├── covfree_forecaster.py               # Monte Carlo Horizon-Aware bridge simulator
+│   ├── institutional_engine.py             # VaR, CVaR, Kelly allocation & sizing logic
+│   ├── sample_a2a_payload.json             # Anonymized A2A protocol schema
+│   ├── test_agents.py                      # Regression & security isolation tests
+│   ├── test_multi_agent_flow.py            # End-to-end integration flow tests
+│   ├── run_2026_prediction_benchmark.py    # Full 2026 blindfold evaluation suite
+│   ├── run_10stock_fixed_benchmark.py      # 2024 calendar benchmark suite
+│   ├── run_1year_benchmark.py              # 1-year historical benchmark runner
+│   └── batch_backtest_benchmark.py         # Multi-asset batch backtest runner
+├── guides&docs/                            # Master documentation suite & llm.md
+└── test_results/                           # Benchmark artifacts, PNG plots, MD reports, JSON scorecards
+    ├── BENCHMARK_2026_OUTPUT/              # 2026 forward forecast deliverables
+    ├── BENCHMARK_FIXED_OUTPUT/             # 2024 historical benchmark deliverables
+    ├── TCS_2026_OUTPUT/                    # Dedicated TCS audit artifacts
+    ├── test_run_output/                    # Verified test run outputs
+    └── pipeline_results/                   # Default output directory for run_pipeline.py
 ```
 
 ### B. Command-Line Execution
@@ -481,7 +495,7 @@ colab --auth=adc stop -s timesfm-gpu
 #### 1. Run a Single Stock Forecast:
 ```python
 import sys
-sys.path.insert(0, "/root/timesfm_repo/MULTI_AGENT_SANDBOX")
+sys.path.insert(0, "/root/timesfm_repo/v2")
 from multi_agent_system import MultiAgentCoordinator
 
 # Initialize coordinator
@@ -492,13 +506,13 @@ record = coordinator.run(
     ticker="TCS.NS",
     cutoff_date="2025-12-31",
     horizon=171,
-    output_dir="/root/timesfm_repo/TCS_2026_OUTPUT"
+    output_dir="/root/timesfm_repo/test_results/TCS_2026_OUTPUT"
 )
 ```
 
 #### 2. Run the Full 2026 Benchmark Suite:
 ```bash
-python3 /root/timesfm_repo/run_2026_prediction_benchmark.py
+python3 /root/timesfm_repo/v2/run_2026_prediction_benchmark.py
 ```
 
 ### C. Output Contracts & Artifacts
@@ -583,7 +597,7 @@ This chapter outlines the exact, step-by-step procedures to test the entire hybr
 Verifies that the Process Sandbox Agent strictly enforces zero-leakage security, catches poisoned payloads containing ticker names or dates, accepts clean payloads, and gracefully runs on CPU.
 
 ```bash
-python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_agents.py
+python3 /root/timesfm_repo/v2/test_agents.py
 ```
 
 **Expected Console Output**:
@@ -609,7 +623,7 @@ Verifies API authentication, neural inference, and response parsing:
 ```bash
 python3 -c "
 import sys
-sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+sys.path.insert(0, '/root/timesfm_repo/v2')
 from llm_reasoner import invoke_akashml_reasoner
 resp = invoke_akashml_reasoner('Output valid JSON with key status=OK: {\"status\": \"OK\"}')
 print('AkashML Success:', resp.get('success'), '| Model:', resp.get('model'))
@@ -622,7 +636,7 @@ Verifies pre-cutoff date enforcement and regulatory boilerplate filtering:
 ```bash
 python3 -c "
 import sys
-sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+sys.path.insert(0, '/root/timesfm_repo/v2')
 from scenario_builder import fetch_pre_cutoff_catalysts
 res = fetch_pre_cutoff_catalysts('NETWEB.NS', '2025-12-31')
 print('Cleaned Catalysts:', res[:180] + '...')
@@ -635,13 +649,13 @@ Verifies that bear de-ratings and bull breakouts are categorized correctly:
 
 1. **Bear De-Rating Test (`TCS.NS`)**:
    ```bash
-   python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/scenario_builder.py TCS.NS
+   python3 /root/timesfm_repo/v2/scenario_builder.py TCS.NS
    ```
    *Verification Criteria*: `regime` must be `"DE_RATING_BEAR"` and `target_pe` must be compressed to 11x–15x.
 
 2. **Hyper-Growth Benchmark Test (`NETWEB.NS`)**:
    ```bash
-   python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/scenario_builder.py NETWEB.NS
+   python3 /root/timesfm_repo/v2/scenario_builder.py NETWEB.NS
    ```
    *Verification Criteria*: `regime` must be `"SECTOR_BENCHMARK"` and multiple must be aligned with Computer Hardware (62x).
 
@@ -650,7 +664,7 @@ Verifies stochastic volatility scaling and dynamic target reach:
 ```bash
 python3 -c "
 import sys
-sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+sys.path.insert(0, '/root/timesfm_repo/v2')
 from covfree_forecaster import forecast_covfree
 pt, q10, q90 = forecast_covfree(last=100.0, target=150.0, annual_vol=0.25, horizon=30)
 assert len(pt) == 30 and q10[-1] < pt[-1] < q90[-1]
@@ -662,7 +676,7 @@ print('Forecaster Test Passed: Terminal Median =', round(pt[-1], 2))
 #### Test 2E: Test Institutional Risk & Sizing Engine
 Verifies Parametric VaR, CVaR, stop-loss, and Half-Kelly allocation:
 ```bash
-python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/institutional_engine.py
+python3 /root/timesfm_repo/v2/institutional_engine.py
 ```
 *Expected Result*: Prints formatted institutional scorecard with VaR, Half-Kelly allocation %, and action directive.
 
@@ -672,7 +686,7 @@ python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/institutional_engine.py
 Tests the complete multi-agent pipeline from Agent 1 (Data Ingestion) to Agent 2 (Air-gapped Sandbox) to Agent 3 (Synthesis & Reporting):
 
 ```bash
-python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
+python3 /root/timesfm_repo/v2/test_multi_agent_flow.py
 ```
 
 **What this test validates**:
@@ -681,7 +695,7 @@ python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
 - Strips ticker identity and packages anonymized numerical tensors into an A2A message.
 - Process Sandbox validates the payload for prohibited tokens.
 - Forecast trajectories are generated.
-- Output Agent computes metrics, saves chart to `test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png`, and writes executive report to `test_run_output/HEROMOTOCO.NS_executive_report.md`.
+- Output Agent computes metrics, saves chart to `test_results/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png`, and writes executive report to `test_results/test_run_output/HEROMOTOCO.NS_executive_report.md`.
 
 ---
 
@@ -690,7 +704,7 @@ python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
 #### Python API:
 ```python
 import sys
-sys.path.insert(0, "/root/timesfm_repo/MULTI_AGENT_SANDBOX")
+sys.path.insert(0, "/root/timesfm_repo/v2")
 from multi_agent_system import MultiAgentCoordinator
 
 coordinator = MultiAgentCoordinator()
@@ -700,11 +714,11 @@ record = coordinator.run(
     ticker="TCS.NS",
     cutoff_date="2025-12-31",
     horizon=171,
-    output_dir="/root/timesfm_repo/TEST_OUTPUT"
+    output_dir="/root/timesfm_repo/test_results/pipeline_results"
 )
 
 # Live Mode (Forecast forward from today with no cutoff)
-# record = coordinator.run(ticker="INFY.NS", cutoff_date=None, horizon=30, output_dir="/root/timesfm_repo/LIVE_OUTPUT")
+# record = coordinator.run(ticker="INFY.NS", cutoff_date=None, horizon=30, output_dir="/root/timesfm_repo/test_results/pipeline_results")
 
 print("Terminal Weighted Target: Rs.", record["metrics"]["weighted_terminal"])
 print("Scenario Envelope Coverage:", record["metrics"]["envelope_coverage_pct"], "%")
@@ -714,7 +728,7 @@ print("Saved Report:", record["report_saved"])
 
 #### Command Line:
 ```bash
-python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/multi_agent_system.py --ticker TCS.NS --cutoff 2025-12-31 --horizon 171 --output_dir /root/timesfm_repo/TEST_OUTPUT
+python3 /root/timesfm_repo/v2/multi_agent_system.py --ticker TCS.NS --cutoff 2025-12-31 --horizon 171 --output_dir /root/timesfm_repo/test_results/pipeline_results
 ```
 
 ---
@@ -724,17 +738,17 @@ python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/multi_agent_system.py --ticker TC
 #### 1. The 2026 Blindfold Benchmark (8 Equities):
 Evaluates the 8 benchmark stocks (`TCS.NS`, `CUPID.NS`, `MODISONLTD.NS`, `STLTECH.NS`, `NETWEB.NS`, `MTARTECH.NS`, `WHEELS.NS`, `VENUSREM.NS`) from cutoff Dec 31, 2025 to Sep 4, 2026 (171 trading days):
 ```bash
-python3 /root/timesfm_repo/run_2026_prediction_benchmark.py
+python3 /root/timesfm_repo/v2/run_2026_prediction_benchmark.py
 ```
-*Outputs saved to*: `/root/timesfm_repo/BENCHMARK_2026_OUTPUT/`  
+*Outputs saved to*: `/root/timesfm_repo/test_results/BENCHMARK_2026_OUTPUT/`  
 *Acceptance Criteria*: **100% of equities must achieve `YES (PASSED)` status** with error $< 5\%$.
 
 #### 2. The 2024 Calendar Benchmark (10 Equities):
 Evaluates the full 2024 calendar year (246 trading days) from cutoff Dec 31, 2023 to Dec 31, 2024:
 ```bash
-python3 /root/timesfm_repo/run_10stock_fixed_benchmark.py
+python3 /root/timesfm_repo/v2/run_10stock_fixed_benchmark.py
 ```
-*Outputs saved to*: `/root/timesfm_repo/BENCHMARK_FIXED_OUTPUT/`
+*Outputs saved to*: `/root/timesfm_repo/test_results/BENCHMARK_FIXED_OUTPUT/`
 
 ---
 
@@ -759,10 +773,10 @@ colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/t
 colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
 
 # Step 6: Execute the multi-agent test remotely
-colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
+colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/test_multi_agent_flow.py"
 
 # Step 7: Download generated forecast plots to local workspace
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_gpu_test.png
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_gpu_test.png
 ```
 
 ---

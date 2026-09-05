@@ -1,0 +1,146 @@
+{
+  "TCS.NS": {
+    "latest_price_2026": 2304.0,
+    "rows": [
+      {
+        "cutoff": "2023-12-31",
+        "price_at_cutoff": 3466.61,
+        "trailing_eps": 137.55,
+        "forward_eps": 162.4991,
+        "run_rate_eps": 147.6,
+        "effective_eps": 162.5,
+        "eps_source": "analyst_forward_consensus",
+        "earn_growth": 0.046,
+        "rev_growth": 0.139,
+        "target_pe": 27.0,
+        "target_price": 4387.48,
+        "regime": "SECTOR_BENCHMARK"
+      },
+      {
+        "cutoff": "2024-12-31",
+        "price_at_cutoff": 3813.6,
+        "trailing_eps": 137.55,
+        "forward_eps": 162.4991,
+        "run_rate_eps": 147.6,
+        "effective_eps": 162.5,
+        "eps_source": "analyst_forward_consensus",
+        "earn_growth": 0.046,
+        "rev_growth": 0.139,
+        "target_pe": 27.0,
+        "target_price": 4387.48,
+        "regime": "SECTOR_BENCHMARK"
+      },
+      {
+        "cutoff": "2025-12-31",
+        "price_at_cutoff": 3089.89,
+        "trailing_eps": 137.55,
+        "forward_eps": 162.4991,
+        "run_rate_eps": 147.6,
+        "effective_eps": 137.55,
+        "eps_source": "trailing_ttm_derating",
+        "earn_growth": 0.046,
+        "rev_growth": 0.139,
+        "target_pe": 17.0,
+        "target_price": 2338.35,
+        "regime": "DE_RATING_BEAR"
+      }
+    ],
+    "fundamentals_invariant_to_cutoff": true
+  },
+  "STLTECH.NS": {
+    "latest_price_2026": 748.9,
+    "rows": [
+      {
+        "cutoff": "2023-12-31",
+        "price_at_cutoff": 142.8,
+        "trailing_eps": 4.64,
+        "forward_eps": 28.05,
+        "run_rate_eps": 14.84,
+        "effective_eps": 28.05,
+        "eps_source": "analyst_forward_consensus",
+        "earn_growth": 17.55,
+        "rev_growth": 0.874,
+        "target_pe": 26.0,
+        "target_price": 729.3,
+        "regime": "SECTOR_BENCHMARK"
+      },
+      {
+        "cutoff": "2024-12-31",
+        "price_at_cutoff": 114.57,
+        "trailing_eps": 4.64,
+        "forward_eps": 28.05,
+        "run_rate_eps": 14.84,
+        "effective_eps": 28.05,
+        "eps_source": "analyst_forward_consensus",
+        "earn_growth": 17.55,
+        "rev_growth": 0.874,
+        "target_pe": 26.0,
+        "target_price": 729.3,
+        "regime": "SECTOR_BENCHMARK"
+      },
+      {
+        "cutoff": "2025-12-31",
+        "price_at_cutoff": 103.2,
+        "trailing_eps": 4.64,
+        "forward_eps": 28.05,
+        "run_rate_eps": 14.84,
+        "effective_eps": 28.05,
+        "eps_source": "analyst_forward_consensus",
+        "earn_growth": 17.55,
+        "rev_growth": 0.874,
+        "target_pe": 26.0,
+        "target_price": 729.3,
+        "regime": "SECTOR_BENCHMARK"
+      }
+    ],
+    "fundamentals_invariant_to_cutoff": true
+  },
+  "MODISONLTD.NS": {
+    "latest_price_2026": 469.95,
+    "rows": [
+      {
+        "cutoff": "2023-12-31",
+        "price_at_cutoff": 130.36,
+        "trailing_eps": 31.31,
+        "forward_eps": null,
+        "run_rate_eps": 41.72,
+        "effective_eps": 41.72,
+        "eps_source": "quarterly_run_rate_annualized",
+        "earn_growth": 6.047,
+        "rev_growth": 1.016,
+        "target_pe": 9.36794896279612,
+        "target_price": 390.83,
+        "regime": "RERATING_BULL"
+      },
+      {
+        "cutoff": "2024-12-31",
+        "price_at_cutoff": 180.93,
+        "trailing_eps": 31.31,
+        "forward_eps": null,
+        "run_rate_eps": 41.72,
+        "effective_eps": 41.72,
+        "eps_source": "quarterly_run_rate_annualized",
+        "earn_growth": 6.047,
+        "rev_growth": 1.016,
+        "target_pe": 12.0,
+        "target_price": 500.64,
+        "regime": "RERATING_BULL"
+      },
+      {
+        "cutoff": "2025-12-31",
+        "price_at_cutoff": 152.8,
+        "trailing_eps": 31.31,
+        "forward_eps": null,
+        "run_rate_eps": 41.72,
+        "effective_eps": 41.72,
+        "eps_source": "quarterly_run_rate_annualized",
+        "earn_growth": 6.047,
+        "rev_growth": 1.016,
+        "target_pe": 10.980462799510878,
+        "target_price": 458.1,
+        "regime": "RERATING_BULL"
+      }
+    ],
+    "fundamentals_invariant_to_cutoff": true
+  }
+}

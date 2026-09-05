@@ -24,9 +24,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import yfinance as yf
 
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(CURR_DIR) if os.path.basename(CURR_DIR) == "v2" else CURR_DIR
+sys.path.insert(0, CURR_DIR)
 sys.path.insert(0, REPO_ROOT)
-sys.path.insert(0, os.path.join(REPO_ROOT, "MULTI_AGENT_SANDBOX"))
 
 from multi_agent_system import MultiAgentCoordinator
 
@@ -37,7 +38,7 @@ TICKERS = [
 
 def run_2026_benchmark():
     cutoff = "2025-12-31"
-    out_dir = os.path.join(REPO_ROOT, "BENCHMARK_2026_OUTPUT")
+    out_dir = os.path.join(REPO_ROOT, "test_results", "BENCHMARK_2026_OUTPUT")
     os.makedirs(out_dir, exist_ok=True)
     
     coordinator = MultiAgentCoordinator()

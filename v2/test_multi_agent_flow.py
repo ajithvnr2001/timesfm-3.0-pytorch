@@ -17,7 +17,7 @@ def main():
     ticker = "HEROMOTOCO.NS"
     cutoff = "2023-12-31"
     horizon = 663
-    out_dir = os.path.join(os.path.dirname(__file__), "test_run_output")
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test_results", "test_run_output")
 
     print(f"Executing Multi-Agent Test Flow on {ticker} (Cutoff: {cutoff}, Horizon: {horizon} Days)...")
     coordinator = MultiAgentCoordinator()

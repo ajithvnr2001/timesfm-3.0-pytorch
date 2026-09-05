@@ -8,34 +8,36 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 | Guide | Target Audience / Objective | Core Content |
 | :--- | :--- | :--- |
-| 🌟 **[USER_GUIDE.md](USER_GUIDE.md)** | **Traders, Investors & Portfolio Managers** | Non-technical manual, interpreting Bear/Base/Bull scenarios, Scenario Envelope Coverage, and capital risk management. |
-| 🌟 **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | **Software Engineers & Quants** | Internal class hierarchy, PyTorch tensor contracts, adding new data feeds, Docker/Kubernetes sandboxing, and CI testing. |
-| 🌟 **[LLM_GUIDE.md](LLM_GUIDE.md)** | **AI Agents (Claude, ChatGPT, Gemini, Codex)** | Universal meta-prompt allowing any cloned AI assistant to understand and autonomously execute the system end-to-end. |
-| 🌟 **[MODES_GUIDE.md](MODES_GUIDE.md)** | **System Operators** | Detailed walkthrough of the 4 modes: `multi-agent`, `backtest`, `live`, and `intraday`. |
-| 🌟 **[MULTI_AGENT_SANDBOX/](MULTI_AGENT_SANDBOX/)** | **Zero-Leakage Institutional Desks** | Complete Air-Gapped Triad (`MainIngestionAgent` ➔ `ProcessSandboxAgent` ➔ `OutputSynthesisAgent`). |
-| 🌟 **[QUALITATIVE_GUIDE](MULTI_AGENT_SANDBOX/QUALITATIVE_DATA_AND_MACRO_GUIDE.md)** | **Macro & Fundamental Researchers** | Concalls, US Fed interest rate regimes, and India macro trends translated into foundation model math. |
+| 🌟 **[USER_GUIDE.md](guides%26docs/USER_GUIDE.md)** | **Traders, Investors & Portfolio Managers** | Non-technical manual, interpreting Bear/Base/Bull scenarios, Scenario Envelope Coverage, and capital risk management. |
+| 🌟 **[DEVELOPER_GUIDE.md](guides%26docs/DEVELOPER_GUIDE.md)** | **Software Engineers & Quants** | Internal class hierarchy, PyTorch tensor contracts, adding new data feeds, Docker/Kubernetes sandboxing, and CI testing. |
+| 🌟 **[LLM_GUIDE.md](guides%26docs/LLM_GUIDE.md)** | **AI Agents (Claude, ChatGPT, Gemini, Codex)** | Universal meta-prompt allowing any cloned AI assistant to understand and autonomously execute the system end-to-end. |
+| 🌟 **[MODES_GUIDE.md](guides%26docs/MODES_GUIDE.md)** | **System Operators** | Detailed walkthrough of the 4 modes: `multi-agent`, `backtest`, `live`, and `intraday`. |
+| 🌟 **[llm.md](guides%26docs/llm.md)** | **Autonomous LLMs & Colab Operations** | Complete operational manual, API configurations, Colab CLI instructions, and end-to-end test suite. |
+| 🌟 **[MASTER_MULTI_AGENT_GUIDE](guides%26docs/MASTER_MULTI_AGENT_GUIDE.md)** | **Institutional Quants** | Complete Air-Gapped Triad (`MainIngestionAgent` ➔ `ProcessSandboxAgent` ➔ `OutputSynthesisAgent`). |
+| 🌟 **[QUALITATIVE_GUIDE](guides%26docs/QUALITATIVE_DATA_AND_MACRO_GUIDE.md)** | **Macro & Fundamental Researchers** | Concalls, US Fed interest rate regimes, and India macro trends translated into foundation model math. |
 
 ---
 
-## 🚀 Quickstart: Unified CLI Entry-Point (`run_pipeline.py`)
+## 🚀 Quickstart: Unified CLI Entry-Point (`v2/run_pipeline.py`)
 
 Run any asset in **Tier-1 Institutional Quantitative Hedge Fund Grade** by default:
 
 ```bash
 # 1. Institutional Mode (DEFAULT): Real-Time Live Close, VaR/CVaR, Half-Kelly Sizing & STT Frictions
-python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30
+python3 v2/run_pipeline.py --ticker MODISONLTD.NS --horizon 30
 
 # 2. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage Point-In-Time Historical Backtest)
-python3 run_pipeline.py --mode multi-agent --ticker INFY.NS --cutoff 2020-12-31 --horizon 60
+python3 v2/run_pipeline.py --mode multi-agent --ticker INFY.NS --cutoff 2020-12-31 --horizon 60
 
 # 3. Live Forward Projection Mode (Real-Time Future Horizon via Hybrid Pipeline)
-python3 run_pipeline.py --mode live --ticker RAYMONDREL.NS --horizon 30
+python3 v2/run_pipeline.py --mode live --ticker RAYMONDREL.NS --horizon 30
 
 # 4. High-Frequency Intraday & Options Volatility Mode
-python3 run_pipeline.py --mode intraday --ticker ^NSEI
+python3 v2/run_pipeline.py --mode intraday --ticker ^NSEI
 
 # 5. Run Full Regression Verification Test Suite
-python3 test_agents.py
+python3 v2/test_agents.py
+python3 v2/test_multi_agent_flow.py
 ```
 
 ### 🏛️ Institutional Engine by Default
@@ -183,132 +185,70 @@ Following rigorous audit against institutional production standards, four critic
 
 ## Repository Structure
 
+The repository is strictly partitioned into **4 dedicated root directories**:
+
 ```
 timesfm-3.0-pytorch/
 ├── README.md                               # Central Repository Dashboard
-├── run_pipeline.py                         # 🌟 Unified CLI Entry-Point (All Modes)
-├── USER_GUIDE.md                           # 🌟 Plain-English User & Investor Manual
-├── DEVELOPER_GUIDE.md                      # 🌟 Software Engineering & Extensibility Guide
-├── LLM_GUIDE.md                            # 🌟 Universal Meta-Prompt for Any AI Agent
-├── MODES_GUIDE.md                          # 🌟 Complete 4-Mode Execution Guide
 ├── requirements.txt                        # Master dependencies
 ├── .gitignore
-├── HYBRID_GUIDE/                           # Comprehensive Architectural & Best Practices Guide
-│   ├── README.md                           # Master architectural & mathematical guide
-│   ├── ZERO_LEAKAGE_GUIDE.md               # 🌟 The Definitive Zero-Leakage Backtesting Guide
-│   ├── AGENT_HARNESS_INTEGRATION.md        # Non-API Guide (Antigravity, Claude Code, Codex)
-│   ├── COLAB_GPU_GUIDE.md                  # Google Colab Cloud GPU Guide
-│   ├── run_colab_gpu.sh                    # 1-Click Automated Cloud GPU Runner
-│   ├── hybrid_agentic_pipeline.py          # Production Pipeline Script (v3.0 Strict Zero-Leakage)
-│   └── hybrid_agentic_pipeline.ipynb       # Interactive Jupyter Notebook
-├── MULTI_AGENT_SANDBOX/                    # 🌟 Air-Gapped Multi-Agent Triad (Zero-Leakage Guaranteed)
-│   ├── README.md                           # Multi-agent architecture & A2A protocol specification
-│   ├── MASTER_MULTI_AGENT_GUIDE.md         # 🌟 Definitive End-to-End Multi-Agent Guide
-│   ├── QUALITATIVE_DATA_AND_MACRO_GUIDE.md # 🌟 Concalls, Fed Policy & India Macro Integration Guide
-│   ├── LLM_AGENT_INSTRUCTIONS.md           # 🌟 Master Autonomous Instructions for Any LLM Agent
-│   ├── multi_agent_system.py               # Complete 3-Agent Triad (Main -> Process -> Output)
-│   ├── test_multi_agent_flow.py            # End-to-end verification test script
-│   ├── sample_a2a_payload.json             # Anonymized wire protocol payload
-│   └── test_run_output/                    # Verified test run charts & executive reports
-├── RAYMONDREL_ANALYSIS/                    # 🌟 Raymond Realty (RAYMONDREL) Multidimensional Forecast
-│   ├── README.md                           # Master 22-day schedule, technical matrix & GDV analysis
-│   ├── raymondrel_prediction_results.json  # Raw machine-readable scenario forecast dataset
-│   ├── raymondrel_multidim_forecast_22d.png # High-resolution 22-day forecast fan chart
-│   ├── raymondrel_technical_breakout_matrix.png # Breakout levels & real estate peer valuation matrix
-│   ├── raymondrel_predictive_deep_dive.ipynb # Interactive Jupyter Notebook
-│   └── raymondrel_deep_prediction.py       # Standalone multidimensional forecast engine script
-├── EXCEL_DATA/                             # 🌟 Zerodha Portfolio Deep Dive & Multi-Horizon Forward Forecasts (ZRJ225)
-│   ├── README.md                           # Master 28-stock audit, price forecasts & action matrix
-│   ├── holdings-ZRJ225.xlsx                # Downloaded raw Zerodha holdings statement
-│   ├── portfolio_forward_forecasts.json    # Complete multi-horizon price targets (T+1 to T+66) & 22-day trajectories
-│   ├── portfolio_audit_results.json        # Machine-readable quantitative audit & targets
-│   ├── portfolio_top_holdings_forecast_trajectories.png # 6-panel forward trajectory plot
-│   ├── portfolio_expected_returns_1m.png   # Color-coded expected 1-month return bar chart
-│   ├── portfolio_pnl_distribution.png      # High-resolution profit & loss waterfall chart
-│   ├── portfolio_action_and_sector_matrix.png # Action matrix & sector distribution plot
-│   ├── portfolio_deep_dive.ipynb           # Interactive Jupyter Notebook
-│   ├── generate_portfolio_forecasts.py     # Multi-horizon forecast engine script
-│   └── portfolio_analyzer.py               # Standalone analysis script
-├── FORECAST_SEP7_2026/                     # 🌟 Live Market Forecast for Monday, Sep 7, 2026
-│   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
-│   ├── monday_sep7_predictions.json        # Machine-readable scenario targets & hourly quantiles
-│   ├── timesfm3_nifty_monday_sep7_forecast.png # High-resolution hourly intraday plot
-│   ├── monday_cross_asset_forecast_sep7_2026.png # 4-panel cross-asset target matrix
-│   └── monday_sep7_predictive_deep_dive.ipynb # Interactive Jupyter Notebook
-├── FORECAST_SEP4_2026/                     # 🌟 Live Market Forecast for Friday, Sep 4, 2026
-│   ├── README.md                           # In-depth hourly NIFTY forecast & options playbook
-│   ├── tomorrow_nifty_intraday_results.json # Hourly quantiles and microstructure phases
-│   ├── tomorrow_cross_asset_results.json   # Step 2 target scenarios & pivot matrix
-│   ├── timesfm3_nifty_intraday_sep4_forecast.png # High-resolution hourly intraday plot
-│   └── tomorrow_cross_asset_forecast_sep4_2026.png # 4-panel cross-asset target matrix
-├── DAYWISE_ANALYSIS/                       # 🌟 Live Day-by-Day Forecast vs Actual Ground Truth Audit
-│   ├── README.md                           # Master cross-asset verification report (Sep 3 & Sep 4)
-│   ├── daywise_outcomes_sep4_2026.json     # Raw ground-truth machine-readable audit dataset for Sep 4
-│   ├── daywise_prediction_vs_actual_sep4_2026.png # High-resolution 4-panel verification plot for Sep 4
-│   ├── daywise_outcomes_sep3_2026.json     # Raw ground-truth machine-readable audit dataset for Sep 3
-│   ├── daywise_prediction_vs_actual_sep3_2026.png # High-resolution 4-panel verification plot for Sep 3
-│   ├── daywise_outcome_verification.ipynb  # Interactive verification notebook
-│   └── daywise_verification_experiment.py  # Standalone audit generator script
-├── GOLD_LIVE/                              # 🌟 Live 1-Month Daily Forecast: Gold Futures (GC=F)
-│   ├── README.md                           # Daily 22-day schedule & analysis
-│   ├── gold_1month_live_forecast.png       # High-resolution forecast chart
-│   └── gold_1month_live_results.json       # Raw day-by-day JSON schedule
-├── HINDZINC_LIVE/                          # 🌟 Live 1-Month Daily Forecast: Hindustan Zinc (NSE)
-│   ├── README.md                           # Daily 22-day schedule & analysis
-│   ├── hindzinc_1month_live_forecast.png   # High-resolution forecast chart
-│   └── hindzinc_1month_live_results.json   # Raw day-by-day JSON schedule
-├── MODISON_LIVE/                           # 🌟 Live 1-Month Daily Forecast: Modison Limited (NSE)
-│   ├── README.md                           # Daily 22-day schedule & analysis
-│   ├── modison_1month_live_forecast.png    # High-resolution forecast chart
-│   └── modison_1month_live_results.json    # Raw day-by-day JSON schedule
-├── INFOSYS_MONTHLY/                        # 🌟 5-Year Monthly Benchmark (2021 to 2025, 60 Months)
-│   ├── README.md                           # Comprehensive evaluation report
-│   ├── timesfm3_infosys_monthly_analysis.ipynb # Executed Jupyter Notebook
-│   ├── timesfm_infosys_monthly_experiment.py # Standalone GPU execution script
-│   ├── timesfm3_infosys_monthly_forecast.png # High-resolution 60-month benchmark chart
-│   └── infosys_monthly_results.json        # Raw monthly predictions and error metrics
-├── HEROMOTOCO/                             # Multi-Year Large-Cap Benchmark (2024 to Sep 2026, 663 Days)
-│   ├── README.md                           # Comprehensive evaluation report
-│   ├── timesfm3_heromotoco_analysis.ipynb  # Executed Jupyter Notebook
-│   ├── timesfm_heromotoco_experiment.py    # Standalone GPU execution script
-│   ├── timesfm3_heromotoco_multiyear_forecast.png # High-resolution benchmark chart
-│   └── heromotoco_multiyear_results.json   # Raw predictions and metrics
-├── CUPID/                                  # Multi-Year Benchmark (2024 to Sep 2026, 664 Days)
-│   ├── README.md                           # Comprehensive evaluation report
-│   ├── timesfm3_cupid_analysis.ipynb       # Executed Jupyter Notebook
-│   ├── timesfm_cupid_experiment.py         # Standalone GPU execution script
-│   ├── timesfm3_cupid_multiyear_forecast.png # High-resolution benchmark chart
-│   └── cupid_multiyear_results.json        # Raw multi-year predictions and metrics
-├── HYBRID_MODISON/                         # Breakthrough: Hybrid LLM + TimesFM 3.0 Model
-│   ├── README.md                           # Comprehensive evaluation report
-│   ├── timesfm3_hybrid_analysis.ipynb      # Executed Jupyter Notebook
-│   ├── timesfm_hybrid_experiment.py        # Standalone GPU execution script
-│   ├── timesfm3_hybrid_forecast_vs_actual.png # Benchmark comparison chart
-│   └── hybrid_modison_results.json         # Raw predictions, quantiles, and metrics
-├── INTRADAY/                               # Live Intraday Hourly Forecast for Today (Sep 3)
-│   ├── README.md                           # Hourly trajectory & trading plan
-│   ├── timesfm3_intraday_analysis.ipynb    # Executed Jupyter Notebook
-│   ├── timesfm_intraday_experiment.py      # Standalone GPU execution script
-│   ├── timesfm3_nifty_intraday_sep3_forecast.png # High-resolution intraday forecast chart
-│   └── nifty_intraday_results.json         # Raw hourly & 15m predictions and quantiles
-├── OPTIONS/                                # NIFTY Options & Volatility Benchmark
-│   ├── README.md                           # Detailed evaluation report
-│   ├── timesfm3_options_analysis.ipynb     # Interactive, executed Jupyter Notebook
-│   ├── timesfm_options_experiment.py       # Standalone GPU execution script
-│   ├── timesfm3_options_forecast_vs_actual.png # 4-panel high-resolution benchmark chart
-│   └── options_results.json                # Complete point forecasts, quantiles, and metrics
-├── NIFTY/                                  # NIFTY 50 8-Month Macro Benchmark
-│   ├── README.md                           # Detailed evaluation report
-│   ├── timesfm3_nifty_analysis.ipynb       # Interactive, executed Jupyter Notebook
-│   ├── timesfm_nifty_experiment.py         # Standalone GPU execution script
-│   ├── timesfm3_nifty_forecast_vs_actual.png # High-resolution benchmark chart
-│   └── nifty_results.json                  # Complete point forecasts, quantiles, and metrics
-└── MODISONANALYSIS/                        # MODISONLTD Corporate Event Benchmark
-    ├── README.md                           # Comprehensive evaluation report
-    ├── timesfm3_modison_analysis.ipynb     # Interactive, executed Jupyter Notebook
-    ├── timesfm_modison_experiment.py       # Standalone GPU execution script
-    ├── timesfm3_exa_experiment.py          # Script with Exa event covariates
-    ├── timesfm3_forecast_vs_actual.png     # High-resolution benchmark chart
-    ├── timesfm_results.json                # JSON dataset of forecasts and metrics
-    └── filings/                            # Official BSE PDF filings
+├── .akashml_key                            # AkashML API key configuration
+├── .nvidia_key                             # NVIDIA NIM API key configuration
+│
+├── v1/                                     # 📦 Legacy Standalone Experiments & Exploratory Work
+│   ├── CUPID/                              # Multi-Year Cupid benchmark
+│   ├── DAYWISE_ANALYSIS/                   # Live Day-by-Day Forecast vs Ground Truth Audits
+│   ├── EXCEL_DATA/                         # Zerodha Portfolio Deep Dive (ZRJ225)
+│   ├── FORECAST_SEP4_2026/                 # Live Market Forecast (Sep 4, 2026)
+│   ├── FORECAST_SEP7_2026/                 # Live Market Forecast (Sep 7, 2026)
+│   ├── GOLD_LIVE/                          # Live Gold Futures (GC=F) 1-month forecast
+│   ├── HEROMOTOCO/                         # Multi-Year Large-Cap Hero MotoCorp benchmark
+│   ├── HINDZINC_LIVE/                      # Live Hindustan Zinc 1-month forecast
+│   ├── HYBRID_GUIDE/                       # Early hybrid prototype and single-asset pipeline
+│   ├── HYBRID_MODISON/                     # LLM + TimesFM 3.0 prototype experiment
+│   ├── INFOSYS_MONTHLY/                    # 5-Year Monthly benchmark (2021-2025)
+│   ├── INTRADAY/                           # Hourly Index & Options Volatility scripts
+│   ├── MODISONANALYSIS/                    # MODISONLTD corporate event benchmark & filings
+│   ├── MODISON_LIVE/                       # Live Modison Ltd 1-month forecast
+│   ├── NIFTY/                              # NIFTY 50 8-month macro benchmark
+│   ├── OPTIONS/                            # NIFTY options and volatility experiments
+│   ├── RAYMONDREL_ANALYSIS/                # Raymond Realty 22-day forecast & GDV
+│   └── daywise_sep4_audit_and_monday_prediction.py
+│
+├── v2/                                     # 🚀 Production Multi-Agent Air-Gapped Quantitative System
+│   ├── run_pipeline.py                     # 🌟 Unified CLI Entry-Point (Institutional, Multi-Agent, Backtest, Live, Intraday)
+│   ├── multi_agent_system.py               # Complete 3-Agent Triad (MainIngestion -> ProcessSandbox -> OutputSynthesis)
+│   ├── scenario_builder.py                 # Point-in-time financial statement parsing & two-sided valuation engine
+│   ├── llm_reasoner.py                     # Multi-provider LLM reasoner (AkashML DeepSeek/GLM, OpenCode, NVIDIA NIM)
+│   ├── covfree_forecaster.py               # Statistical Monte Carlo quantile forecaster & covariate generator
+│   ├── institutional_engine.py             # Half-Kelly sizing, 95% VaR/CVaR, STT frictions, Sector Beta, Macro regimes
+│   ├── sample_a2a_payload.json             # Wire specification for zero-leakage A2A messages
+│   ├── test_agents.py                      # Regression & poison-token rejection unit tests
+│   ├── test_multi_agent_flow.py            # End-to-end integration test runner
+│   ├── run_2026_prediction_benchmark.py    # 2026 forward prediction benchmark runner (7+ assets)
+│   ├── run_10stock_fixed_benchmark.py      # Fixed 10-stock backtest benchmark
+│   ├── run_1year_benchmark.py              # 1-year historical benchmark runner
+│   └── batch_backtest_benchmark.py         # Batch multi-asset backtesting runner
+│
+├── guides&docs/                            # 📚 Complete System Documentation & Architectural Manuals
+│   ├── USER_GUIDE.md                       # Non-technical manual for traders, investors, and PMs
+│   ├── DEVELOPER_GUIDE.md                  # Software engineering manual, class hierarchy, tensor contracts
+│   ├── LLM_GUIDE.md                        # Universal meta-prompt for AI agents
+│   ├── MODES_GUIDE.md                      # Detailed walkthrough of execution modes
+│   ├── MASTER_MULTI_AGENT_GUIDE.md         # Definitive end-to-end multi-agent architecture guide
+│   ├── QUALITATIVE_DATA_AND_MACRO_GUIDE.md # Macro, Concalls, and Federal Reserve data integration
+│   ├── LLM_AGENT_INSTRUCTIONS.md           # Master autonomous instructions for AI agents
+│   └── llm.md                              # End-to-end LLM onboarding, Colab CLI guide, testing procedures
+│
+└── test_results/                           # 📊 Benchmark Results, Scorecards, Charts & Executive Reports
+    ├── AUDIT/                              # Security and token-leakage audit probes
+    ├── BATCH_BENCHMARK_OUTPUT/             # Multi-asset batch backtest outputs
+    ├── BENCHMARK_1YEAR_OUTPUT/             # 1-Year historical backtest benchmark outputs
+    ├── BENCHMARK_2026_OUTPUT/              # Forward 2026 multi-asset prediction outputs
+    ├── BENCHMARK_FIXED_OUTPUT/             # 10-Stock fixed backtest benchmark outputs
+    ├── GPU_E2E_OUTPUT/                     # Colab GPU execution results
+    ├── TCS_2026_OUTPUT/                    # TCS 2026 deep-dive predictions and scorecards
+    ├── pipeline_results/                   # Default output directory for run_pipeline.py
+    └── test_run_output/                    # Output from test_multi_agent_flow.py
 ```
+

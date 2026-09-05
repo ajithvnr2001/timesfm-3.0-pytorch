@@ -59,13 +59,17 @@ def main():
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="./pipeline_results",
+        default=None,
         help="Output directory for charts, JSONs, and executive reports"
     )
 
     args = parser.parse_args()
 
-    repo_root = os.path.dirname(os.path.abspath(__file__))
+    repo_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(repo_dir)
+
+    if args.output_dir is None:
+        args.output_dir = os.path.join(project_root, "test_results", "pipeline_results")
     os.makedirs(args.output_dir, exist_ok=True)
 
     print("=================================================================")
@@ -75,8 +79,7 @@ def main():
     print("=================================================================\n")
 
     if args.mode in ["institutional", "multi-agent"]:
-        sys.path.insert(0, os.path.join(repo_root, "MULTI_AGENT_SANDBOX"))
-        sys.path.insert(0, repo_root)
+        sys.path.insert(0, repo_dir)
         from multi_agent_system import MultiAgentCoordinator
         print("[Dispatcher] Launching Zero-Leakage Multi-Agent Triad (Institutional Engine)...")
         coordinator = MultiAgentCoordinator()
@@ -110,7 +113,7 @@ def main():
             print("="*65 + "\n")
 
     elif args.mode in ["backtest", "live"]:
-        script_path = os.path.join(repo_root, "HYBRID_GUIDE", "hybrid_agentic_pipeline.py")
+        script_path = os.path.join(project_root, "v1", "HYBRID_GUIDE", "hybrid_agentic_pipeline.py")
         cmd = [
             sys.executable,
             script_path,
@@ -125,11 +128,8 @@ def main():
         subprocess.run(cmd, check=True)
 
     elif args.mode == "intraday":
-        script_path = os.path.join(repo_root, "INTRADAY", "timesfm_intraday_experiment.py")
+        script_path = os.path.join(project_root, "v1", "INTRADAY", "timesfm_intraday_experiment.py")
         print(f"[Dispatcher] Running INTRADAY mode via {script_path}...")
         subprocess.run([sys.executable, script_path], check=True)
-
 if __name__ == "__main__":
     main()
-
-
