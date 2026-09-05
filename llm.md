@@ -109,6 +109,49 @@ Data passed from Agent 1 to Agent 2 adheres strictly to this schema:
 
 ## 3. Architectural Evolution: Initial Version vs. Current Production Version
 
+### The Sept 4/5 Code Review: 4 Critical Implementation Bugs Identified & Resolved
+
+Across an exhaustive code-level audit, four major architectural flaws were unmasked and permanently resolved in commit `8a7bf0c`:
+
+1. **Bug 1 (Critical) — Fictitious TimesFM API Class (`TimesFM3Forecaster`)**:
+   * *Flaw*: The initial code attempted `from timesfm3 import TimesFM3Forecaster` and `TimesFM3Forecaster.from_pretrained()`, which threw `ImportError`, setting `HAS_TIMESFM = False`.
+   * *Resolution*: Integrated the official Google TimesFM 3.0 API:
+     ```python
+     from timesfm3 import TimesFM3Evaluator, ModelConfig
+     config = ModelConfig(checkpoint_path="google/timesfm-3.0-pytorch", per_core_batch_size=32, device=device)
+     forecaster = TimesFM3Evaluator(config)
+     outputs = list(forecaster.predict_batch(contexts, horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
+     ```
+     Also added support for Google Research's `timesfm.TimesFm` package as secondary foundation model.
+
+2. **Bug 2 (Critical) — Misleading Logging & Fallback Masking**:
+   * *Flaw*: `print("• Running TimesFM 3.0 on {device}...")` executed *before* checking `if HAS_TIMESFM:`. When the model was unavailable, the console falsely claimed TimesFM was running while silently executing heuristic sigmoid math with synthetic `p*0.90 / p*1.10` bands.
+   * *Resolution*: Implemented loud, honest diagnostic logging:
+     ```python
+     if self.forecaster is not None:
+         print(f"[{self.agent_id}] Running TimesFM 3.0 PyTorch Foundation Model on {self.device}...")
+     else:
+         print(f"[{self.agent_id}] WARNING: TimesFM 3.0 PyTorch model unavailable — executing calibrated heuristic & Monte Carlo fallback.")
+     ```
+     Quantiles are now calculated using authentic Monte Carlo path simulations via `forecast_covfree()`.
+
+3. **Bug 3 (Critical) — Exa Zero-Leakage Violation in Backtest Mode**:
+   * *Flaw*: `fetch_exa_intelligence` in `hybrid_agentic_pipeline.py` searched without `end_published_date`, allowing future post-cutoff news and real company names into the LLM prompt.
+   * *Resolution*: Enforced hard temporal locking:
+     ```python
+     search_kwargs["end_published_date"] = f"{cutoff_date}T23:59:59Z" if cutoff_date else None
+     ```
+     In backtest mode, all catalyst headlines are now piped through `anonymize_text_for_backtest()` before the LLM prompt is assembled.
+
+4. **Bug 4 (High) — Four Secondary Implementation Defects & Live-Mode Crash**:
+   * *Defect 4A (Autoregressive Chunking)*: Deleted the 64-step chunking loop that fed model predictions back into context (which synthesized ~90% of the context over long horizons). The model now generates the entire horizon in a single forward pass.
+   * *Defect 4B (Covariate Convention)*: Formatted covariates as per-series arrays matching official input specifications.
+   * *Defect 4C (Hardcoded Token Gate)*: Replaced the hardcoded `["HERO", "CUPID", "MODISON"]` list with dynamic token generation from `yfinance` (`shortName`, `longName`, ticker stem, corporate words stripped).
+   * *Defect 4D (Live-Mode `KeyError` in `render()`)*: In live mode (where `test_df` is empty), `metrics` was previously omitted or missing terminal values. `metrics` is now unconditionally initialized with projection terminals (`pure_baseline_terminal`, `weighted_terminal`, `bull_terminal`, `bear_terminal`).
+
+---
+
+
 ### The Initial Version (v1.0 — Failure Modes Identified)
 
 The project began with several critical design and data weaknesses that caused catastrophic prediction failures on both hyper-growth assets and cyclical downtrends:
