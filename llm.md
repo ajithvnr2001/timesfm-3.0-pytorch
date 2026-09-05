@@ -362,12 +362,228 @@ Each run generates three standardized deliverables:
 When autonomous agents or automated scripts run this pipeline, refer to this troubleshooting table:
 
 | Symptom / Error | Root Cause | Exact Automated Recovery Procedure |
-| :--- | :--- | :--- |
-| `KeyError: forwardEps` or `None` in `yfinance` | Analyst estimates unavailable for micro-cap or recent listing | In `scenario_builder.py`, the cascade automatically falls back to: `latest_q_eps * 4` -> `trailingEps` -> annual statement `Diluted EPS`. |
-| Exa API Returns 0 results or throws timeout | Company name is abbreviated or query too specific | Strip legal suffixes (`Limited`, `Ltd`, `INDIA`), query with year only, or fall back to `"Standard quarterly operations"` without crashing. |
-| AkashML GLM-5.3 returns invalid JSON or times out | LLM output contained preamble or dropped connection | `llm_reasoner.py` applies regex `re.search(r"(\{.*\})")`. If unparseable, it safely falls back to deterministic mathematical institutional valuation (`compute_institutional_target`). |
-| Colab GPU Session Disconnects / OOM | Long time-series batch exceeded 16GB VRAM on T4 | Reduce batch size or switch to the Covariate-Free CPU engine (`w_tfm = 0.15`), which computes full Monte Carlo distributions in < 1.5 seconds without GPU requirements. |
-| Invalidation Stop-Loss triggers immediately | Volatility sigma_daily is extremely elevated (> 4%) | Check if stock has undergone a stock split (e.g. Cupid 1:4 split). Verify `yfinance` adjusted close splits. |
+| :
+---
+
+## 9. End-to-End Testing & Verification Playbook
+
+This chapter outlines the exact, step-by-step procedures to test the entire hybrid quantitative engine, from isolated unit and security checks to full multi-stock benchmarks and remote GPU execution.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                          END-TO-END TESTING PIPELINE MATRIX                            │
+├───────────────────┬───────────────────────────────┬────────────────────────────────────┤
+│   TEST LEVEL      │          COMMAND              │          WHAT IT VERIFIES          │
+├───────────────────┼───────────────────────────────┼────────────────────────────────────┤
+│ 1. Unit/Security  │ test_agents.py                │ A2A Air-Gap, Anti-Poisoning, Leak  │
+│ 2. Subsystems     │ scenario_builder.py <TICKER>  │ AkashML, Exa, Two-Sided Multiples  │
+│ 3. Triad Flow     │ test_multi_agent_flow.py      │ Agent 1 -> Agent 2 -> Agent 3 Flow │
+│ 4. Single Asset   │ multi_agent_system.py         │ End-to-End Forecast & Artifacts    │
+│ 5. Full Benchmark │ run_2026_prediction_benchmark │ 8-Equity Blindfold 2026 Benchmark  │
+│ 6. Remote Colab   │ colab --auth=adc exec ...     │ Remote T4/A100 GPU Neural Pipeline │
+└───────────────────┴───────────────────────────────┴────────────────────────────────────┘
+```
+
+---
+
+### Level 1: Unit & Security Isolation Testing (Execution time: ~3 seconds)
+Verifies that the Process Sandbox Agent strictly enforces zero-leakage security, catches poisoned payloads containing ticker names or dates, accepts clean payloads, and gracefully runs on CPU.
+
+```bash
+python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_agents.py
+```
+
+**Expected Console Output**:
+```
+PASS  test_poisoned_ticker_rejected
+PASS  test_poisoned_year_rejected
+[Process_Sandbox_Agent] Security Audit PASSED: Payload is 100% anonymized with zero identifying tokens.
+PASS  test_clean_payload_accepted
+[Process_Sandbox_Agent] Ingested A2A message dc56c5b7 from T.
+[Process_Sandbox_Agent] Security Audit PASSED: Payload is 100% anonymized with zero identifying tokens.
+[Process_Sandbox_Agent] Executing Pure TimesFM 3.0 Baseline (Unanchored)...
+[Process_Sandbox_Agent] Inference complete. Dispatched A2A tensor payload (ID: 9d1a4a6e) to Output_Synthesis_Agent.
+PASS  test_fallback_forecast_runs_without_gpu
+ALL TESTS PASSED
+```
+
+---
+
+### Level 2: Subsystem & API Connectivity Testing
+
+#### Test 2A: Test AkashML GLM-5.3 Semantic Reasoner
+Verifies API authentication, JSON extraction, and response parsing:
+```bash
+python3 -c "
+import sys
+sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+from llm_reasoner import invoke_akashml_reasoner
+resp = invoke_akashml_reasoner('Output valid JSON with key status=OK: {"status": "OK"}')
+print('AkashML Status:', resp.get('status'))
+"
+```
+*Expected Result*: `AkashML Status: OK`
+
+#### Test 2B: Test Exa Neural Search Pre-Cutoff Ingestion
+Verifies pre-cutoff date enforcement and regulatory boilerplate filtering:
+```bash
+python3 -c "
+import sys
+sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+from scenario_builder import fetch_pre_cutoff_catalysts
+res = fetch_pre_cutoff_catalysts('NETWEB.NS', '2025-12-31')
+print('Cleaned Catalysts:', res[:180] + '...')
+"
+```
+*Expected Result*: Returns clean operational announcements (e.g. server manufacturing, high-performance computing orders) without scanned cover page noise (`CIN`, `Compliance Officer`).
+
+#### Test 2C: Test Two-Sided Market Valuation Engine
+Verifies that bear de-ratings and bull breakouts are categorized correctly:
+
+1. **Bear De-Rating Test (`TCS.NS`)**:
+   ```bash
+   python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/scenario_builder.py TCS.NS
+   ```
+   *Verification Criteria*: `regime` must be `"DE_RATING_BEAR"` and `target_pe` must be compressed to 11x–15x.
+
+2. **Hyper-Growth Benchmark Test (`NETWEB.NS`)**:
+   ```bash
+   python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/scenario_builder.py NETWEB.NS
+   ```
+   *Verification Criteria*: `regime` must be `"SECTOR_BENCHMARK"` and multiple must be aligned with Computer Hardware (62x).
+
+#### Test 2D: Test Covariate-Free Monte Carlo Forecaster
+Verifies stochastic volatility scaling and dynamic target reach:
+```bash
+python3 -c "
+import sys
+sys.path.insert(0, '/root/timesfm_repo/MULTI_AGENT_SANDBOX')
+from covfree_forecaster import forecast_covfree
+pt, q10, q90 = forecast_covfree(last=100.0, target=150.0, annual_vol=0.25, horizon=30)
+assert len(pt) == 30 and q10[-1] < pt[-1] < q90[-1]
+print('Forecaster Test Passed: Terminal Median =', round(pt[-1], 2))
+"
+```
+*Expected Result*: `Forecaster Test Passed: Terminal Median = 148.91`
+
+#### Test 2E: Test Institutional Risk & Sizing Engine
+Verifies Parametric VaR, CVaR, stop-loss, and Half-Kelly allocation:
+```bash
+python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/institutional_engine.py
+```
+*Expected Result*: Prints formatted institutional scorecard with VaR, Half-Kelly allocation %, and action directive.
+
+---
+
+### Level 3: Triad Integration Flow Test (Execution time: ~15 seconds)
+Tests the complete multi-agent pipeline from Agent 1 (Data Ingestion) to Agent 2 (Air-gapped Sandbox) to Agent 3 (Synthesis & Reporting):
+
+```bash
+python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
+```
+
+**What this test validates**:
+- Ingests `HEROMOTOCO.NS` historical data strictly prior to `2023-12-31`.
+- Builds fundamental scenarios.
+- Strips ticker identity and packages anonymized numerical tensors into an A2A message.
+- Process Sandbox validates the payload for prohibited tokens.
+- Forecast trajectories are generated.
+- Output Agent computes metrics, saves chart to `test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png`, and writes executive report to `test_run_output/HEROMOTOCO.NS_executive_report.md`.
+
+---
+
+### Level 4: Testing a Single Stock Forecast (Live or Backtest)
+
+#### Python API:
+```python
+import sys
+sys.path.insert(0, "/root/timesfm_repo/MULTI_AGENT_SANDBOX")
+from multi_agent_system import MultiAgentCoordinator
+
+coordinator = MultiAgentCoordinator()
+
+# Backtest Mode (Evaluated against realized future prices)
+record = coordinator.run(
+    ticker="TCS.NS",
+    cutoff_date="2025-12-31",
+    horizon=171,
+    output_dir="/root/timesfm_repo/TEST_OUTPUT"
+)
+
+# Live Mode (Forecast forward from today with no cutoff)
+# record = coordinator.run(ticker="INFY.NS", cutoff_date=None, horizon=30, output_dir="/root/timesfm_repo/LIVE_OUTPUT")
+
+print("Terminal Weighted Target: Rs.", record["metrics"]["weighted_terminal"])
+print("Scenario Envelope Coverage:", record["metrics"]["envelope_coverage_pct"], "%")
+print("Saved Chart:", record["chart_saved"])
+print("Saved Report:", record["report_saved"])
+```
+
+#### Command Line:
+```bash
+python3 /root/timesfm_repo/MULTI_AGENT_SANDBOX/multi_agent_system.py --ticker TCS.NS --cutoff 2025-12-31 --horizon 171 --output_dir /root/timesfm_repo/TEST_OUTPUT
+```
+
+---
+
+### Level 5: Full Benchmark Suite Execution
+
+#### 1. The 2026 Blindfold Benchmark (8 Equities):
+Evaluates the 8 benchmark stocks (`TCS.NS`, `CUPID.NS`, `MODISONLTD.NS`, `STLTECH.NS`, `NETWEB.NS`, `MTARTECH.NS`, `WHEELS.NS`, `VENUSREM.NS`) from cutoff Dec 31, 2025 to Sep 4, 2026 (171 trading days):
+```bash
+python3 /root/timesfm_repo/run_2026_prediction_benchmark.py
+```
+*Outputs saved to*: `/root/timesfm_repo/BENCHMARK_2026_OUTPUT/`  
+*Acceptance Criteria*: **100% of equities must achieve `YES (PASSED)` status** with error $< 5\%$.
+
+#### 2. The 2024 Calendar Benchmark (10 Equities):
+Evaluates the full 2024 calendar year (246 trading days) from cutoff Dec 31, 2023 to Dec 31, 2024:
+```bash
+python3 /root/timesfm_repo/run_10stock_fixed_benchmark.py
+```
+*Outputs saved to*: `/root/timesfm_repo/BENCHMARK_FIXED_OUTPUT/`
+
+---
+
+### Level 6: Remote Google Colab GPU Execution Test
+
+To test execution on a remote Google Colab GPU runtime using the Colab CLI (`colab --auth=adc`):
+
+```bash
+# Step 1: List sessions and ensure GPU session exists
+colab --auth=adc sessions
+
+# Step 2: If no GPU session exists, create one (NEVER touch session [discos4]!)
+colab --auth=adc new --hardware=GPU --shape=Standard
+
+# Step 3: Verify CUDA GPU availability on the remote instance
+echo "import torch; print('CUDA Available:', torch.cuda.is_available(), '| Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')" | colab --auth=adc exec -s timesfm-gpu
+
+# Step 4: Install dependencies on the remote instance
+colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
+
+# Step 5: Upload the codebase
+colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
+
+# Step 6: Execute the multi-agent test remotely
+colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
+
+# Step 7: Download generated forecast plots to local workspace
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_gpu_test.png
+```
+
+---
+
+### Level 7: Acceptance & Scoring Criteria (Pass/Fail Verification)
+
+For any backtest evaluation, the system applies this quantitative decision tree:
+
+| Metric | Threshold for `YES (PASSED)` | Threshold for `PARTIAL` | `NO (FAILED)` Condition |
+| :--- | :--- | :--- | :--- |
+| **Terminal Prediction Error** | $|(P_{\text{pred}} - P_{\text{actual}}) / P_{\text{actual}}| \le 25\%$ | $25\% < \text{Error} \le 40\%$ | $\text{Error} > 40\%$ |
+| **Envelope Containment** | Ground truth price $P_{\text{actual}} \in [P_{\text{bear}}, P_{\text{bull}}]$ | Realized move within $1.25 \times \text{Envelope}$ | Outside envelope |
+| **Directional Accuracy** | $\text{sign}(\Delta P_{\text{pred}}) == \text{sign}(\Delta P_{\text{actual}})$ | Mismatched only if realized move $< 10\%$ | Mismatched with move $> 10\%$ |
+| **A2A Security Verification** | 0 forbidden tokens detected | N/A | Any forbidden token raises `SecurityError` |
 
 ---
 *Single source of truth document. Autonomously verified and committed.*
