@@ -1,7 +1,7 @@
 {
   "ticker": "INFY.NS",
   "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
-  "a2a_message_id": "865f3100",
+  "a2a_message_id": "1db1b103",
   "metrics": {
     "pure_baseline_terminal": 1125.5511034299582,
     "weighted_terminal": 1045.7181160805294,
@@ -50,7 +50,7 @@
   "chart_saved": "/root/timesfm_repo/test_results/pipeline_results/INFY.NS_multi_agent_forecast.png",
   "report_saved": "/root/timesfm_repo/test_results/pipeline_results/INFY.NS_executive_report.md",
   "institutional_scorecard": {
-    "timestamp": "2026-09-05T23:12:43.798196Z",
+    "timestamp": "2026-09-05T23:30:18.832097Z",
     "ticker": "INFY.NS",
     "last_close": 1130.0,
     "horizon_days": 5,

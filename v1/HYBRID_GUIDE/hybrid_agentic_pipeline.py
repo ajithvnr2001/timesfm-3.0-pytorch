@@ -26,6 +26,10 @@ import pandas as pd
 import pypdf
 import yfinance as yf
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(REPO_ROOT, "v2", "MULTI_AGENT_SANDBOX"))
+sys.path.insert(0, os.path.join(REPO_ROOT, "v2"))
+
 # Optional Torch & TimesFM 3.0
 try:
     import torch

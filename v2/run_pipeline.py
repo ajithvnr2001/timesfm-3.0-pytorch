@@ -80,6 +80,7 @@ def main():
 
     if args.mode in ["institutional", "multi-agent"]:
         sys.path.insert(0, repo_dir)
+        sys.path.insert(0, os.path.join(repo_dir, "MULTI_AGENT_SANDBOX"))
         from multi_agent_system import MultiAgentCoordinator
         print("[Dispatcher] Launching Zero-Leakage Multi-Agent Triad (Institutional Engine)...")
         coordinator = MultiAgentCoordinator()

@@ -210,26 +210,28 @@ timesfm-3.0-pytorch/
 │   ├── INTRADAY/                           # Hourly Index & Options Volatility scripts
 │   ├── MODISONANALYSIS/                    # MODISONLTD corporate event benchmark & filings
 │   ├── MODISON_LIVE/                       # Live Modison Ltd 1-month forecast
-│   ├── MULTI_AGENT_SANDBOX/                # Multi-Agent Triad module (v1 baseline)
 │   ├── NIFTY/                              # NIFTY 50 8-month macro benchmark
 │   ├── OPTIONS/                            # NIFTY options and volatility experiments
 │   ├── RAYMONDREL_ANALYSIS/                # Raymond Realty 22-day forecast & GDV
 │   └── daywise_sep4_audit_and_monday_prediction.py
 │
 ├── v2/                                     # 🚀 Production Multi-Agent Air-Gapped Quantitative System
-│   ├── run_pipeline.py                     # 🌟 Unified CLI Entry-Point (Institutional, Multi-Agent, Backtest, Live, Intraday)
-│   ├── multi_agent_system.py               # Complete 3-Agent Triad (MainIngestion -> ProcessSandbox -> OutputSynthesis)
-│   ├── scenario_builder.py                 # Point-in-time financial statement parsing & two-sided valuation engine
-│   ├── llm_reasoner.py                     # Multi-provider LLM reasoner (AkashML DeepSeek/GLM, OpenCode, NVIDIA NIM)
-│   ├── covfree_forecaster.py               # Statistical Monte Carlo quantile forecaster & covariate generator
-│   ├── institutional_engine.py             # Half-Kelly sizing, 95% VaR/CVaR, STT frictions, Sector Beta, Macro regimes
-│   ├── sample_a2a_payload.json             # Wire specification for zero-leakage A2A messages
-│   ├── test_agents.py                      # Regression & poison-token rejection unit tests
-│   ├── test_multi_agent_flow.py            # End-to-end integration test runner
+│   ├── run_pipeline.py                     # 🌟 Master CLI Dispatcher (Institutional, Multi-Agent, Backtest, Live, Intraday)
 │   ├── run_2026_prediction_benchmark.py    # 2026 forward prediction benchmark runner (7+ assets)
 │   ├── run_10stock_fixed_benchmark.py      # Fixed 10-stock backtest benchmark
 │   ├── run_1year_benchmark.py              # 1-year historical benchmark runner
-│   └── batch_backtest_benchmark.py         # Batch multi-asset backtesting runner
+│   ├── batch_backtest_benchmark.py         # Batch multi-asset backtesting runner
+│   │
+│   └── MULTI_AGENT_SANDBOX/                # 🌟 Core Air-Gapped Multi-Agent Triad Engine
+│       ├── multi_agent_system.py           # Complete 3-Agent Triad (MainIngestion -> ProcessSandbox -> OutputSynthesis)
+│       ├── scenario_builder.py             # Point-in-time financial statement parsing & two-sided valuation engine
+│       ├── llm_reasoner.py                 # Multi-provider LLM reasoner (AkashML DeepSeek/GLM, OpenCode, NVIDIA NIM)
+│       ├── covfree_forecaster.py           # Statistical Monte Carlo quantile forecaster & covariate generator
+│       ├── institutional_engine.py         # Half-Kelly sizing, 95% VaR/CVaR, STT frictions, Sector Beta, Macro regimes
+│       ├── sample_a2a_payload.json         # Wire specification for zero-leakage A2A messages
+│       ├── test_agents.py                  # Regression & poison-token rejection unit tests
+│       ├── test_multi_agent_flow.py        # End-to-end integration test runner
+│       └── hybrid_method_comparison.csv    # Comparative methodology benchmarks
 │
 ├── guides&docs/                            # 📚 Complete System Documentation & Architectural Manuals
 │   ├── USER_GUIDE.md                       # Non-technical manual for traders, investors, and PMs

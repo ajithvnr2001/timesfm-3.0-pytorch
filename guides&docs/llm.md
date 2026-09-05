@@ -469,18 +469,21 @@ colab --auth=adc stop -s timesfm-gpu
 ├── v1/                                     # Legacy standalone experiments & historical runs
 ├── v2/                                     # Production multi-agent air-gapped system & benchmarks
 │   ├── run_pipeline.py                     # Unified master CLI dispatcher
-│   ├── multi_agent_system.py               # Core 3-Agent Triad Coordinator & Orchestrator
-│   ├── scenario_builder.py                 # Two-Sided Financial Valuation & Catalyst Engine
-│   ├── llm_reasoner.py                     # AkashML GLM-5.3 JSON reasoning client
-│   ├── covfree_forecaster.py               # Monte Carlo Horizon-Aware bridge simulator
-│   ├── institutional_engine.py             # VaR, CVaR, Kelly allocation & sizing logic
-│   ├── sample_a2a_payload.json             # Anonymized A2A protocol schema
-│   ├── test_agents.py                      # Regression & security isolation tests
-│   ├── test_multi_agent_flow.py            # End-to-end integration flow tests
 │   ├── run_2026_prediction_benchmark.py    # Full 2026 blindfold evaluation suite
 │   ├── run_10stock_fixed_benchmark.py      # 2024 calendar benchmark suite
 │   ├── run_1year_benchmark.py              # 1-year historical benchmark runner
-│   └── batch_backtest_benchmark.py         # Multi-asset batch backtest runner
+│   ├── batch_backtest_benchmark.py         # Multi-asset batch backtest runner
+│   │
+│   └── MULTI_AGENT_SANDBOX/                # 🌟 Core Air-Gapped Multi-Agent Triad Engine
+│       ├── multi_agent_system.py           # Core 3-Agent Triad Coordinator & Orchestrator
+│       ├── scenario_builder.py             # Two-Sided Financial Valuation & Catalyst Engine
+│       ├── llm_reasoner.py                 # AkashML GLM-5.3 JSON reasoning client
+│       ├── covfree_forecaster.py           # Monte Carlo Horizon-Aware bridge simulator
+│       ├── institutional_engine.py         # VaR, CVaR, Kelly allocation & sizing logic
+│       ├── sample_a2a_payload.json         # Anonymized A2A protocol schema
+│       ├── test_agents.py                  # Regression & security isolation tests
+│       ├── test_multi_agent_flow.py        # End-to-end integration flow tests
+│       └── hybrid_method_comparison.csv    # Comparative methodology benchmarks
 ├── guides&docs/                            # Master documentation suite & llm.md
 └── test_results/                           # Benchmark artifacts, PNG plots, MD reports, JSON scorecards
     ├── BENCHMARK_2026_OUTPUT/              # 2026 forward forecast deliverables
@@ -496,6 +499,7 @@ colab --auth=adc stop -s timesfm-gpu
 ```python
 import sys
 sys.path.insert(0, "/root/timesfm_repo/v2")
+sys.path.insert(0, "/root/timesfm_repo/v2/MULTI_AGENT_SANDBOX")
 from multi_agent_system import MultiAgentCoordinator
 
 # Initialize coordinator
@@ -705,6 +709,7 @@ python3 /root/timesfm_repo/v2/test_multi_agent_flow.py
 ```python
 import sys
 sys.path.insert(0, "/root/timesfm_repo/v2")
+sys.path.insert(0, "/root/timesfm_repo/v2/MULTI_AGENT_SANDBOX")
 from multi_agent_system import MultiAgentCoordinator
 
 coordinator = MultiAgentCoordinator()
@@ -728,7 +733,7 @@ print("Saved Report:", record["report_saved"])
 
 #### Command Line:
 ```bash
-python3 /root/timesfm_repo/v2/multi_agent_system.py --ticker TCS.NS --cutoff 2025-12-31 --horizon 171 --output_dir /root/timesfm_repo/test_results/pipeline_results
+python3 /root/timesfm_repo/v2/MULTI_AGENT_SANDBOX/multi_agent_system.py --ticker TCS.NS --cutoff 2025-12-31 --horizon 171 --output_dir /root/timesfm_repo/test_results/pipeline_results
 ```
 
 ---

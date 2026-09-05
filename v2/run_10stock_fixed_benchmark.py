@@ -19,6 +19,7 @@ import yfinance as yf
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(CURR_DIR) if os.path.basename(CURR_DIR) == "v2" else CURR_DIR
 sys.path.insert(0, CURR_DIR)
+sys.path.insert(0, os.path.join(CURR_DIR, "MULTI_AGENT_SANDBOX"))
 sys.path.insert(0, REPO_ROOT)
 
 from multi_agent_system import MultiAgentCoordinator
