@@ -1,28 +1,59 @@
 {
   "ticker": "INFY.NS",
   "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
-  "a2a_message_id": "04fd9f20",
+  "a2a_message_id": "865f3100",
   "metrics": {
-    "actual_terminal": 1535.47509765625,
-    "pure_baseline_terminal": 1399.20556640625,
-    "pure_baseline_error_pct": -8.874747070662487,
-    "weighted_terminal": 1541.7401428222656,
-    "weighted_error_pct": 0.40801997867491263,
-    "bull_terminal": 1832.638671875,
-    "bull_error_pct": 19.35320049620737,
-    "pure_mae": 100.21052652994791,
-    "pure_mape": 6.5593117478425516,
-    "weighted_mae": 36.5657236735026,
-    "weighted_mape": 2.4635983418270375,
-    "envelope_coverage_pct": 100.0
+    "pure_baseline_terminal": 1125.5511034299582,
+    "weighted_terminal": 1045.7181160805294,
+    "bull_terminal": 1090.6259610385132,
+    "bear_terminal": 973.958821952029
   },
-  "chart_saved": "./pipeline_results/INFY.NS_multi_agent_forecast.png",
-  "report_saved": "./pipeline_results/INFY.NS_executive_report.md",
+  "predictions": {
+    "pure_baseline": [
+      1129.10881611501,
+      1128.2183350695927,
+      1127.3285563094475,
+      1126.4394792807116,
+      1125.5511034299582
+    ],
+    "weighted": [
+      1131.0834718894769,
+      1110.5234398530563,
+      1087.9377866098826,
+      1066.4922875422897,
+      1045.7181160805294
+    ],
+    "scenarios": {
+      "bear": [
+        1131.4319405555593,
+        1092.2669063461617,
+        1052.0009130454841,
+        1012.1153093372284,
+        973.958821952029
+      ],
+      "base": [
+        1131.4319405555593,
+        1107.601681283995,
+        1080.9290756915302,
+        1056.1726989004314,
+        1030.967492189519
+      ],
+      "bull": [
+        1131.4319405555593,
+        1122.1329762275777,
+        1110.0868328112933,
+        1099.1927782745347,
+        1090.6259610385132
+      ]
+    }
+  },
+  "chart_saved": "/root/timesfm_repo/test_results/pipeline_results/INFY.NS_multi_agent_forecast.png",
+  "report_saved": "/root/timesfm_repo/test_results/pipeline_results/INFY.NS_executive_report.md",
   "institutional_scorecard": {
-    "timestamp": "2026-09-05T18:24:53.204699Z",
+    "timestamp": "2026-09-05T23:12:43.798196Z",
     "ticker": "INFY.NS",
-    "last_close": 1429.64,
-    "horizon_days": 30,
+    "last_close": 1130.0,
+    "horizon_days": 5,
     "macro_environment": {
       "nifty_close": 23900.0,
       "nifty_trend": "BULLISH_UPTREND",
@@ -42,31 +73,31 @@
       "eps_source": "audited_vendor_trailing",
       "earnings_cagr": null,
       "sector_pe_benchmark": null,
-      "bear_target": 1136.03,
-      "base_target": 1611.09,
-      "bull_target": 2065.5,
-      "weighted_fair_value": 1605.9275
+      "bear_target": 803.25,
+      "base_target": 918.0,
+      "bull_target": 1032.75,
+      "weighted_fair_value": 918.0
     },
     "timesfm_probabilistic_forecast": {
-      "terminal_expected": 1541.74,
-      "terminal_q10": 1246.14,
-      "terminal_q90": 1832.64
+      "terminal_expected": 1045.72,
+      "terminal_q10": 896.53,
+      "terminal_q90": 1172.85
     },
     "institutional_risk_and_sizing": {
-      "annualized_volatility_pct": 21.23,
-      "historical_max_drawdown_pct": -8.26,
-      "var_95_1day_pct": 2.2,
-      "var_95_horizon_pct": 12.05,
-      "cvar_95_horizon_pct": 10.94,
-      "stop_loss_invalidation_level": 1136.03,
-      "downside_risk_pct": 20.54,
+      "annualized_volatility_pct": 33.27,
+      "historical_max_drawdown_pct": -14.89,
+      "var_95_1day_pct": 3.45,
+      "var_95_horizon_pct": 7.71,
+      "cvar_95_horizon_pct": 9.12,
+      "stop_loss_invalidation_level": 803.25,
+      "downside_risk_pct": 28.92,
       "friction_deduction_pct": 0.25,
-      "gross_upside_pct": 12.33,
-      "net_upside_pct": 12.08,
-      "net_risk_reward_ratio": 0.59,
-      "win_probability_est": 0.43,
+      "gross_upside_pct": -18.76,
+      "net_upside_pct": -19.01,
+      "net_risk_reward_ratio": 0.0,
+      "win_probability_est": 0.3,
       "half_kelly_alloc_pct": 0.0,
-      "volatility_parity_alloc_pct": 82.4,
+      "volatility_parity_alloc_pct": 52.6,
       "recommended_portfolio_alloc_pct": 0.0,
       "recommended_capital_inr": 0.0,
       "recommended_shares": 0,
