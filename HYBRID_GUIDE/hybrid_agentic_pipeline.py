@@ -77,6 +77,15 @@ except ImportError:
         forecast_covfree = None
         annualized_vol = None
 
+try:
+    from institutional_engine import build_institutional_scorecard
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.institutional_engine import build_institutional_scorecard
+    except ImportError:
+        build_institutional_scorecard = None
+
+
 
 
 def parse_arguments():
@@ -600,7 +609,44 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
             mae, mape = None, None
             metric_str = "Live Forward Prediction"
 
+        # Institutional Scorecard
+        scorecard = None
+        stop_loss_val = None
+        if build_institutional_scorecard is not None:
+            try:
+                fund_d = {
+                    "scenarios": val_data.get("scenarios") or {},
+                    "weighted_target": val_data.get("fair_value_target", last_price),
+                    "eps": val_data.get("trailing_eps"),
+                    "sector_pe": val_data.get("sector_pe", 22.0)
+                }
+                try:
+                    tk = yf.Ticker(ticker)
+                    fund_d["industry"] = tk.info.get("industry") or tk.info.get("sector") or "General"
+                except Exception:
+                    fund_d["industry"] = "General"
+
+                scorecard = build_institutional_scorecard(
+                    ticker=ticker,
+                    last_price=last_price,
+                    fundamental_data=fund_d,
+                    forecast_results={
+                        "numerical_context": train_df["Close"].values[-64:].tolist() if not train_df.empty else [last_price]*10,
+                        "weighted_expected": pred.tolist() if isinstance(pred, np.ndarray) else pred,
+                        "base_q10": q10.tolist() if isinstance(q10, np.ndarray) else q10,
+                        "base_q90": q90.tolist() if isinstance(q90, np.ndarray) else q90
+                    },
+                    horizon=horizon,
+                    as_of=train_df.index[-1].strftime("%Y-%m-%d") if not train_df.empty else None
+                )
+                stop_loss_val = scorecard["institutional_risk_and_sizing"]["stop_loss_invalidation_level"]
+            except Exception as e:
+                print(f"  • [{ticker}] institutional_scorecard notice: {e}")
+
         anon_badge = "[BLIND-BOX ZERO LEAKAGE]" if mode == "backtest" else "[LIVE FORWARD]"
+        if stop_loss_val:
+            plt.axhline(y=stop_loss_val, color="#ea4335", linestyle="--", linewidth=1.8, label=f"Institutional Invalidation Stop (Rs. {stop_loss_val:.2f})")
+
         plt.title(f"{ticker} — Hybrid LLM + TimesFM 3.0 {anon_badge}\n{metric_str}{coverage_str}", fontsize=12, fontweight="bold")
         plt.xlabel("Date", fontsize=10, fontweight="bold")
         plt.ylabel("Price (INR)", fontsize=10, fontweight="bold")
@@ -626,6 +672,8 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
             record["metrics"] = {"mae": mae, "mape": mape}
             if val_data.get("scenarios"):
                 record["envelope_coverage_pct"] = cov_pct
+        if scorecard:
+            record["institutional_scorecard"] = scorecard
 
         json_path = os.path.join(output_dir, f"{ticker}_forecast_results.json")
         with open(json_path, "w") as f:
@@ -634,6 +682,8 @@ def export_and_plot_results(output_dir: str, tickers: list, batch_train_dfs: lis
         summary_catalog.append(record)
         print(f"  • [{ticker}] Plot -> {plot_path}")
         print(f"  • [{ticker}] JSON -> {json_path}")
+        if scorecard:
+            print(f"  • [{ticker}] Institutional Directive: {scorecard['institutional_risk_and_sizing']['institutional_directive']}")
 
     summary_path = os.path.join(output_dir, "batch_portfolio_summary.json")
     with open(summary_path, "w") as f:

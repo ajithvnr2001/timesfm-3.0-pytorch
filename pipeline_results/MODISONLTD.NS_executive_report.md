@@ -1,4 +1,4 @@
-# Multi-Agent Zero-Leakage Forecast Report: HEROMOTOCO.NS
+# Multi-Agent Zero-Leakage Forecast Report: MODISONLTD.NS
 ### Architecture: MainAgent (Ingestion) ➔ ProcessAgent (Sandbox TimesFM) ➔ OutputAgent (Reporting)
 
 ---
@@ -7,23 +7,23 @@
 
 | Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
 | :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. 5555.00** | Rs. 6208.52 | **Rs. 3488.48** | Rs. 3023.34 |
-| **Terminal Error (%)** | — | +11.76% (Exploded) | **-37.20%** | -45.57% |
-| **Multi-Year MAE** | — | Rs. 636.43 | — | **Rs. 1328.12** |
-| **Multi-Year MAPE** | — | 14.36% | — | **26.36%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **18.3% of all trading days** |
+| **Terminal Price** | **Rs. 131.30** | Rs. 120.94 | **Rs. 134.36** | Rs. 114.39 |
+| **Terminal Error (%)** | — | -7.89% (Exploded) | **+2.33%** | -12.88% |
+| **Multi-Year MAE** | — | Rs. 4.30 | — | **Rs. 5.42** |
+| **Multi-Year MAPE** | — | 3.48% | — | **4.30%** |
+| **Scenario Envelope Coverage** | — | 0% | — | **100.0% of all trading days** |
 
 ---
 
 ## 2. High-Resolution Forecast Chart
 
-![Multi Agent Forecast](HEROMOTOCO.NS_multi_agent_forecast.png)
+![Multi Agent Forecast](MODISONLTD.NS_multi_agent_forecast.png)
 
 ---
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `02380625`
+* **Ingress Message ID**: `ba3d3093`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
@@ -35,21 +35,21 @@
 ### A. Cross-Asset Macro & Sector Alignment
 * **NIFTY 50 Macro Regime**: `BULLISH_UPTREND` (Benchmark Close: Rs. 23,900.00)
 * **India VIX Volatility Regime**: `NORMAL_VOLATILITY (Optimal Trading Environment)` (Level: 13.50 | Multiplier: 1.00x)
-* **Sector Benchmark**: `^CNXAUTO` (Stock Beta to NIFTY: `1.0` | Beta to Sector: `1.0`)
+* **Sector Benchmark**: `^NSEI` (Stock Beta to NIFTY: `1.0` | Beta to Sector: `1.0`)
 
 ### B. Value at Risk (VaR) & Tail Risk Profile
 | Metric | Horizon Risk (% of Equity) | Interpretation |
 | :--- | :--- | :--- |
-| **Parametric 95% 1-Day VaR** | **2.73%** | 95% confidence max expected single-day loss |
-| **Parametric 95% Horizon VaR** | **70.21%** | Cumulative 663-day volatility exposure |
-| **Conditional VaR (CVaR / Expected Shortfall)** | **55.04%** | Average loss in worst 5% tail-risk scenarios |
-| **Historical Max Drawdown** | **-6.54%** | Deepest peak-to-trough historical correction |
+| **Parametric 95% 1-Day VaR** | **5.81%** | 95% confidence max expected single-day loss |
+| **Parametric 95% Horizon VaR** | **31.84%** | Cumulative 30-day volatility exposure |
+| **Conditional VaR (CVaR / Expected Shortfall)** | **27.83%** | Average loss in worst 5% tail-risk scenarios |
+| **Historical Max Drawdown** | **-24.74%** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `-29.82%`
+* **Gross Potential Upside**: `-4.23%`
 * **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
-* **Net Horizon Upside**: `**-30.07%**`
-* **Objective Invalidation Stop-Loss**: `Rs. 1854.47` (Downside: `-50.4%`)
+* **Net Horizon Upside**: `**-4.48%**`
+* **Objective Invalidation Stop-Loss**: `Rs. 79.62` (Downside: `-32.2%`)
 * **Asymmetric Risk/Reward Ratio (RRR)**: `**0.0x**`
 * **Half-Kelly Capital Allocation**: `0.0%`
 * **Recommended Portfolio Exposure**: `**0.0%**` (Rs. 0.00 | **0 shares**)

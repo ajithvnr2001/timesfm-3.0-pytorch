@@ -1,0 +1,76 @@
+{
+  "ticker": "RAYMONDREL.NS",
+  "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
+  "a2a_message_id": "75b5591d",
+  "metrics": {
+    "actual_terminal": 529.1500244140625,
+    "pure_baseline_terminal": 518.0667724609375,
+    "pure_baseline_error_pct": -2.0945386831263377,
+    "weighted_terminal": 530.8362426757812,
+    "weighted_error_pct": 0.31866544154201454,
+    "bull_terminal": 544.3731079101562,
+    "bull_error_pct": 2.876893658457363,
+    "pure_mae": 14.387837727864584,
+    "pure_mape": 2.73634305970442,
+    "weighted_mae": 8.588200887044271,
+    "weighted_mape": 1.6422281970214978,
+    "envelope_coverage_pct": 100.0
+  },
+  "chart_saved": "./pipeline_results/RAYMONDREL.NS_multi_agent_forecast.png",
+  "report_saved": "./pipeline_results/RAYMONDREL.NS_executive_report.md",
+  "institutional_scorecard": {
+    "timestamp": "2026-09-05T18:26:11.293851Z",
+    "ticker": "RAYMONDREL.NS",
+    "last_close": 516.75,
+    "horizon_days": 22,
+    "macro_environment": {
+      "nifty_close": 23900.0,
+      "nifty_trend": "BULLISH_UPTREND",
+      "india_vix": 13.5,
+      "vix_regime": "NORMAL_VOLATILITY (Optimal Trading Environment)",
+      "macro_multiplier": 1.0
+    },
+    "sector_relative_strength": {
+      "sector_index_ticker": "^NSEI",
+      "beta_nifty": 1.0,
+      "corr_nifty": 0.65,
+      "beta_sector": 1.0,
+      "corr_sector": 0.7
+    },
+    "fundamental_forensics": {
+      "audited_eps": 45.08,
+      "eps_source": "audited_vendor_trailing",
+      "earnings_cagr": null,
+      "sector_pe_benchmark": null,
+      "bear_target": 550.79,
+      "base_target": 781.12,
+      "bull_target": 1001.44,
+      "weighted_fair_value": 778.6175000000001
+    },
+    "timesfm_probabilistic_forecast": {
+      "terminal_expected": 679.68,
+      "terminal_q10": 537.07,
+      "terminal_q90": 817.92
+    },
+    "institutional_risk_and_sizing": {
+      "annualized_volatility_pct": 49.23,
+      "historical_max_drawdown_pct": -28.5,
+      "var_95_1day_pct": 5.1,
+      "var_95_horizon_pct": 23.93,
+      "cvar_95_horizon_pct": 30.43,
+      "stop_loss_invalidation_level": 526.33,
+      "downside_risk_pct": 1.0,
+      "friction_deduction_pct": 0.25,
+      "gross_upside_pct": 50.68,
+      "net_upside_pct": 50.43,
+      "net_risk_reward_ratio": 50.43,
+      "win_probability_est": 0.78,
+      "half_kelly_alloc_pct": 38.8,
+      "volatility_parity_alloc_pct": 35.5,
+      "recommended_portfolio_alloc_pct": 15.0,
+      "recommended_capital_inr": 150000.0,
+      "recommended_shares": 290,
+      "institutional_directive": "STRONG BUY (High Conviction Asymmetric Setup)"
+    }
+  }
+}

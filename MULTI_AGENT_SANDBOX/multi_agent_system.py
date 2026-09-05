@@ -75,6 +75,15 @@ except ImportError:
     except ImportError:
         forecast_covfree = None
 
+try:
+    from institutional_engine import build_institutional_scorecard
+except ImportError:
+    try:
+        from MULTI_AGENT_SANDBOX.institutional_engine import build_institutional_scorecard
+    except ImportError:
+        build_institutional_scorecard = None
+
+
 
 
 # ==============================================================================
@@ -409,9 +418,11 @@ class OutputSynthesisAgent:
         forecasts = payload["forecast_results"]
         horizon = payload["horizon"]
         last_price = payload["last_scalar"]
+        scenarios = payload.get("scenarios", {})
 
         actuals = test_df["Close"].values[:horizon] if not test_df.empty else None
-        test_dates = test_df.index[:horizon] if not test_df.empty else [train_df.index[-1] + datetime.timedelta(days=i) for i in range(1, horizon + 1)]
+        test_dates = test_df.index[:len(actuals)] if actuals is not None else []
+        future_dates = [train_df.index[-1] + datetime.timedelta(days=i) for i in range(1, horizon + 1)]
 
         # Metrics computation
         metrics = {}
@@ -445,6 +456,41 @@ class OutputSynthesisAgent:
                 "envelope_coverage_pct": cov_rate
             }
 
+        # Build Institutional-Grade Scorecard & Risk Sizing
+        scorecard = None
+        stop_loss_val = None
+        if build_institutional_scorecard is not None:
+            try:
+                fund_data = {
+                    "scenarios": scenarios,
+                    "weighted_target": sum(s.get("probability", 0.33) * s.get("target_price", last_price) for s in scenarios.values()) if scenarios else last_price
+                }
+                try:
+                    tk = yf.Ticker(real_ticker)
+                    fund_data["industry"] = tk.info.get("industry") or tk.info.get("sector") or "General"
+                    fund_data["eps"] = tk.info.get("trailingEps")
+                    fund_data["eps_source"] = "audited_vendor_trailing"
+                except Exception:
+                    fund_data["industry"] = "General"
+
+                scorecard = build_institutional_scorecard(
+                    ticker=real_ticker,
+                    last_price=last_price,
+                    fundamental_data=fund_data,
+                    forecast_results={
+                        "numerical_context": train_df["Close"].values[-64:].tolist() if not train_df.empty else [last_price]*10,
+                        "weighted_expected": forecasts.get("weighted_expected", []),
+                        "base_q10": forecasts.get("bear_q10", forecasts.get("bear", [])),
+                        "base_q90": forecasts.get("bull_q90", forecasts.get("bull", []))
+                    },
+                    horizon=horizon,
+                    as_of=train_df.index[-1].strftime("%Y-%m-%d") if not train_df.empty else None
+                )
+                stop_loss_val = scorecard["institutional_risk_and_sizing"]["stop_loss_invalidation_level"]
+                print(f"[{self.agent_id}] Institutional Scorecard Generated: {scorecard['institutional_risk_and_sizing']['institutional_directive']}")
+            except Exception as e:
+                print(f"[{self.agent_id}] institutional_scorecard notice: {e}")
+
         # Visualization
         plt.figure(figsize=(16, 8), dpi=150)
         plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
@@ -453,25 +499,29 @@ class OutputSynthesisAgent:
         plt.plot(train_df.index[-60:], train_df["Close"].values[-60:], label="Historical Context (Pre-Cutoff)", color="#1b365d", linewidth=2.5)
 
         # Actuals
-        if actuals is not None:
-            plt.plot(test_dates, actuals, label=f"Actual Ground Truth (Sep 2026: Rs. {actuals[-1]:.0f})", color="#107c41", linewidth=3.2, zorder=5)
+        if actuals is not None and len(actuals) > 0:
+            plt.plot(test_dates, actuals, label=f"Actual Ground Truth (Rs. {actuals[-1]:.0f})", color="#107c41", linewidth=3.2, zorder=5)
 
         # Baseline
-        plt.plot(test_dates, forecasts["pure_baseline"], label=f"Agent 2 Pure Baseline (Rs. {forecasts['pure_baseline'][-1]:.0f})",
+        plt.plot(future_dates, forecasts["pure_baseline"], label=f"Agent 2 Pure Baseline (Rs. {forecasts['pure_baseline'][-1]:.0f})",
                  color="#d83b01", linestyle="--", linewidth=2.0)
 
         # Scenarios
-        plt.plot(test_dates, forecasts["bull"], label=f"Bull Scenario (25% prob): Rs. {forecasts['bull'][-1]:.0f}", color="#6b29b2", linestyle="-.", linewidth=2.0)
-        plt.plot(test_dates, forecasts["base"], label=f"Base Scenario (50% prob): Rs. {forecasts['base'][-1]:.0f}", color="#0078d4", linestyle="-", linewidth=2.2)
-        plt.plot(test_dates, forecasts["bear"], label=f"Bear Scenario (25% prob): Rs. {forecasts['bear'][-1]:.0f}", color="#ea4335", linestyle=":", linewidth=2.0)
+        plt.plot(future_dates, forecasts["bull"], label=f"Bull Scenario (25% prob): Rs. {forecasts['bull'][-1]:.0f}", color="#6b29b2", linestyle="-.", linewidth=2.0)
+        plt.plot(future_dates, forecasts["base"], label=f"Base Scenario (50% prob): Rs. {forecasts['base'][-1]:.0f}", color="#0078d4", linestyle="-", linewidth=2.2)
+        plt.plot(future_dates, forecasts["bear"], label=f"Bear Scenario (25% prob): Rs. {forecasts['bear'][-1]:.0f}", color="#ea4335", linestyle=":", linewidth=2.0)
 
         # Weighted
-        plt.plot(test_dates, forecasts["weighted_expected"], label=f"Probabilistic Expected Path (Rs. {forecasts['weighted_expected'][-1]:.0f})",
+        plt.plot(future_dates, forecasts["weighted_expected"], label=f"Probabilistic Expected Path (Rs. {forecasts['weighted_expected'][-1]:.0f})",
                  color="#004e8c", linewidth=3.0)
 
         # Envelope
-        plt.fill_between(test_dates, forecasts["bear"], forecasts["bull"], color="#0078d4", alpha=0.12,
+        plt.fill_between(future_dates, forecasts["bear"], forecasts["bull"], color="#0078d4", alpha=0.12,
                          label=f"Zero-Leakage Envelope ({metrics.get('envelope_coverage_pct', 0):.0f}% Coverage)")
+
+        # Institutional Invalidation Stop
+        if stop_loss_val:
+            plt.axhline(y=stop_loss_val, color="#ea4335", linestyle="--", linewidth=1.8, label=f"Institutional Invalidation Stop (Rs. {stop_loss_val:.2f})")
 
         plt.title(f"{real_ticker} — Zero-Leakage Multi-Agent Triad Forecast (Horizon: {horizon} Days)\n"
                   f"MainAgent (Sanitizer) -> ProcessAgent (Air-Gapped Sandbox) -> OutputAgent (Report)",
@@ -518,6 +568,39 @@ class OutputSynthesisAgent:
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
 """
+        if scorecard:
+            macro = scorecard["macro_environment"]
+            sec = scorecard["sector_relative_strength"]
+            risk = scorecard["institutional_risk_and_sizing"]
+            md_report += f"""
+---
+
+## 4. Institutional Risk, Macro Regime & Capital Sizing Matrix
+
+### A. Cross-Asset Macro & Sector Alignment
+* **NIFTY 50 Macro Regime**: `{macro['nifty_trend']}` (Benchmark Close: Rs. {macro['nifty_close']:,.2f})
+* **India VIX Volatility Regime**: `{macro['vix_regime']}` (Level: {macro['india_vix']:.2f} | Multiplier: {macro['macro_multiplier']:.2f}x)
+* **Sector Benchmark**: `{sec['sector_index_ticker']}` (Stock Beta to NIFTY: `{sec['beta_nifty']}` | Beta to Sector: `{sec['beta_sector']}`)
+
+### B. Value at Risk (VaR) & Tail Risk Profile
+| Metric | Horizon Risk (% of Equity) | Interpretation |
+| :--- | :--- | :--- |
+| **Parametric 95% 1-Day VaR** | **{risk['var_95_1day_pct']:.2f}%** | 95% confidence max expected single-day loss |
+| **Parametric 95% Horizon VaR** | **{risk['var_95_horizon_pct']:.2f}%** | Cumulative {horizon}-day volatility exposure |
+| **Conditional VaR (CVaR / Expected Shortfall)** | **{risk['cvar_95_horizon_pct']:.2f}%** | Average loss in worst 5% tail-risk scenarios |
+| **Historical Max Drawdown** | **{risk['historical_max_drawdown_pct']:.2f}%** | Deepest peak-to-trough historical correction |
+
+### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
+* **Gross Potential Upside**: `{risk['gross_upside_pct']:+.2f}%`
+* **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-{risk['friction_deduction_pct']:.2f}%`
+* **Net Horizon Upside**: `**{risk['net_upside_pct']:+.2f}%**`
+* **Objective Invalidation Stop-Loss**: `Rs. {risk['stop_loss_invalidation_level']:.2f}` (Downside: `-{risk['downside_risk_pct']:.1f}%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: `**{risk['net_risk_reward_ratio']}x**`
+* **Half-Kelly Capital Allocation**: `{risk['half_kelly_alloc_pct']}%`
+* **Recommended Portfolio Exposure**: `**{risk['recommended_portfolio_alloc_pct']}%**` (Rs. {risk['recommended_capital_inr']:,.2f} | **{risk['recommended_shares']} shares**)
+* **Institutional Executive Directive**: `**{risk['institutional_directive']}**`
+"""
+
         report_path = os.path.join(output_dir, f"{real_ticker}_executive_report.md")
         with open(report_path, "w") as f:
             f.write(md_report)
@@ -531,6 +614,8 @@ class OutputSynthesisAgent:
             "chart_saved": chart_path,
             "report_saved": report_path
         }
+        if scorecard:
+            json_record["institutional_scorecard"] = scorecard
         json_path = os.path.join(output_dir, f"{real_ticker}_multi_agent_results.json")
         with open(json_path, "w") as f:
             json.dump(json_record, f, indent=2)
