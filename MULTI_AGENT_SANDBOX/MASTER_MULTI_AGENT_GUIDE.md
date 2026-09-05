@@ -88,6 +88,7 @@ sequenceDiagram
 
     User->>M: Execute Backtest (Ticker: INFY.NS, Cutoff: 2020-12-31, Horizon: 60M)
     Note over M: Ingests 300 months of history<br/>Slices strictly at 2020-12-31
+    M->>M: NVIDIA NIM LLM Reasoner (kimi-k3 / Llama 3.2): Synthesizes thesis & dynamic P/E targets
     M->>M: Regex Sanitizer: Strips 'INFY', 'Infosys', '2020', '2021'
     M->>M: Formulates 3 Blind-Box Scenarios (Bear 25%, Base 50%, Bull 25%)
     M->>M: Builds Dynamic Covariate Arrays for S-curves

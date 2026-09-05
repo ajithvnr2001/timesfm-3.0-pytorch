@@ -178,7 +178,11 @@ class MainIngestionAgent:
                 fund_res = build_scenarios(ticker, current_price=last_price, as_of=cutoff_date)
                 scenarios = fund_res["scenarios"]
                 weighted_target = fund_res["weighted_target"]
-                print(f"[{self.agent_id}] Statement-driven Valuation (EPS={fund_res['eps']:.2f} via {fund_res['eps_source']}, Sector P/E={fund_res['sector_pe']:.1f}, CAGR={fund_res['eps_cagr']}):")
+                source = fund_res.get("source", "audited_statement")
+                thesis = fund_res.get("thesis", "")
+                print(f"[{self.agent_id}] Valuation Engine: {source} (EPS={fund_res['eps']:.2f} via {fund_res['eps_source']}, Sector P/E={fund_res['sector_pe']:.1f}):")
+                if thesis:
+                    print(f"[{self.agent_id}] Qualitative Thesis: \"{thesis}\"")
             except Exception as e:
                 print(f"[{self.agent_id}] scenario_builder notice: {e}. Using fallback.")
 
@@ -192,9 +196,9 @@ class MainIngestionAgent:
             weighted_target = sum(s["probability"] * s["target_price"] for s in scenarios.values())
 
         print(f"[{self.agent_id}] Synthesized 3-Branch Fundamental Scenarios:")
-        print(f"  • Bear (25%): Rs. {scenarios['bear']['target_price']:.2f}")
-        print(f"  • Base (50%): Rs. {scenarios['base']['target_price']:.2f}")
-        print(f"  • Bull (25%): Rs. {scenarios['bull']['target_price']:.2f}")
+        print(f"  • Bear ({scenarios['bear']['probability']*100:.0f}%): Rs. {scenarios['bear']['target_price']:.2f} ({scenarios['bear'].get('target_pe', 0):.1f}x P/E)")
+        print(f"  • Base ({scenarios['base']['probability']*100:.0f}%): Rs. {scenarios['base']['target_price']:.2f} ({scenarios['base'].get('target_pe', 0):.1f}x P/E)")
+        print(f"  • Bull ({scenarios['bull']['probability']*100:.0f}%): Rs. {scenarios['bull']['target_price']:.2f} ({scenarios['bull'].get('target_pe', 0):.1f}x P/E)")
         print(f"  • Expected Target: Rs. {weighted_target:.2f}")
 
         # Construct Dynamic Covariates: Honest volatility blend via covfree_forecaster

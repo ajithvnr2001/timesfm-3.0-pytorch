@@ -1,12 +1,12 @@
 {
   "ticker": "MODISONLTD.NS",
   "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
-  "a2a_message_id": "3902f898",
+  "a2a_message_id": "cb44b747",
   "metrics": {},
   "chart_saved": "./pipeline_results/MODISONLTD.NS_multi_agent_forecast.png",
   "report_saved": "./pipeline_results/MODISONLTD.NS_executive_report.md",
   "institutional_scorecard": {
-    "timestamp": "2026-09-05T19:43:13.927650Z",
+    "timestamp": "2026-09-05T20:09:37.218303Z",
     "ticker": "MODISONLTD.NS",
     "last_close": 469.95,
     "horizon_days": 30,
@@ -29,15 +29,15 @@
       "eps_source": "audited_vendor_trailing",
       "earnings_cagr": null,
       "sector_pe_benchmark": null,
-      "bear_target": 344.19,
-      "base_target": 491.7,
-      "bull_target": 663.8,
-      "weighted_fair_value": 497.84749999999997
+      "bear_target": 424.65,
+      "base_target": 480.53,
+      "bull_target": 536.4,
+      "weighted_fair_value": 480.528
     },
     "timesfm_probabilistic_forecast": {
-      "terminal_expected": 486.54,
-      "terminal_q10": 386.52,
-      "terminal_q90": 596.4
+      "terminal_expected": 476.28,
+      "terminal_q10": 372.2,
+      "terminal_q90": 615.1
     },
     "institutional_risk_and_sizing": {
       "annualized_volatility_pct": 58.74,
@@ -45,12 +45,12 @@
       "var_95_1day_pct": 6.09,
       "var_95_horizon_pct": 33.34,
       "cvar_95_horizon_pct": 27.34,
-      "stop_loss_invalidation_level": 344.19,
-      "downside_risk_pct": 26.76,
+      "stop_loss_invalidation_level": 364.75,
+      "downside_risk_pct": 22.39,
       "friction_deduction_pct": 0.25,
-      "gross_upside_pct": 5.94,
-      "net_upside_pct": 5.69,
-      "net_risk_reward_ratio": 0.21,
+      "gross_upside_pct": 2.25,
+      "net_upside_pct": 2.0,
+      "net_risk_reward_ratio": 0.09,
       "win_probability_est": 0.4,
       "half_kelly_alloc_pct": 0.0,
       "volatility_parity_alloc_pct": 29.8,

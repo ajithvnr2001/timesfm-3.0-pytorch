@@ -76,3 +76,21 @@ timesfm-3.0-pytorch/
   ```bash
   python3 test_agents.py
   ```
+
+---
+
+## 4. Semantic Reasoning LLM Layer (NVIDIA NIM)
+
+In addition to quantitative foundation models (TimesFM 3.0), the pipeline incorporates a deep-reasoning LLM layer (`llm_reasoner.py`) powered by **NVIDIA NIM**:
+
+### Supported NIM Models:
+- **Primary**: `moonshotai/kimi-k3` (Deep Chain-of-Thought Reasoning with `reasoning_effort="max"`)
+- **High-Throughput Fallback**: `meta/llama-3.2-11b-vision-instruct` (Immediate latency, active when primary encounters 429/rate-limiting)
+- **Deterministic Math Fallback**: Audited financial statement CAGR bands (`scenario_builder.py`)
+
+### LLM Pipeline Role:
+1. **Input**: Real-time audited Diluted EPS, Industry Benchmark P/E, Historical EPS CAGR, and Qualitative Catalysts / Earnings Disclosures.
+2. **LLM Synthesis**: The LLM evaluates premium/discount drivers, competitive moats, and cyclicity to calibrate 12-month Forward P/E multiples and probability weights ($P_{bear}, P_{base}, P_{bull}$).
+3. **Quantitative Guardrail**: The quantitative engine enforces strict mathematical integrity ($Target Price = EPS \times Target P/E$), preventing hallucinated arithmetic while preserving the qualitative reasoning.
+4. **TimesFM 3.0 Vectorized Ingestion**: The resulting scenario trajectories and calibrated target endpoints are fed directly into TimesFM 3.0 on CUDA via single-pass `predict_batch`.
+

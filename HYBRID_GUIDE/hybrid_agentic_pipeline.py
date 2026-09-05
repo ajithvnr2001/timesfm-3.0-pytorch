@@ -104,10 +104,10 @@ def parse_arguments():
                         help="Point-in-Time Cutoff Date (YYYY-MM-DD). Strictly required if mode='backtest'")
     parser.add_argument("--horizon", type=int, default=30,
                         help="Forecast horizon in trading days")
-    parser.add_argument("--api_provider", type=str, default="heuristic", choices=["gemini", "openai", "heuristic"],
-                        help="LLM provider for semantic document reasoning")
+    parser.add_argument("--api_provider", type=str, default="nvidia", choices=["nvidia", "gemini", "openai", "heuristic"],
+                        help="LLM provider for semantic document reasoning (default: nvidia moonshotai/kimi-k3)")
     parser.add_argument("--api_key", type=str, default=None,
-                        help="API Key for Gemini or OpenAI (defaults to env vars GEMINI_API_KEY / OPENAI_API_KEY)")
+                        help="API Key for LLM provider (defaults to NVIDIA_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)")
     parser.add_argument("--exa_key", type=str, default=None,
                         help="API Key for Exa Neural Search (defaults to EXA_API_KEY env var)")
     parser.add_argument("--output_dir", type=str, default="./hybrid_output",
@@ -294,12 +294,12 @@ You MUST output a 3-branch scenario tree:
 
     print(f"[LLM Valuation Layer] Reasoning over fundamentals for {display_name} ({temporal_context})...")
 
-    # Offline / Heuristic Mode
-    if provider == "heuristic" or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
+    # NVIDIA NIM LLM / Scenario Builder Engine / Heuristic Mode
+    if provider in ["nvidia", "heuristic"] or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
         fund_res = None
         if build_scenarios is not None:
             try:
-                fund_res = build_scenarios(ticker, current_price=current_price, as_of=cutoff_date)
+                fund_res = build_scenarios(ticker, current_price=current_price, as_of=cutoff_date, use_llm=True)
             except Exception as e:
                 print(f"  • scenario_builder notice: {e}. Falling back to statement regex.")
 
@@ -309,8 +309,12 @@ You MUST output a 3-branch scenario tree:
             trailing_pe = current_price / eps if eps > 0 else 20.0
             scenarios = fund_res["scenarios"]
             weighted_tgt = fund_res["weighted_target"]
-            print(f"  • Statement-driven Fundamental Scenarios (via scenario_builder, EPS={eps:.2f}, Sector P/E={sector_pe:.1f}):")
-            print(f"    Bear = Rs. {scenarios['bear']['target_price']:.2f} | Base = Rs. {scenarios['base']['target_price']:.2f} | Bull = Rs. {scenarios['bull']['target_price']:.2f}")
+            src = fund_res.get("source", "scenario_builder")
+            thesis = fund_res.get("thesis", "")
+            print(f"  • Fundamental Scenarios (via {src}, EPS={eps:.2f}, Sector P/E={sector_pe:.1f}):")
+            if thesis:
+                print(f"    Qualitative Thesis: \"{thesis}\"")
+            print(f"    Bear ({scenarios['bear']['probability']*100:.0f}%) = Rs. {scenarios['bear']['target_price']:.2f} | Base ({scenarios['base']['probability']*100:.0f}%) = Rs. {scenarios['base']['target_price']:.2f} | Bull ({scenarios['bull']['probability']*100:.0f}%) = Rs. {scenarios['bull']['target_price']:.2f}")
             print(f"    Expected Weighted Target = Rs. {weighted_tgt:.2f}")
             if mode != "backtest":
                 scenarios = None

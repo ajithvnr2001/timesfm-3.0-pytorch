@@ -53,8 +53,27 @@ fund_res = build_scenarios(ticker="MODISONLTD.NS", current_price=469.95, as_of="
 # Returns:
 # - eps: 22.35 (audited diluted EPS)
 # - sector_pe: 22.0 (peer-group dynamic multiple)
-# - scenarios: {'bear': 344.19, 'base': 491.70, 'bull': 663.80}
-# - weighted_target: 497.85
+# - scenarios: {'bear': 424.65, 'base': 480.53, 'bull': 536.40}
+# - weighted_target: 480.53
+# - thesis: "MODISONLTD.NS appears reasonably valued..."
+# - source: "llm_nvidia_meta/llama-3.2-11b-vision-instruct" (or moonshotai/kimi-k3)
+```
+
+### 2b. `llm_reasoner` (`llm_reasoner.py`)
+Integrates the NVIDIA NIM semantic reasoning layer into scenario formulation:
+```python
+from llm_reasoner import reason_market_scenarios
+
+res = reason_market_scenarios(
+    ticker="MODISONLTD.NS",
+    current_price=469.95,
+    eps=22.35,
+    sector_pe=22.0,
+    eps_cagr=0.12,
+    industry="Metals & Mining",
+    recent_news="Debt-free balance sheet; expanding contact material market share."
+)
+# Returns calibrated Bear/Base/Bull forward multiples, probability weights, and qualitative thesis.
 ```
 
 ### 3. `covfree_forecaster` (`covfree_forecaster.py`)

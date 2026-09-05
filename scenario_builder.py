@@ -52,7 +52,7 @@ def earnings_cagr(tk, as_of=None):
     if len(vals) < 3: return None
     return float((vals[-1]/vals[0])**(1.0/(len(vals)-1)) - 1.0)
 
-def build_scenarios(ticker, current_price=None, as_of=None):
+def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent_news=None):
     tk = yf.Ticker(ticker)
     if current_price is None:
         try:
@@ -63,6 +63,37 @@ def build_scenarios(ticker, current_price=None, as_of=None):
     cagr = earnings_cagr(tk, as_of)
     industry = tk.info.get("industry") or tk.info.get("sector") or ""
     sector_pe = SECTOR_PE_MAP.get(industry, 22.0)
+
+    # 1. Attempt institutional NVIDIA NIM LLM reasoning
+    if use_llm and current_price and eps:
+        try:
+            try:
+                from llm_reasoner import reason_market_scenarios
+            except ImportError:
+                from MULTI_AGENT_SANDBOX.llm_reasoner import reason_market_scenarios
+            
+            llm_res = reason_market_scenarios(
+                ticker=ticker,
+                current_price=current_price,
+                eps=eps,
+                sector_pe=sector_pe,
+                eps_cagr=cagr,
+                industry=industry,
+                recent_news=recent_news or ""
+            )
+            sc = llm_res["scenarios"]
+            wt = llm_res["weighted_target"]
+            return {
+                "ticker": ticker, "eps": eps, "eps_source": eps_src, "eps_cagr": cagr,
+                "industry": industry, "sector_pe": sector_pe, "price": current_price,
+                "scenarios": sc, "weighted_target": wt,
+                "thesis": llm_res.get("thesis", ""),
+                "source": llm_res.get("source", "llm_nvidia")
+            }
+        except Exception as e:
+            print(f"[scenario_builder] Notice: LLM reasoner skipped ({e}). Using audited formula.")
+
+    # 2. Audited mathematical statement fallback
     band = GROWTH_BAND["high" if (cagr or 0) > 0.15 else "mid" if (cagr or 0) > 0.07 else "low"]
     sc = {
         "bear": {"probability": 0.25, "target_pe": round(sector_pe*band[0],1),
@@ -75,7 +106,9 @@ def build_scenarios(ticker, current_price=None, as_of=None):
     wt = round(sum(s["probability"]*s["target_price"] for s in sc.values()), 2)
     return {"ticker": ticker, "eps": eps, "eps_source": eps_src, "eps_cagr": cagr,
             "industry": industry, "sector_pe": sector_pe, "price": current_price,
-            "scenarios": sc, "weighted_target": wt}
+            "scenarios": sc, "weighted_target": wt,
+            "thesis": f"Fundamental valuation using audited EPS of Rs. {eps:.2f} and sector P/E of {sector_pe:.1f}x.",
+            "source": "audited_formula"}
 
 if __name__ == "__main__":
     import json, sys
