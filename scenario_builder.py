@@ -64,7 +64,7 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
     industry = tk.info.get("industry") or tk.info.get("sector") or ""
     sector_pe = SECTOR_PE_MAP.get(industry, 22.0)
 
-    # 1. Attempt institutional NVIDIA NIM LLM reasoning
+    # 1. Attempt institutional AkashML LLM reasoning (zai-org/GLM-5.3)
     if use_llm and current_price and eps:
         try:
             try:
@@ -88,7 +88,7 @@ def build_scenarios(ticker, current_price=None, as_of=None, use_llm=True, recent
                 "industry": industry, "sector_pe": sector_pe, "price": current_price,
                 "scenarios": sc, "weighted_target": wt,
                 "thesis": llm_res.get("thesis", ""),
-                "source": llm_res.get("source", "llm_nvidia")
+                "source": llm_res.get("source", "llm_akashml")
             }
         except Exception as e:
             print(f"[scenario_builder] Notice: LLM reasoner skipped ({e}). Using audited formula.")

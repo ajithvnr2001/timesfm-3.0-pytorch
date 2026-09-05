@@ -104,10 +104,10 @@ def parse_arguments():
                         help="Point-in-Time Cutoff Date (YYYY-MM-DD). Strictly required if mode='backtest'")
     parser.add_argument("--horizon", type=int, default=30,
                         help="Forecast horizon in trading days")
-    parser.add_argument("--api_provider", type=str, default="nvidia", choices=["nvidia", "gemini", "openai", "heuristic"],
-                        help="LLM provider for semantic document reasoning (default: nvidia moonshotai/kimi-k3)")
+    parser.add_argument("--api_provider", type=str, default="akashml", choices=["akashml", "gemini", "openai", "heuristic"],
+                        help="LLM provider for semantic document reasoning (default: akashml zai-org/GLM-5.3)")
     parser.add_argument("--api_key", type=str, default=None,
-                        help="API Key for LLM provider (defaults to NVIDIA_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)")
+                        help="API Key for LLM provider (defaults to AKASHML_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)")
     parser.add_argument("--exa_key", type=str, default=None,
                         help="API Key for Exa Neural Search (defaults to EXA_API_KEY env var)")
     parser.add_argument("--output_dir", type=str, default="./hybrid_output",
@@ -294,8 +294,8 @@ You MUST output a 3-branch scenario tree:
 
     print(f"[LLM Valuation Layer] Reasoning over fundamentals for {display_name} ({temporal_context})...")
 
-    # NVIDIA NIM LLM / Scenario Builder Engine / Heuristic Mode
-    if provider in ["nvidia", "heuristic"] or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
+    # AkashML LLM (zai-org/GLM-5.3) / Scenario Builder Engine / Heuristic Mode
+    if provider in ["akashml", "heuristic", "nvidia"] or (not api_key and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENAI_API_KEY")):
         fund_res = None
         if build_scenarios is not None:
             try:

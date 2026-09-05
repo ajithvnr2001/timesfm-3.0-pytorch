@@ -7,7 +7,7 @@
 
 | Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **30 Trading Days** | **Rs. 469.95** | Rs. 483.58 | **Rs. 510.92** | Rs. 476.28 | Rs. 441.64 | **Rs. 476.28** |
+| **30 Trading Days** | **Rs. 469.95** | Rs. 483.58 | **Rs. 497.07** | Rs. 469.35 | Rs. 400.07 | **Rs. 454.11** |
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `cb44b747`
+* **Ingress Message ID**: `6db61612`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
@@ -42,11 +42,11 @@
 | **Historical Max Drawdown** | **-22.65%** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `+2.25%`
+* **Gross Potential Upside**: `-5.36%`
 * **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
-* **Net Horizon Upside**: `**+2.00%**`
-* **Objective Invalidation Stop-Loss**: `Rs. 364.75` (Downside: `-22.4%`)
-* **Asymmetric Risk/Reward Ratio (RRR)**: `**0.09x**`
+* **Net Horizon Upside**: `**-5.61%**`
+* **Objective Invalidation Stop-Loss**: `Rs. 357.60` (Downside: `-23.9%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: `**0.0x**`
 * **Half-Kelly Capital Allocation**: `0.0%`
 * **Recommended Portfolio Exposure**: `**0.0%**` (Rs. 0.00 | **0 shares**)
 * **Institutional Executive Directive**: `**TRIM / TAKE PROFIT (Negative Expected Skew)**`

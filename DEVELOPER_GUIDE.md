@@ -55,12 +55,12 @@ fund_res = build_scenarios(ticker="MODISONLTD.NS", current_price=469.95, as_of="
 # - sector_pe: 22.0 (peer-group dynamic multiple)
 # - scenarios: {'bear': 424.65, 'base': 480.53, 'bull': 536.40}
 # - weighted_target: 480.53
-# - thesis: "MODISONLTD.NS appears reasonably valued..."
-# - source: "llm_nvidia_meta/llama-3.2-11b-vision-instruct" (or moonshotai/kimi-k3)
+# - thesis: "Modison trades at a ~5% discount to the sector..."
+# - source: "llm_akashml_zai-org/GLM-5.3"
 ```
 
 ### 2b. `llm_reasoner` (`llm_reasoner.py`)
-Integrates the NVIDIA NIM semantic reasoning layer into scenario formulation:
+Integrates the AkashML semantic reasoning layer (`zai-org/GLM-5.3`) into scenario formulation:
 ```python
 from llm_reasoner import reason_market_scenarios
 
