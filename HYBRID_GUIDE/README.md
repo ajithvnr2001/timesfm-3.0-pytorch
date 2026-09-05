@@ -293,6 +293,14 @@ gcloud auth application-default login
 
 ---
 
+### Recipe 7: Master Institutional Execution (`run_pipeline.py`)
+*Run live real-time analysis with automated macro regimes, VaR/CVaR risk engine, and Half-Kelly sizing:*
+```bash
+python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30
+```
+
+---
+
 ## 9. Output Directory Structure
 
 Each run produces a complete quantitative audit package:

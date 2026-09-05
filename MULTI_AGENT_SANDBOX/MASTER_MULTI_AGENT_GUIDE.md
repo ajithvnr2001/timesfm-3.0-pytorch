@@ -400,31 +400,60 @@ class MultiAgentCoordinator:
 
 ---
 
-## 10. How to Run the Multi-Agent System
+## 10. The Institutional Risk & Position Sizing Engine (`institutional_engine.py`)
 
-### 1-Click Verification Test
+In production, raw predictions must be converted into **fiduciarily defensible capital allocation decisions**. The multi-agent pipeline automatically attaches an institutional scorecard to every run:
+
+1. **Cross-Asset Macro Regime Detection**:
+   - Compares 200-day vs 50-day moving averages on `^NSEI` (NIFTY 50) to classify macro state (`BULLISH_UPTREND`, `BEARISH_DOWNTREND`, `SIDEWAYS_CONSOLIDATION`).
+   - Slices `^INDIAVIX` into 4 volatility regimes: `LOW_VOLATILITY (<12)`, `NORMAL_VOLATILITY (12-18)`, `ELEVATED_VOLATILITY (18-24)`, and `EXTREME_PANIC (>24)` to modulate risk budgets.
+2. **Sector Beta & Relative Strength**:
+   - Auto-matches asset industry to relevant NSE sector index (`^CNXIT`, `^CNXAUTO`, `^CNXMETAL`, `^NSEBANK`, `^CNXFMCG`).
+3. **Parametric Value-at-Risk (VaR) & CVaR**:
+   - Evaluates 95% single-day and $H$-day horizon VaR: $\text{VaR}_{95} = 1.645 \times \sigma_{daily} \times \sqrt{H}$.
+   - Calculates **Conditional VaR (Expected Shortfall)**: Tail-risk loss conditional on exceeding VaR.
+4. **Indian Market Roundtrip Frictions**:
+   - Frictions deducted from gross upside: -0.25% (STT 0.1% buy + 0.1% sell, SEBI turnover, GST, exchange slippage).
+5. **Half-Kelly Capital Allocation**:
+   - Optimal fraction $f^* = p - \frac{1-p}{b}$, scaled by $0.5$ for institutional downside defense ($f^*_{half}$).
+   - Positions sized in exact INR capital and integer share count based on user's portfolio capital budget.
+
+---
+
+## 11. How to Run the Multi-Agent System
+
+### Live Real-Time Execution (DEFAULT - Sep 4, 2026 Market Close)
 ```bash
-python3 MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
+# Automatically detects live session (e.g. Modison at Rs. 469.95)
+python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30
 ```
 
-### Run with Custom Ticker & Cutoff
+### Strict Historical Zero-Leakage Backtest
 ```bash
-python3 MULTI_AGENT_SANDBOX/multi_agent_system.py \
+python3 run_pipeline.py \
+  --mode multi-agent \
   --ticker INFY.NS \
   --cutoff 2020-12-31 \
-  --horizon 60 \
-  --output_dir ./MULTI_AGENT_SANDBOX/infosys_output
+  --horizon 60
+```
+
+### 1-Click Verification Test Suites
+```bash
+# Test 1: Full 4-component regression suite
+python3 test_agents.py
+
+# Test 2: A2A message protocol & security gate
+python3 MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
 ```
 
 ### Run with CUDA Cloud GPU Acceleration (Google Colab CLI)
 ```bash
-# Execute on active GPU session
-colab --auth=adc exec -s infosys-gpu -f MULTI_AGENT_SANDBOX/test_multi_agent_flow.py --timeout 300
+colab --auth=adc exec -s timesfm-gpu <<< "import subprocess; print(subprocess.check_output('cd /content/timesfm_repo && python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30', shell=True, text=True))"
 ```
 
 ---
 
-## 11. Summary: Why This Architecture is the Ultimate Standard
+## 12. Summary: Why This Architecture is the Ultimate Standard
 
 | Standard AI Backtest ❌ | Air-Gapped Multi-Agent Triad ✅ |
 | :--- | :--- |
@@ -432,6 +461,9 @@ colab --auth=adc exec -s infosys-gpu -f MULTI_AGENT_SANDBOX/test_multi_agent_flo
 | LLM sees calendar year `"2020"` | Calendar dates converted to relative indices `[0..63]` |
 | LLM memorizes future price from pre-training | Agent 2 has zero network access and zero identity |
 | Single hand-tuned Bull curve | Mandatory 3-branch scenario tree (Bear, Base, Bull) |
+| Hardcoded arbitrary P/E multiples | Statement-audited diluted EPS via `scenario_builder.py` |
+| Heuristic unphysical sigmoid curves | Volatility-preserving diffusion via `covfree_forecaster.py` |
+| Raw speculative target prices | Complete VaR, CVaR, Half-Kelly sizing, and STT deductions |
 | Researcher claims "trust me, no leakage" | Verified by automated Ingress Gate regex audit |
 
-The Multi-Agent Triad transforms backtesting from an exercise in hindsight wishful thinking into an **objective, air-gapped quantitative science**.
+The Multi-Agent Triad transforms backtesting and live forecasting from an exercise in hindsight wishful thinking into an **objective, air-gapped quantitative science**.

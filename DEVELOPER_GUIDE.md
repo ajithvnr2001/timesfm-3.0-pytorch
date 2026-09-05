@@ -11,37 +11,84 @@ The system is organized into decoupled, modular layers designed for high through
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                                ARCHITECTURAL LAYERS                                    │
 ├───────────────────────┬────────────────────────────────────────────────────────────────┤
-│ 1. Data Connectors    │ • yfinance (OHLCV Market Series)                               │
+│ 1. Data Connectors    │ • yfinance (OHLCV Market Series, PIT Audited Statements)       │
 │                       │ • pypdf (PDF Extraction for Annual Reports & Earnings)         │
 │                       │ • exa-py (Neural Search for Point-in-Time Geopolitical News)   │
 ├───────────────────────┼────────────────────────────────────────────────────────────────┤
-│ 2. Agent Plane        │ • MainIngestionAgent (Ingestion, Sanitization, S-Curves)       │
-│                       │ • ProcessSandboxAgent (Air-Gapped Foundation Model Execution)  │
-│                       │ • OutputSynthesisAgent (Metrics, Visualization, Reporting)     │
+│ 2. Valuation & Risk   │ • scenario_builder.py (Statement-Audited Diluted EPS & Scenarios)│
+│                       │ • covfree_forecaster.py (Volatility-Preserving Trajectory Math)│
+│                       │ • institutional_engine.py (VaR, CVaR, Half-Kelly, STT Friction)│
 ├───────────────────────┼────────────────────────────────────────────────────────────────┤
-│ 3. Protocol Plane     │ • A2AMessage (Standardized JSON serialization via a2aproject)  │
+│ 3. Agent Plane        │ • MainIngestionAgent (Ingestion, Sanitization, PIT Blindfold)  │
+│                       │ • ProcessSandboxAgent (Air-Gapped Foundation Model Execution)  │
+│                       │ • OutputSynthesisAgent (Scorecard, Visualization, Directives)  │
+├───────────────────────┼────────────────────────────────────────────────────────────────┤
+│ 4. Protocol Plane     │ • A2AMessage (Standardized JSON serialization via a2aproject)  │
 │                       │ • Ingress Security Gate (Regex Leakage Audit)                  │
 ├───────────────────────┼────────────────────────────────────────────────────────────────┤
-│ 4. Foundation Engine  │ • Google TimesFM 3.0 (google/timesfm-3.0-pytorch) on CUDA      │
+│ 5. Foundation Engine  │ • Google TimesFM 3.0 (google/timesfm-3.0-pytorch) on CUDA      │
+│                       │ • Vectorized `predict_batch` Multi-Scenario Inference          │
 │                       │ • Dynamic Past/Future Covariate Cross-Attention                │
 └───────────────────────┴────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Core Python Classes & Responsibilities
+## 2. Core Modules, Classes & API Contracts
 
 ### 1. `TimesFM3Forecaster` (`timesfm3/forecaster.py`)
 Loads the pretrained PyTorch weights from Hugging Face (`google/timesfm-3.0-pytorch`).
-* **Key Method**: `predict(context, horizon, past_only_covariates, past_future_covariates, ...)`
+* **Key Methods**:
+  * `predict(context, horizon, ...)`: Single-series inference.
+  * `predict_batch(contexts, horizons, ...)`: Vectorized batched tensor forward pass across all scenarios simultaneously.
 * **Input Tensor Shapes**:
   * `context`: `np.ndarray` of shape `[Batch, Context_Len]` (e.g. `[1, 64]`).
   * `past_future_covariates`: `np.ndarray` of shape `[Batch, Channels, Context_Len + Horizon]` (e.g. `[1, 1, 128]`).
-* **Output**: `ForecastResult` namedtuple containing:
-  * `forecast`: Array of shape `[Batch, Horizon]` representing the mean expected trajectory.
-  * `quantiles`: Array of shape `[Batch, Horizon, 9]` containing quantiles from $10\%$ to $90\%$.
+* **Output**: `ForecastResult` namedtuple containing `forecast` array `[Batch, Horizon]` and `quantiles` array `[Batch, Horizon, 9]`.
 
-### 2. `A2AMessage` (`MULTI_AGENT_SANDBOX/multi_agent_system.py`)
+### 2. `scenario_builder` (`scenario_builder.py`)
+Extracts audited balance sheet metrics and computes dynamic fundamental valuation scenarios:
+```python
+fund_res = build_scenarios(ticker="MODISONLTD.NS", current_price=469.95, as_of="2026-09-04")
+# Returns:
+# - eps: 22.35 (audited diluted EPS)
+# - sector_pe: 22.0 (peer-group dynamic multiple)
+# - scenarios: {'bear': 344.19, 'base': 491.70, 'bull': 663.80}
+# - weighted_target: 497.85
+```
+
+### 3. `covfree_forecaster` (`covfree_forecaster.py`)
+Replaces unphysical sigmoid heuristics with volatility-preserving forward diffusion:
+```python
+p_proj, lower_cone, upper_cone = forecast_covfree(
+    last_price=469.95,
+    target_price=491.70,
+    annual_vol=0.25,
+    horizon=30
+)
+```
+
+### 4. `institutional_engine` (`institutional_engine.py`)
+Provides Tier-1 hedge fund risk metrics, macro regimes, and position sizing:
+```python
+scorecard = build_institutional_scorecard(
+    ticker="MODISONLTD.NS",
+    last_price=469.95,
+    fundamental_data=fund_data,
+    forecast_results=forecast_tensors,
+    horizon=30,
+    portfolio_capital=1000000.0
+)
+# Returns:
+# - VaR (95% 1-day & 30-day Horizon)
+# - CVaR (Expected Shortfall tail risk)
+# - Net Horizon Upside (with -0.25% STT & Indian market frictions deducted)
+# - Half-Kelly Allocation & Recommended Share Quantity
+# - Objective Invalidation Stop-Loss & Asymmetric R/R Ratio
+# - Macro Regimes (^NSEI trend, ^INDIAVIX regime) & Sector Beta
+```
+
+### 5. `A2AMessage` (`MULTI_AGENT_SANDBOX/multi_agent_system.py`)
 Encapsulates data passing between agents according to the `a2aproject/a2a` standard:
 ```python
 @dataclass
@@ -55,7 +102,7 @@ class A2AMessage:
     payload: Dict[str, Any]
 ```
 
-### 3. `ProcessSandboxAgent` (`MULTI_AGENT_SANDBOX/multi_agent_system.py`)
+### 6. `ProcessSandboxAgent` (`MULTI_AGENT_SANDBOX/multi_agent_system.py`)
 The air-gapped worker:
 * Runs with zero network access.
 * Implements `_verify_sandbox_security(message)` to reject any message carrying prohibited tokens (`INFY`, `2020`, etc.).
@@ -124,11 +171,17 @@ spec:
 
 ## 5. Testing & Continuous Integration
 
-Run the unit and integration test suite:
+Run the unit, integration, and institutional test suite:
 ```bash
-# Test 1: Verify A2A Message Passing and Security Audit Gate
+# Test 1: Comprehensive 4-Component Unit & Security Regression Suite
+python3 test_agents.py
+
+# Test 2: Verify A2A Message Passing and Ingress Security Audit Gate
 python3 MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
 
-# Test 2: Run End-to-End Pipeline in Sandbox Mode
+# Test 3: Run Live Institutional Execution (Real-Time Market Session)
+python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30
+
+# Test 4: Run Historical Backtest in Strict Air-Gapped Mode
 python3 run_pipeline.py --mode multi-agent --ticker INFY.NS --cutoff 2020-12-31 --horizon 60
 ```

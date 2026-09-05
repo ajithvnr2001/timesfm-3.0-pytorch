@@ -99,25 +99,30 @@ colab --auth=adc new -s timesfm-gpu --gpu T4
 colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance exa-py pypdf matplotlib
 ```
 
-### Step 3: Upload Code & Corporate Filings
+### Step 3: Upload Repository Code
+The cleanest way to synchronize the entire repository without file-by-file failures is uploading a compressed archive:
 ```bash
-colab --auth=adc upload -s timesfm-gpu HYBRID_GUIDE/ /content/HYBRID_GUIDE/
-colab --auth=adc upload -s timesfm-gpu MODISONANALYSIS/filings/ /content/filings/
+# 1. Package repository code (skipping .git and large media)
+tar --exclude='.git' --exclude='__pycache__' -czf /tmp/timesfm_repo.tar.gz -C . .
+
+# 2. Upload archive to Colab VM
+colab --auth=adc upload -s timesfm-gpu /tmp/timesfm_repo.tar.gz /content/timesfm_repo.tar.gz
+
+# 3. Extract on the remote VM
+colab --auth=adc exec -s timesfm-gpu <<< "import subprocess; print(subprocess.check_output('mkdir -p /content/timesfm_repo && tar -xzf /content/timesfm_repo.tar.gz -C /content/timesfm_repo', shell=True, text=True))"
 ```
 
-### Step 4: Execute TimesFM 3.0 Inference on GPU
+### Step 4: Execute TimesFM 3.0 Inference on CUDA GPU
+Colab CLI accepts shell scripts and python code via standard input:
 ```bash
-colab --auth=adc exec -s timesfm-gpu "python /content/HYBRID_GUIDE/hybrid_agentic_pipeline.py \
-  --mode live \
-  --tickers MODISONLTD.NS,CUPID.NS \
-  --scenario /content/HYBRID_GUIDE/sample_scenario.json \
-  --horizon 20 \
-  --output_dir /content/hybrid_output"
+colab --auth=adc exec -s timesfm-gpu <<< "import subprocess; print(subprocess.check_output('cd /content/timesfm_repo && python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30', shell=True, text=True))"
 ```
 
 ### Step 5: Download High-Res Charts and Datasets Back to Local Disk
 ```bash
-colab --auth=adc download -s timesfm-gpu /content/hybrid_output/ ./colab_results/
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/pipeline_results/MODISONLTD.NS_multi_agent_forecast.png ./pipeline_results/MODISONLTD.NS_multi_agent_forecast.png
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/pipeline_results/MODISONLTD.NS_executive_report.md ./pipeline_results/MODISONLTD.NS_executive_report.md
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/pipeline_results/MODISONLTD.NS_multi_agent_results.json ./pipeline_results/MODISONLTD.NS_multi_agent_results.json
 ```
 
 ### Step 6: Mandatory Teardown (Stop Session)
@@ -128,28 +133,27 @@ colab --auth=adc stop -s timesfm-gpu
 
 ---
 
-## 5. One-Click Automation: `run_colab_gpu.sh`
+## 5. Safe Multi-Session Management & Preserving Long-Running CPU Tasks
 
-To automate the entire 6-step lifecycle in a single command, use the provided helper script:
+In enterprise environments, other background jobs (such as long-running notebook jobs on CPU, e.g. `discos4`) may be running concurrently. **Never run blanket kill commands.**
 
-```bash
-chmod +x HYBRID_GUIDE/run_colab_gpu.sh
+### How to Safely Clear Orphan GPU Sessions Without Affecting CPU Sessions:
+If a GPU connection is dropped or marked `[?]` by the Colab backend, release only the specific GPU endpoint:
 
-# Run live forecast for portfolio on Colab Tesla T4 GPU:
-./HYBRID_GUIDE/run_colab_gpu.sh \
-  --tickers MODISONLTD.NS,CUPID.NS \
-  --mode live \
-  --gpu T4 \
-  --horizon 14
+```python
+from colab_cli.common import State
+from colab_cli.auth import AuthProvider
+
+state = State()
+state.auth_provider = AuthProvider.ADC
+assignments = state.client.list_assignments()
+
+for a in assignments:
+    # Target only the GPU accelerator, leaving CPU sessions untouched:
+    if "GPU" in str(a.variant) or "T4" in str(a.accelerator):
+        print(f"Releasing orphan GPU endpoint: {a.endpoint}")
+        state.client.unassign(a.endpoint)
 ```
-
-This script:
-1. Provisions the GPU VM.
-2. Installs `requirements.txt`.
-3. Syncs code, prompts, and scenarios.
-4. Executes the model with CUDA acceleration.
-5. Downloads all forecast charts (`.png`) and metrics (`.json`) locally.
-6. Automatically stops the cloud VM when finished.
 
 ---
 
@@ -158,8 +162,9 @@ This script:
 | Action | Colab CLI Command |
 | :--- | :--- |
 | **Check Active Sessions** | `colab --auth=adc sessions` |
-| **Check GPU / System Status** | `colab --auth=adc exec -s <session> "nvidia-smi"` |
-| **Install Packages** | `colab --auth=adc install -s <session> -r requirements.txt` |
+| **Check Hardware & Status** | `colab --auth=adc status` |
+| **Check CUDA GPU Status** | `colab --auth=adc exec -s <session> <<< "import subprocess; print(subprocess.check_output('nvidia-smi', shell=True, text=True))"` |
+| **Install Packages** | `colab --auth=adc install -s <session> git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib` |
 | **Upload File/Folder** | `colab --auth=adc upload -s <session> <local_path> <remote_path>` |
 | **Download File/Folder** | `colab --auth=adc download -s <session> <remote_path> <local_path>` |
 | **Restart Kernel** | `colab --auth=adc restart-kernel -s <session>` |

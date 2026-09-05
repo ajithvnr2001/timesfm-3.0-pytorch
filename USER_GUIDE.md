@@ -65,9 +65,18 @@ You do not need an expensive GPU on your laptop. You can run this directly in th
 
 ### Method 2: Command-Line Interface (Unified CLI)
 
-Run a forecast for any global or Indian stock in a single command:
+Run a forecast for any global or Indian stock in a single command. **The system defaults to Tier-1 Institutional Quantitative Hedge Fund Grade**:
 
-#### 1. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage)
+#### 1. Live Institutional Analysis (DEFAULT - Real-Time Market Close)
+Simply supply the ticker. The engine automatically ingests the latest live market session (e.g. Friday, Sep 4, 2026), statement-audited diluted EPS, and computes complete institutional risk sizing:
+```bash
+python3 run_pipeline.py \
+  --ticker MODISONLTD.NS \
+  --horizon 30 \
+  --portfolio_capital 1000000
+```
+
+#### 2. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage Historical Backtest)
 Use this to backtest any stock in history with 100% mathematical certainty that the AI did not cheat:
 ```bash
 python3 run_pipeline.py \
@@ -77,7 +86,7 @@ python3 run_pipeline.py \
   --horizon 60
 ```
 
-#### 2. Live Forecasting Mode (Real-Time Future Projection)
+#### 3. Live Forward Projection Mode (Real-Time Future Horizon)
 Use this to project prices into the future starting from today:
 ```bash
 python3 run_pipeline.py \
@@ -86,7 +95,7 @@ python3 run_pipeline.py \
   --horizon 64
 ```
 
-#### 3. Intraday Index & Options Mode
+#### 4. Intraday Index & Options Mode
 Use this on trading days to forecast hourly index trajectories:
 ```bash
 python3 run_pipeline.py \
@@ -96,29 +105,64 @@ python3 run_pipeline.py \
 
 ---
 
-## 4. How to Read Your Output Artifacts
+## 4. Understanding the Institutional Risk Scorecard
 
-Every run automatically produces three institutional-grade files in your output directory:
-1. **High-Resolution PNG Chart (`*_forecast.png`)**:  
-   Visualizes the historical context, the actual ground truth, the 3 scenarios, and the shaded scenario envelope.
-2. **Executive Quant Report (`*_executive_report.md`)**:  
-   A plain-English markdown summary detailing:
-   * Starting price vs. Terminal forecast.
-   * Percentage error of the Base, Bull, and Bear cases.
-   * Multi-Year Mean Absolute Percentage Error (MAPE).
-   * Scenario Envelope Coverage (% of days inside bounds).
-3. **Raw Results Dataset (`*_results.json`)**:  
-   Machine-readable numerical vectors containing every daily/monthly prediction scalar for downstream portfolio backtesting.
+Every institutional run prints and saves an executive scorecard directly in your terminal and report:
+
+```
+=================================================================
+ INSTITUTIONAL EXECUTIVE DIRECTIVE: MODISONLTD.NS
+=================================================================
+• Recommendation:         TRIM / TAKE PROFIT (Negative Expected Skew)
+• Current Price:          Rs. 469.95
+• Expected Target:        Rs. 486.16
+• Invalidation Stop-Loss: Rs. 344.19 (Downside: -26.8%)
+• Net Horizon Upside:     +5.69% (STT/Frictions -0.25% deducted)
+• Asymmetric R/R Ratio:   0.21x
+• 95% Horizon VaR:        33.34% | CVaR (Tail): 27.34%
+• NIFTY Regime:           BULLISH_UPTREND (VIX: 13.5 - NORMAL_VOLATILITY)
+• Sector Beta:            1.0 vs ^NSEI
+• Half-Kelly Allocation:  0.0% of portfolio
+• Sized Capital:          Rs. 0.00 (0 shares)
+=================================================================
+```
+
+### Key Metrics Explained:
+1. **Net Horizon Upside**: Gross upside minus **0.25% roundtrip Indian market frictions** (Securities Transaction Tax 0.1% buy + 0.1% sell, SEBI turnover fees, GST, and exchange slippage).
+2. **Invalidation Stop-Loss**: Objective structural support level derived from fundamental scenario boundary (Bear Case target). A daily close below this invalidates the investment thesis.
+3. **Asymmetric Risk/Reward Ratio (RRR)**: Compares net upside against maximum downside to invalidation. Institutional desks require $\ge 2.0\text{x}$ for fresh capital deployment.
+4. **95% Horizon Value-at-Risk (VaR)**: Maximum cumulative percentage loss expected over the horizon with 95% statistical confidence.
+5. **Conditional VaR (CVaR / Expected Shortfall)**: The average loss experienced in the worst 5% extreme tail-risk drawdowns.
+6. **Half-Kelly Capital Allocation ($f^*_{half}$)**: Mathematically optimal capital allocation ($f^* = p - \frac{q}{b}$, scaled by 0.5 for risk protection). Prevents portfolio over-leveraging and catastrophic drawdown.
+
+### Executive Directives:
+* `STRONG BUY`: High conviction upside, favorable asymmetric RRR ($\ge 2.5\text{x}$), optimal Kelly size $> 10\%$.
+* `SELECTIVE ACCUMULATE`: Positive expected value, moderate Kelly size (5% to 10%), favorable macro backdrop.
+* `HOLD / MONITOR`: Balanced skew, existing positions held with trailing stops, zero fresh capital.
+* `TRIM / TAKE PROFIT`: Asset reached or exceeded base fair value, risk/reward skewed negatively ($< 0.5\text{x}$), lock in gains.
+* `AVOID / HIGH RISK`: Negative expected return or extreme tail-risk CVaR $> 35\%$.
 
 ---
 
-## 5. Risk Management & Practical Trading Rules
+## 5. How to Read Your Output Artifacts
+
+Every run automatically produces three institutional-grade files in your output directory:
+1. **High-Resolution PNG Chart (`*_multi_agent_forecast.png`)**:  
+   Visualizes the historical context, actual ground truth (for backtests), the 3 scenarios, the weighted probabilistic path, and the shaded scenario envelope.
+2. **Executive Quant Report (`*_executive_report.md`)**:  
+   A plain-English markdown summary detailing the performance scorecard, security audit logs, macro regime classification, and capital allocation matrix.
+3. **Raw Results Dataset (`*_multi_agent_results.json`)**:  
+   Machine-readable numerical vectors containing every prediction scalar, quantiles, and risk metrics for downstream execution algorithms.
+
+---
+
+## 6. Risk Management & Practical Trading Rules
 
 > [!WARNING]
 > **Important Financial Disclaimer**:  
 > No statistical or machine learning model can guarantee financial returns. Financial markets carry systemic risks, liquidity shocks, and black swan events.
 
-### Recommended Risk Management Guidelines:
-* **Position Sizing**: Never allocate capital based on the Bull scenario alone. Size your positions so that if the **Bear Scenario** hits, your portfolio does not incur unacceptable drawdowns.
-* **Stop-Loss Anchoring**: Professional quantitative desks use the **lower boundary of the Scenario Envelope (Bear Case × 0.90)** as an objective invalidation level for long-term investments.
-* **Envelope Invalidation**: If a stock breaks sustainably below the Bear envelope, it indicates that a fundamental structural impairment (e.g. accounting irregularity or regulatory ban) has occurred, requiring an immediate thesis reassessment.
+### Recommended Rules for Institutional Execution:
+* **Obey Half-Kelly Limits**: Never allocate more capital than the Half-Kelly recommendation. If Kelly recommends 0.0% (as in overextended rallies), do not chase the stock.
+* **Respect Trailing Invalidation Levels**: Anchor stop-losses to the calculated invalidation level. If the stock breaks below, exit immediately.
+* **Factor in Market Frictions**: In Indian equity cash and F&O markets, STT and turnover charges compound rapidly. Always trade against net friction-deducted targets.

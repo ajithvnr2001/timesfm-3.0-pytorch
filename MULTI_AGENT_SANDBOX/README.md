@@ -306,16 +306,34 @@ python3 MULTI_AGENT_SANDBOX/multi_agent_system.py \
 [Process_Sandbox_Agent] Inference complete. Dispatched A2A tensor payload (ID: 74fce1e5) to Output_Synthesis_Agent.
 
 [Output_Synthesis_Agent] Synthesizing final report for HEROMOTOCO.NS...
+[Output_Synthesis_Agent] Institutional Scorecard Generated: STRONG BUY (High Conviction Skew)
 [Output_Synthesis_Agent] Visual Chart -> ./MULTI_AGENT_SANDBOX/my_results/HEROMOTOCO.NS_multi_agent_forecast.png
 [Output_Synthesis_Agent] Executive Report -> ./MULTI_AGENT_SANDBOX/my_results/HEROMOTOCO.NS_executive_report.md
 [Output_Synthesis_Agent] JSON Output -> ./MULTI_AGENT_SANDBOX/my_results/HEROMOTOCO.NS_multi_agent_results.json
+
+=================================================================
+ INSTITUTIONAL EXECUTIVE DIRECTIVE: HEROMOTOCO.NS
+=================================================================
+• Recommendation:         STRONG BUY (High Conviction Skew)
+• Current Price:          Rs. 4,109.13
+• Expected Target:        Rs. 5,597.04
+• Invalidation Stop-Loss: Rs. 2,988.46 (Downside: -27.3%)
+• Net Horizon Upside:     +35.96% (STT/Frictions -0.25% deducted)
+• Asymmetric R/R Ratio:   1.32x
+• 95% Horizon VaR:        24.12% | CVaR (Tail): 19.85%
+• NIFTY Regime:           BULLISH_UPTREND (VIX: 13.5 - NORMAL_VOLATILITY)
+• Sector Beta:            0.92 vs ^CNXAUTO
+• Half-Kelly Allocation:  14.2% of portfolio
+• Sized Capital:          Rs. 1,42,000.00 (34 shares)
+=================================================================
 ```
 
 ---
 
 ## 6. Directory Artifacts
 
-* **`multi_agent_system.py`**: Production multi-agent implementation containing all 3 agents and the A2A protocol.
+* **`multi_agent_system.py`**: Production multi-agent implementation containing all 3 agents, live real-time auto-detection, and the A2A protocol.
+* **`institutional_engine.py`**: Cross-asset macro regime detection, VaR/CVaR calculations, Indian STT friction deductions, and Half-Kelly sizing.
 * **`test_multi_agent_flow.py`**: Standalone verification test script.
 * **`sample_a2a_payload.json`**: Example of the anonymized wire format exchanged between Agent 1 and Agent 2.
 * **`test_run_output/`**: Complete verification output artifacts (chart, markdown report, JSON record).

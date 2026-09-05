@@ -19,18 +19,35 @@ Comprehensive research, benchmarking, and real-world evaluation of Google Resear
 
 ## 🚀 Quickstart: Unified CLI Entry-Point (`run_pipeline.py`)
 
-Run any asset in any mode using the root dispatcher:
+Run any asset in **Tier-1 Institutional Quantitative Hedge Fund Grade** by default:
 
 ```bash
-# 1. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage)
+# 1. Institutional Mode (DEFAULT): Real-Time Live Close, VaR/CVaR, Half-Kelly Sizing & STT Frictions
+python3 run_pipeline.py --ticker MODISONLTD.NS --horizon 30
+
+# 2. Air-Gapped Multi-Agent Mode (Strict Zero-Leakage Point-In-Time Historical Backtest)
 python3 run_pipeline.py --mode multi-agent --ticker INFY.NS --cutoff 2020-12-31 --horizon 60
 
-# 2. Live Forward Projection Mode (Real-Time Future Horizon)
-python3 run_pipeline.py --mode live --ticker RELIANCE.NS --horizon 64
+# 3. Live Forward Projection Mode (Real-Time Future Horizon via Hybrid Pipeline)
+python3 run_pipeline.py --mode live --ticker RAYMONDREL.NS --horizon 30
 
-# 3. High-Frequency Intraday & Options Mode
+# 4. High-Frequency Intraday & Options Volatility Mode
 python3 run_pipeline.py --mode intraday --ticker ^NSEI
+
+# 5. Run Full Regression Verification Test Suite
+python3 test_agents.py
 ```
+
+### 🏛️ Institutional Engine by Default
+Every forecast automatically generates an **Institutional Executive Scorecard**:
+* **Live Real-Time Execution**: When `--cutoff` is omitted, the pipeline automatically ingests the latest real-time market session (e.g., Friday, September 4, 2026).
+* **Cross-Asset Macro Regimes**: Benchmarked against `^NSEI` (NIFTY 50 trend) and `^INDIAVIX` volatility regimes (Normal, High Volatility, Extreme Panic).
+* **Sector Beta & Relative Strength**: Auto-matched to NSE sector indices (`^CNXIT`, `^CNXAUTO`, `^CNXMETAL`, `^NSEBANK`, `^CNXFMCG`).
+* **Value-at-Risk (VaR) & CVaR**: Parametric 95% 1-day VaR, 30-day Horizon VaR, Conditional VaR (Expected Shortfall tail risk), and Historical Peak-to-Trough Max Drawdown.
+* **Indian Market Friction Deductions**: Deducts 0.25% roundtrip frictions (STT 0.1% buy + 0.1% sell, SEBI turnover, GST, exchange slippage) from expected returns.
+* **Half-Kelly Position Sizing**: Computes mathematically optimal portfolio capital allocations ($f^*_{half}$) based on net win probability, payoff ratio, and volatility parity.
+* **Asymmetric Risk/Reward Ratio (RRR)**: Compares net expected upside to objective invalidation stop-loss levels.
+* **Institutional Executive Directives**: Outputs definitive decisions (`STRONG BUY`, `SELECTIVE ACCUMULATE`, `HOLD / MONITOR`, `TRIM / TAKE PROFIT`, `AVOID / HIGH RISK`).
 
 ---
 
@@ -45,7 +62,18 @@ python3 run_pipeline.py --mode intraday --ticker ^NSEI
 * **Prompt Library**: [`HYBRID_GUIDE/prompts/`](HYBRID_GUIDE/prompts/) (Extraction, Valuation, and Anonymization prompts).
 * **Agent Harness (Non-API) Guide**: [`HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md`](HYBRID_GUIDE/AGENT_HARNESS_INTEGRATION.md) (Use Antigravity, Claude Code, Codex, or OpenCode with zero external API keys).
 * **Cloud GPU Guide (Colab CLI)**: [`HYBRID_GUIDE/COLAB_GPU_GUIDE.md`](HYBRID_GUIDE/COLAB_GPU_GUIDE.md) & [`run_colab_gpu.sh`](HYBRID_GUIDE/run_colab_gpu.sh) (On-demand T4/A100 cloud GPU execution and automated VM teardown).
-* **1-Click Setup**: Install all dependencies via [`requirements.txt`](requirements.txt).
+---
+
+## 🛡️ Four Architectural Flaws Eliminated in Production
+
+Following rigorous audit against institutional production standards, four critical flaws were permanently resolved:
+
+| # | Flaw in Previous Implementations | Production Institutional Solution | Module |
+| :- | :--- | :--- | :--- |
+| **1** | **Static Hardcoded Valuation Ratios**: Hardcoded P/E multiples (e.g. 25x) disconnected from reality. | **Statement-Audited Fundamental Engine**: Extracts audited diluted EPS, sales, PAT, and dynamic peer-group sector multiples via official annual filings. | [`scenario_builder.py`](scenario_builder.py) |
+| **2** | **Heuristic Sigmoid Anchoring**: Unphysical logistic curves arbitrarily forcing convergence. | **Volatility-Preserving Trajectory Diffusion**: Projects forward paths using annualized empirical historical volatility ($\sigma_{ann}$) and mean reversion. | [`covfree_forecaster.py`](covfree_forecaster.py) |
+| **3** | **Single-Series Inference Loops**: Running model iteratively per scenario causing slow CPU execution. | **Vectorized Batch Processing**: Uses TimesFM 3.0 `predict_batch` to execute all scenarios in a single GPU forward pass on CUDA. | [`timesfm3/forecaster.py`](timesfm3/forecaster.py) |
+| **4** | **Unverified Information Barriers**: Relying on manual developer inspection for data leakage. | **Automated Ingress Security Gate & Test Suite**: End-to-end A2A schema verification, token regex audits, and risk engine unit tests. | [`test_agents.py`](test_agents.py) |
 
 ---
 
