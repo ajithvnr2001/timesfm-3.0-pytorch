@@ -5,7 +5,7 @@ and the fragile PDF-regex EPS with real financial statement data.
 
 Drop-in: call build_scenarios(ticker) instead of the inline scenario dict.
 """
-import os
+import os, re
 import numpy as np, pandas as pd, yfinance as yf
 
 SECTOR_PE_MAP = {
@@ -38,22 +38,34 @@ def fetch_pre_cutoff_catalysts(ticker: str, cutoff_date: str) -> str:
         query = f"{name_clean} business expansion order contract capacity revenue profit growth {cutoff_year}"
         end_pub = f"{cutoff_date}T23:59:59Z" if "T" not in str(cutoff_date) else str(cutoff_date)
         
+        cutoff_year_int = int(cutoff_year)
+        prohibited_future_years = [str(y) for y in range(cutoff_year_int + 1, cutoff_year_int + 10)]
+        prohibited_future_fys = [f"FY{str(y)[2:]}" for y in range(cutoff_year_int + 1, cutoff_year_int + 10)]
+        prohibited_tokens = prohibited_future_years + prohibited_future_fys
+
         BOILERPLATE = ["Plot No", "CIN:", "Compliance Officer", "Trading Window", "Website:", 
                        "Tel. No.", "Phone:", "Registered Office", "Fax:", "Scrip Code", "P. J. Towers", 
                        "Exchange Plaza", "BSE Limited", "National Stock Exchange", "Bandra-Kurla",
                        "\\oraS", "---", "| | |"]
-        res = exa.search(query, num_results=3, end_published_date=end_pub, type="neural")
+        res = exa.search(query, num_results=5, end_published_date=end_pub, type="neural")
         if not res.results:
             return "Standard quarterly operations"
         snippets = []
         for r in res.results:
+            if hasattr(r, "published_date") and r.published_date and str(r.published_date)[:10] > str(cutoff_date)[:10]:
+                continue
             t = (r.title or "").strip()
             txt = (r.text or "").strip().replace("\n", " ")
+            # Discard any snippet that references a future calendar year or future FY
+            if any(re.search(rf"\b{re.escape(tok)}\b", txt, re.IGNORECASE) for tok in prohibited_tokens):
+                continue
+            if any(re.search(rf"\b{re.escape(tok)}\b", t, re.IGNORECASE) for tok in prohibited_tokens):
+                continue
             sentences = [s.strip() for s in txt.split(".") if s.strip() and not any(b in s for b in BOILERPLATE) and len(s.strip()) > 20]
             clean_txt = ". ".join(sentences[:3])[:250]
             if clean_txt and not any(b in clean_txt for b in ["Registered office", "Compliance Officer"]):
                 snippets.append(f"{t}: {clean_txt}")
-        return " | ".join(snippets) if snippets else "Standard quarterly operations"
+        return " | ".join(snippets[:3]) if snippets else "Standard quarterly operations"
     except Exception as e:
         return f"Standard quarterly operations (catalyst lookup notice: {e})"
 
