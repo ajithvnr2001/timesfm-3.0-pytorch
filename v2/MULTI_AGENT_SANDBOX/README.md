@@ -342,7 +342,7 @@ python3 MULTI_AGENT_SANDBOX/multi_agent_system.py \
 
 ## ⚠️ SUPERSEDED
 
-This directory is superseded by [`v2/INSTITUTIONAL/`](../INSTITUTIONAL/README.md).
+This directory is superseded by [`v3/`](../../v3/README.md).
 
 Audit of this engine found that **TimesFM never actually ran** — every committed result here
 records `neural_points: 0` and was produced by a heuristic drift line plus an
@@ -356,4 +356,4 @@ The replacement loads the real `google/timesfm-3.0-pytorch` checkpoint (hard-fai
 fallback), uses its native multivariate context and 9 quantile heads, calibrates intervals
 point-in-time, anonymises all LLM input and runs an adversarial identity probe on every
 backtest run. Its measured result is that the model does **not** beat a naive random walk on
-price level — see `v2/INSTITUTIONAL/VALIDATION.md`.
+price level — see `v3/VALIDATION.md`.

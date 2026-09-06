@@ -1,9 +1,9 @@
-# Institutional TimesFM 3.0 Engine (`v2/INSTITUTIONAL`)
+# V3 — Institutional TimesFM 3.0 Engine (`v3/`)
 
 An honest, point-in-time, leakage-audited forecasting and screening stack built on the real
 `google/timesfm-3.0-pytorch` checkpoint plus an anonymised LLM analyst layer.
 
-This directory supersedes `v2/MULTI_AGENT_SANDBOX`. Everything below was measured on a Colab
+This directory (V3) supersedes `v2/MULTI_AGENT_SANDBOX`. Everything below was measured on a Colab
 T4; nothing is asserted that was not run.
 
 ---
@@ -68,7 +68,10 @@ run_validation.py  resumable walk-forward harness  ->  artifacts/ledger.json
 precompute_llm.py  parallel LLM pass (the serial version took an hour)
 analyze_validation.py  ledger -> VALIDATION.md
 run_forward.py     live forward predictions -> FORWARD_REPORT.md
-tests/test_units.py  16 CPU-only tests
+tests/test_units.py  17 CPU-only tests
+merge_stream.py    folds streamed ##BLOCK##/##RUN## records into the local ledger
+run_ablation.py    regenerates the configuration ablation artifacts
+analyze_evidence.py  numbers_only vs with_evidence leak-and-value experiment
 ```
 
 ## How TimesFM 3.0 is actually used
@@ -135,6 +138,11 @@ guess). `VALIDATION.md` reports the screener numbers both including and excludin
 | `sanitize_text` defined but never called; audit that could not fail | anonymiser applied to all LLM input + fail-closed packet audit + identity probe | `test_audit_packet_catches_leak` |
 | Cherry-picked CUPID as multi-bagger proof | rule-based universe at each cutoff including later losers | `universe.py` |
 
+## Guide
+
+Step-by-step setup, commands, output interpretation and troubleshooting:
+**[`USAGE_GUIDE.md`](USAGE_GUIDE.md)**.
+
 ## Reproducing
 
 ```bash
@@ -143,17 +151,17 @@ colab --auth=oauth2 new -s timesfm-gpu --gpu T4
 colab install -s timesfm-gpu "git+https://github.com/google-research/timesfm.git" exa_py
 
 # 2. CPU-only unit tests (no GPU, no network)
-python3 v2/INSTITUTIONAL/tests/test_units.py     # 16 passed
+python3 v3/tests/test_units.py     # 16 passed
 
 # 3. Walk-forward validation (resumable; ledger survives a lost VM)
 export AKASHML_API_KEY=... EXA_API_KEY=... NVIDIA_NIM_API_KEY=...
 #   stage 1: parallel LLM pass, stage 2: GPU forecast pass
-TIME_BUDGET_S=1500 python3 v2/INSTITUTIONAL/precompute_llm.py
-TIME_BUDGET_S=1700 python3 v2/INSTITUTIONAL/run_validation.py
-python3 v2/INSTITUTIONAL/analyze_validation.py    # -> VALIDATION.md
+TIME_BUDGET_S=1500 python3 v3/precompute_llm.py
+TIME_BUDGET_S=1700 python3 v3/run_validation.py
+python3 v3/analyze_validation.py    # -> VALIDATION.md
 
 # 4. Live forward predictions
-HORIZONS=60,252 P_WIN=0.578 python3 v2/INSTITUTIONAL/run_forward.py
+HORIZONS=60,252 P_WIN=0.578 python3 v3/run_forward.py
 ```
 
 Credentials are read from the environment only. Nothing is hardcoded and nothing is written

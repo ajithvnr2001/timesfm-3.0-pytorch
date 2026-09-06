@@ -1,7 +1,7 @@
 """
 Unit tests for the institutional engine that do NOT require a GPU or network.
 
-Run:  python3 v2/INSTITUTIONAL/tests/test_units.py
+Run:  python3 v3/tests/test_units.py
 
 GPU/network-dependent behaviour (real TimesFM 3.0 inference, yfinance, Exa, LLM) is
 verified separately on the Colab T4; those results are recorded in TIMESFM3_API.md,
