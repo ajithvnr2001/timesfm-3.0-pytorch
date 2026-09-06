@@ -27,7 +27,22 @@ def fetch_pre_cutoff_catalysts(ticker: str, cutoff_date: str) -> str:
     via Exa neural search with end_published_date strictly locked to cutoff_date.
     Guarantees 100% zero future data leakage while filtering scanned OCR noise.
     """
-    api_key = os.environ.get("EXA_API_KEY", "5a51f858-e6b9-41ee-8881-e61b8af5821f")
+    api_key = os.environ.get("EXA_API_KEY")
+    if not api_key:
+        for env_path in [".env", "../.env", "../../.env"]:
+            if os.path.exists(env_path):
+                try:
+                    with open(env_path) as f:
+                        for line in f:
+                            if line.strip().startswith("EXA_API_KEY="):
+                                api_key = line.strip().split("=", 1)[1].strip().strip('"').strip("'")
+                                break
+                except Exception:
+                    pass
+            if api_key:
+                break
+    if not api_key:
+        return "Standard quarterly operations (EXA_API_KEY not set)"
     try:
         from exa_py import Exa
         exa = Exa(api_key=api_key)
@@ -210,9 +225,11 @@ def compute_institutional_target(ticker: str, start_price: float, fin_data: dict
     elif industry in ["Household & Personal Products", "Personal Products"] and (earn_g > 0.25 or rev_g > 0.10 or fin_data.get("ret_1y", 0) > 1.0 or trailing_pe > 50.0):
         target_pe = min(240.0, max(sec_pe, trailing_pe * 1.85))
         regime = "EXPANSION_BULL"
-    # 3. Small-cap industrial re-rating (e.g. Modison)
-    elif industry in ["Electrical Equipment & Parts"]:
-        target_pe = min(12.0, max(8.0, trailing_pe * 2.25))
+    # 3. High-growth industrial & turnaround re-rating (growth-driven, not hardcoded stock caps)
+    elif earn_g > 0.35 or rev_g > 0.25:
+        # Peter Lynch PEG re-rating: scales with growth rate up to 1.8x sector benchmark
+        growth_multiplier = 1.0 + min(0.60, max(0.15, earn_g * 0.5))
+        target_pe = round(min(sec_pe * 1.8, max(sec_pe * 0.75, trailing_pe * growth_multiplier)), 1)
         regime = "RERATING_BULL"
     # 4. Standard institutional growth benchmark
     else:

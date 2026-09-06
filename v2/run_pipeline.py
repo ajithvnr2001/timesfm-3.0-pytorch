@@ -21,10 +21,18 @@ import os
 import sys
 import subprocess
 
-# Institutional API Key Defaults (Hardcoded Fallbacks)
-os.environ.setdefault("AKASHML_API_KEY", "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL")
-os.environ.setdefault("EXA_API_KEY", "5a51f858-e6b9-41ee-8881-e61b8af5821f")
-os.environ.setdefault("NVIDIA_NIM_API_KEY", "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")
+# Load local .env file dynamically if present
+env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+if os.path.exists(env_file):
+    try:
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
 
 
 def main():

@@ -1,6 +1,3 @@
-class SecurityError(Exception):
-    pass
-
 #!/usr/bin/env python3
 """
 multi_agent_system.py
@@ -45,10 +42,27 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-# Institutional API Key Defaults (Hardcoded Fallbacks)
-os.environ.setdefault("AKASHML_API_KEY", "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL")
-os.environ.setdefault("EXA_API_KEY", "5a51f858-e6b9-41ee-8881-e61b8af5821f")
-os.environ.setdefault("NVIDIA_NIM_API_KEY", "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")
+class SecurityError(Exception):
+    pass
+
+# Load local .env file dynamically if present
+for _env_path in [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
+    ".env"
+]:
+    if os.path.exists(_env_path):
+        try:
+            with open(_env_path) as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+            break
+        except Exception:
+            pass
 
 
 # Optional Torch & TimesFM
@@ -187,6 +201,7 @@ class MainIngestionAgent:
 
         # Statement-driven fundamental valuation (Bear, Base, Bull) via scenario_builder
         scenarios = None
+        fund_metadata = {}
         if build_scenarios is not None:
             try:
                 fund_res = build_scenarios(ticker, current_price=last_price, as_of=cutoff_date)
@@ -194,11 +209,19 @@ class MainIngestionAgent:
                 weighted_target = fund_res["weighted_target"]
                 source = fund_res.get("source", "audited_statement")
                 thesis = fund_res.get("thesis", "")
+                fund_metadata = {
+                    "eps": fund_res.get("eps"),
+                    "eps_source": fund_res.get("eps_source", source),
+                    "sector_pe": fund_res.get("sector_pe"),
+                    "industry": fund_res.get("industry", "General")
+                }
                 print(f"[{self.agent_id}] Valuation Engine: {source} (EPS={fund_res['eps']:.2f} via {fund_res['eps_source']}, Sector P/E={fund_res['sector_pe']:.1f}):")
                 if thesis:
-                    print(f"[{self.agent_id}] Qualitative Thesis: \"{thesis}\"")
+                    sanitized_thesis = self.sanitize_text(thesis, ticker, cutoff_date)
+                    print(f"[{self.agent_id}] Qualitative Thesis: \"{sanitized_thesis}\"")
                 if fund_res.get("recent_news"):
-                    print(f"[{self.agent_id}] Pre-Cutoff Catalysts: \"{fund_res['recent_news'][:120]}...\"")
+                    sanitized_news = self.sanitize_text(fund_res["recent_news"], ticker, cutoff_date)
+                    print(f"[{self.agent_id}] Pre-Cutoff Catalysts: \"{sanitized_news[:120]}...\"")
             except Exception as e:
                 print(f"[{self.agent_id}] scenario_builder notice: {e}. Using fallback.")
 
@@ -210,6 +233,12 @@ class MainIngestionAgent:
                 "bull": {"probability": 0.25, "target_pe": 27.5, "target_price": round(eps * 27.5, 2), "label": "Bull (27.5x P/E)"}
             }
             weighted_target = sum(s["probability"] * s["target_price"] for s in scenarios.values())
+            fund_metadata = {
+                "eps": eps,
+                "eps_source": "conservative_baseline",
+                "sector_pe": 22.0,
+                "industry": "General"
+            }
 
         print(f"[{self.agent_id}] Synthesized 3-Branch Fundamental Scenarios:")
         print(f"  • Bear ({scenarios['bear']['probability']*100:.0f}%): Rs. {scenarios['bear']['target_price']:.2f} ({scenarios['bear'].get('target_pe', 0):.1f}x P/E)")
@@ -217,7 +246,7 @@ class MainIngestionAgent:
         print(f"  • Bull ({scenarios['bull']['probability']*100:.0f}%): Rs. {scenarios['bull']['target_price']:.2f} ({scenarios['bull'].get('target_pe', 0):.1f}x P/E)")
         print(f"  • Expected Target: Rs. {weighted_target:.2f}")
 
-        # Construct Dynamic Covariates: Honest volatility blend via covfree_forecaster
+        # Construct Dynamic Covariates: Honest stochastic bridge via covfree_forecaster
         ann_vol = 0.25
         if len(context_series) >= 2:
             ctx_arr = np.array(context_series, dtype=float)
@@ -234,21 +263,13 @@ class MainIngestionAgent:
             if forecast_covfree is not None:
                 try:
                     p_proj, _, _ = forecast_covfree(last_price, tgt, ann_vol, horizon)
-                    cov[ctx_len:] = (p_proj - last_price) / 500.0
+                    cov[ctx_len:] = (p_proj[:horizon] - last_price) / 500.0
                 except Exception:
-                    k = 0.006
-                    t0 = horizon * 0.45
-                    for h in range(horizon):
-                        step = h + 1
-                        prog = 1.0 / (1.0 + np.exp(-k * (step - t0)))
-                        cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
+                    proj_line = np.linspace(last_price, tgt, horizon)
+                    cov[ctx_len:] = (proj_line - last_price) / 500.0
             else:
-                k = 0.006
-                t0 = horizon * 0.45
-                for h in range(horizon):
-                    step = h + 1
-                    prog = 1.0 / (1.0 + np.exp(-k * (step - t0)))
-                    cov[ctx_len + h] = (last_price + prog * (tgt - last_price) - last_price) / 500.0
+                proj_line = np.linspace(last_price, tgt, horizon)
+                cov[ctx_len:] = (proj_line - last_price) / 500.0
             covariates[sc_name] = cov.tolist()
 
         # Macro 1-year drift and EMA200 trend
@@ -275,7 +296,8 @@ class MainIngestionAgent:
             "covariates": covariates,
             "scenarios": scenarios,
             "weighted_target": weighted_target,
-            "macro_momentum": {"ret_1y": ret_1y, "is_downtrend": is_downtrend}
+            "macro_momentum": {"ret_1y": ret_1y, "is_downtrend": is_downtrend},
+            "fundamental_metadata": fund_metadata
         }
         sec_meta = {
             "isolation_level": "AIR_GAPPED_NUMERICAL",
@@ -330,6 +352,31 @@ class ProcessSandboxAgent:
                 raise SecurityError(f"CRITICAL LEAKAGE DETECTED: Prohibited token '{tok}' found in A2A message payload!")
         print(f"[{self.agent_id}] Security Audit PASSED: Payload is 100% anonymized with zero identifying tokens.")
 
+    def _match_horizon_length(self, arr, horizon: int, last_val: float) -> np.ndarray:
+        """
+        Guarantees that the forecast array matches exactly `horizon` points,
+        preventing broadcast crashes when foundation models return fewer points
+        (e.g., Google TimesFM returning 128 points for a 663-day horizon).
+        """
+        arr = np.asarray(arr, dtype=float)
+        if len(arr) == horizon:
+            return arr
+        if len(arr) > horizon:
+            return arr[:horizon]
+        if len(arr) == 0:
+            return np.full(horizon, last_val, dtype=float)
+        if len(arr) >= 5:
+            recent = arr[-min(10, len(arr)):]
+            slope = (recent[-1] - recent[0]) / max(1, len(recent) - 1)
+        elif len(arr) >= 2:
+            slope = (arr[-1] - arr[0]) / (len(arr) - 1)
+        else:
+            slope = 0.0
+        capped_slope = np.clip(slope, -last_val * 0.003, last_val * 0.003)
+        needed = horizon - len(arr)
+        extension = arr[-1] + capped_slope * np.arange(1, needed + 1)
+        return np.concatenate([arr, extension])
+
     def _init_forecaster(self):
         if self.forecaster is None and HAS_TIMESFM:
             if HAS_TIMESFM3_EVALUATOR:
@@ -344,7 +391,7 @@ class ProcessSandboxAgent:
                 try:
                     print(f"[{self.agent_id}] Initializing Google TimesFM PyTorch model on {self.device}...")
                     self.forecaster = timesfm.TimesFm(
-                        hparams=timesfm.TimesFmHparams(backend="gpu" if self.device == "cuda" else "cpu", per_core_batch_size=32, horizon_len=min(512, 128)),
+                        hparams=timesfm.TimesFmHparams(backend="gpu" if self.device == "cuda" else "cpu", per_core_batch_size=32, horizon_len=512),
                         checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch")
                     )
                     return
@@ -379,17 +426,19 @@ class ProcessSandboxAgent:
                     outs = list(self.forecaster.predict_batch([ctx], horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
                     out = outs[0]
                     pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
-                    forecast_results["pure_baseline"] = np.array(pred_vals[:horizon], dtype=float).tolist()
+                    matched_base = self._match_horizon_length(pred_vals, horizon, last_val)
+                    forecast_results["pure_baseline"] = matched_base.tolist()
                     if hasattr(out, "quantiles") and out.quantiles is not None:
-                        forecast_results["pure_baseline_q10"] = np.array(out.quantiles[:horizon, 0], dtype=float).tolist()
-                        forecast_results["pure_baseline_q90"] = np.array(out.quantiles[:horizon, 8], dtype=float).tolist()
+                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(out.quantiles[:, 0], horizon, last_val).tolist()
+                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(out.quantiles[:, 8], horizon, last_val).tolist()
                 elif hasattr(self.forecaster, "forecast"):
                     # Google Research TimesFm API
                     point_forecast, experimental_quantiles = self.forecaster.forecast([ctx])
-                    forecast_results["pure_baseline"] = np.array(point_forecast[0][:horizon], dtype=float).tolist()
+                    matched_base = self._match_horizon_length(point_forecast[0], horizon, last_val)
+                    forecast_results["pure_baseline"] = matched_base.tolist()
                     if experimental_quantiles is not None:
-                        forecast_results["pure_baseline_q10"] = np.array(experimental_quantiles[0][:horizon, 1], dtype=float).tolist()
-                        forecast_results["pure_baseline_q90"] = np.array(experimental_quantiles[0][:horizon, 9], dtype=float).tolist()
+                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(experimental_quantiles[0, :, 1], horizon, last_val).tolist()
+                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(experimental_quantiles[0, :, 9], horizon, last_val).tolist()
             except Exception as e:
                 print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
 
@@ -410,6 +459,14 @@ class ProcessSandboxAgent:
                 daily_drift = 0.001
             forecast_results["pure_baseline"] = [float(last_val * np.exp(daily_drift * (h + 1))) for h in range(horizon)]
 
+        # Ensure pure_base_arr is EXACTLY length horizon
+        pure_base_arr = self._match_horizon_length(forecast_results["pure_baseline"], horizon, last_val)
+        forecast_results["pure_baseline"] = pure_base_arr.tolist()
+        if "pure_baseline_q10" in forecast_results:
+            forecast_results["pure_baseline_q10"] = self._match_horizon_length(forecast_results["pure_baseline_q10"], horizon, last_val).tolist()
+        if "pure_baseline_q90" in forecast_results:
+            forecast_results["pure_baseline_q90"] = self._match_horizon_length(forecast_results["pure_baseline_q90"], horizon, last_val).tolist()
+
         # 2. Multi-Scenario Inferences (Conditioned on Fundamental Targets)
         sc_names = list(scenarios.keys()) if scenarios else list(covariates.keys())
 
@@ -422,7 +479,6 @@ class ProcessSandboxAgent:
         else:
             ann_vol = 0.25
 
-        pure_base_arr = np.array(forecast_results.get("pure_baseline", [last_val] * horizon), dtype=float)
         # Extract TimesFM neural high-frequency oscillations around its own linear drift
         tfm_linear_drift = np.linspace(last_val, pure_base_arr[-1], horizon)
         tfm_oscillations = pure_base_arr - tfm_linear_drift
@@ -433,23 +489,24 @@ class ProcessSandboxAgent:
             if forecast_covfree is not None:
                 try:
                     point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
+                    p_m = self._match_horizon_length(point, horizon, last_val)
+                    q10_m = self._match_horizon_length(q10, horizon, last_val)
+                    q90_m = self._match_horizon_length(q90, horizon, last_val)
                     # Modulate fundamental scenario with TimesFM's empirical neural oscillations
                     if self.forecaster is not None:
-                        point_modulated = point[:horizon] + 0.4 * tfm_oscillations[:horizon]
-                        s_preds = point_modulated.tolist()
+                        s_preds = (p_m + 0.4 * tfm_oscillations).tolist()
                     else:
-                        s_preds = point[:horizon].tolist()
-                    forecast_results[f"{sc_name}_q10"] = q10[:horizon].tolist()
-                    forecast_results[f"{sc_name}_q90"] = q90[:horizon].tolist()
+                        s_preds = p_m.tolist()
+                    forecast_results[f"{sc_name}_q10"] = q10_m.tolist()
+                    forecast_results[f"{sc_name}_q90"] = q90_m.tolist()
                 except Exception as ex:
                     print(f"[{self.agent_id}] forecast_covfree notice: {ex}")
             if s_preds is None:
-                k = 0.006
-                t0 = horizon * 0.45
-                s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
+                drift_line = np.linspace(last_val, tgt, horizon)
+                s_preds = drift_line.tolist()
                 forecast_results[f"{sc_name}_q10"] = [p * 0.90 for p in s_preds]
                 forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
-            forecast_results[sc_name] = s_preds
+            forecast_results[sc_name] = self._match_horizon_length(s_preds, horizon, last_val).tolist()
 
         # 3. Fundamental Scenario Weighted Path
         fund_weighted = (
@@ -477,7 +534,8 @@ class ProcessSandboxAgent:
                 "horizon": horizon,
                 "last_scalar": last_val,
                 "forecast_results": forecast_results,
-                "scenarios": scenarios
+                "scenarios": scenarios,
+                "fundamental_metadata": payload.get("fundamental_metadata", {})
             }
         )
         print(f"[{self.agent_id}] Inference complete. Dispatched A2A tensor payload (ID: {out_msg.message_id}) to Output_Synthesis_Agent.\n")
@@ -510,7 +568,10 @@ class OutputSynthesisAgent:
 
         actuals = test_df["Close"].values[:horizon] if not test_df.empty else None
         test_dates = test_df.index[:len(actuals)] if actuals is not None else []
-        future_dates = [train_df.index[-1] + datetime.timedelta(days=i) for i in range(1, horizon + 1)]
+        if actuals is not None and len(test_dates) == horizon:
+            future_dates = list(test_dates)
+        else:
+            future_dates = list(pd.bdate_range(start=train_df.index[-1] + pd.Timedelta(days=1), periods=horizon))
 
         # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode
         metrics = {
@@ -530,8 +591,8 @@ class OutputSynthesisAgent:
             weighted_mae = float(np.mean(np.abs(weighted_preds - actuals)))
             weighted_mape = float(np.mean(np.abs((actuals - weighted_preds) / actuals)) * 100)
 
-            # Scenario Envelope Coverage Rate
-            inside = np.sum((actuals >= bear_preds * 0.90) & (actuals <= bull_preds * 1.10))
+            # Scenario Envelope Coverage Rate: actual ground truth within [min(bear, bull), max(bear, bull)]
+            inside = np.sum((actuals >= np.minimum(bear_preds, bull_preds)) & (actuals <= np.maximum(bear_preds, bull_preds)))
             cov_rate = float((inside / len(actuals)) * 100)
 
             metrics.update({
@@ -558,13 +619,27 @@ class OutputSynthesisAgent:
                     "scenarios": scenarios,
                     "weighted_target": sum(s.get("probability", 0.33) * s.get("target_price", last_price) for s in scenarios.values()) if scenarios else last_price
                 }
-                try:
-                    tk = yf.Ticker(real_ticker)
-                    fund_data["industry"] = tk.info.get("industry") or tk.info.get("sector") or "General"
-                    fund_data["eps"] = tk.info.get("trailingEps")
-                    fund_data["eps_source"] = "audited_vendor_trailing"
-                except Exception:
-                    fund_data["industry"] = "General"
+                meta = payload.get("fundamental_metadata", {})
+                if meta and meta.get("eps") is not None:
+                    fund_data["eps"] = meta.get("eps")
+                    fund_data["eps_source"] = meta.get("eps_source", "audited_statement_point_in_time")
+                    fund_data["industry"] = meta.get("industry", "General")
+                    fund_data["sector_pe"] = meta.get("sector_pe")
+                else:
+                    if test_df.empty:
+                        try:
+                            tk = yf.Ticker(real_ticker)
+                            fund_data["industry"] = tk.info.get("industry") or tk.info.get("sector") or "General"
+                            fund_data["eps"] = tk.info.get("trailingEps")
+                            fund_data["eps_source"] = "audited_vendor_live"
+                        except Exception:
+                            fund_data["industry"] = "General"
+                            fund_data["eps"] = max(1.0, last_price / 20.0)
+                            fund_data["eps_source"] = "conservative_estimate"
+                    else:
+                        fund_data["industry"] = "General"
+                        fund_data["eps"] = max(1.0, last_price / 20.0)
+                        fund_data["eps_source"] = "point_in_time_conservative_estimate"
 
                 scorecard = build_institutional_scorecard(
                     ticker=real_ticker,
@@ -634,10 +709,10 @@ class OutputSynthesisAgent:
             scorecard_table = f"""| Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
 | :--- | :--- | :--- | :--- | :--- |
 | **Terminal Price** | **Rs. {metrics.get('actual_terminal', 0):.2f}** | Rs. {metrics.get('pure_baseline_terminal', 0):.2f} | **Rs. {metrics.get('bull_terminal', 0):.2f}** | Rs. {metrics.get('weighted_terminal', 0):.2f} |
-| **Terminal Error (%)** | — | {metrics.get('pure_baseline_error_pct', 0):+.2f}% (Exploded) | **{metrics.get('bull_error_pct', 0):+.2f}%** | {metrics.get('weighted_error_pct', 0):+.2f}% |
+| **Terminal Error (%)** | — | {metrics.get('pure_baseline_error_pct', 0):+.2f}% | **{metrics.get('bull_error_pct', 0):+.2f}%** | {metrics.get('weighted_error_pct', 0):+.2f}% |
 | **Multi-Year MAE** | — | Rs. {metrics.get('pure_mae', 0):.2f} | — | **Rs. {metrics.get('weighted_mae', 0):.2f}** |
 | **Multi-Year MAPE** | — | {metrics.get('pure_mape', 0):.2f}% | — | **{metrics.get('weighted_mape', 0):.2f}%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **{metrics.get('envelope_coverage_pct', 0):.1f}% of all trading days** |"""
+| **Scenario Envelope Coverage** | — | — | — | **{metrics.get('envelope_coverage_pct', 0):.1f}% of all trading days** |"""
         else:
             scorecard_table = f"""| Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -706,11 +781,23 @@ class OutputSynthesisAgent:
             f.write(md_report)
 
         # Save JSON
+        calendar_info = {
+            "actual_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in test_dates],
+            "actual_closes": [float(x) for x in actuals] if actuals is not None else [],
+            "future_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in future_dates]
+        }
+        rec_action = (
+            scorecard["institutional_risk_and_sizing"]["institutional_directive"]
+            if (scorecard and "institutional_risk_and_sizing" in scorecard)
+            else "HOLD / MONITOR"
+        )
         json_record = {
             "ticker": real_ticker,
             "architecture": "3-Agent Air-Gapped Triad (Main ➔ Process ➔ Output)",
             "a2a_message_id": message.message_id,
             "metrics": metrics,
+            "calendar": calendar_info,
+            "recommendation": {"action": rec_action},
             "predictions": {
                 "pure_baseline": forecasts.get("pure_baseline", []),
                 "weighted": forecasts.get("weighted_expected", []),

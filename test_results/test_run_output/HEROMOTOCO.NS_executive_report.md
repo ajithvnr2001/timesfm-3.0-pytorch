@@ -7,11 +7,11 @@
 
 | Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
 | :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. 5555.00** | Rs. 199517.20 | **Rs. 7713.59** | Rs. 35268.98 |
-| **Terminal Error (%)** | — | +3491.67% (Exploded) | **+38.86%** | +534.91% |
-| **Multi-Year MAE** | — | Rs. 44661.74 | — | **Rs. 7083.79** |
-| **Multi-Year MAPE** | — | 892.16% | — | **143.07%** |
-| **Scenario Envelope Coverage** | — | 0% | — | **80.8% of all trading days** |
+| **Terminal Price** | **Rs. 5555.00** | Rs. 199517.20 | **Rs. 4229.21** | Rs. 62481.67 |
+| **Terminal Error (%)** | — | +3491.67% | **-23.87%** | +1024.78% |
+| **Multi-Year MAE** | — | Rs. 44661.74 | — | **Rs. 12776.22** |
+| **Multi-Year MAPE** | — | 892.16% | — | **255.64%** |
+| **Scenario Envelope Coverage** | — | — | — | **19.6% of all trading days** |
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `3aa3217e`
+* **Ingress Message ID**: `a7a7c2d1`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
@@ -33,9 +33,9 @@
 ## 4. Institutional Risk, Macro Regime & Capital Sizing Matrix
 
 ### A. Cross-Asset Macro & Sector Alignment
-* **NIFTY 50 Macro Regime**: `BULLISH_UPTREND` (Benchmark Close: Rs. 23,900.00)
-* **India VIX Volatility Regime**: `NORMAL_VOLATILITY (Optimal Trading Environment)` (Level: 13.50 | Multiplier: 1.00x)
-* **Sector Benchmark**: `^CNXAUTO` (Stock Beta to NIFTY: `1.0` | Beta to Sector: `1.0`)
+* **NIFTY 50 Macro Regime**: `BULLISH_UPTREND` (Benchmark Close: Rs. 21,731.40)
+* **India VIX Volatility Regime**: `NORMAL_VOLATILITY (Optimal Trading Environment)` (Level: 14.50 | Multiplier: 1.00x)
+* **Sector Benchmark**: `^CNXAUTO` (Stock Beta to NIFTY: `None` | Beta to Sector: `None`)
 
 ### B. Value at Risk (VaR) & Tail Risk Profile
 | Metric | Horizon Risk (% of Equity) | Interpretation |
@@ -46,11 +46,11 @@
 | **Historical Max Drawdown** | **-6.54%** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `+69.98%`
+* **Gross Potential Upside**: `+3.75%`
 * **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
-* **Net Horizon Upside**: `**+69.73%**`
-* **Objective Invalidation Stop-Loss**: `Rs. 3778.63` (Downside: `-1.0%`)
-* **Asymmetric Risk/Reward Ratio (RRR)**: `**69.73x**`
-* **Half-Kelly Capital Allocation**: `38.8%`
-* **Recommended Portfolio Exposure**: `**15.0%**` (Rs. 150,000.00 | **40 shares**)
-* **Institutional Executive Directive**: `**STRONG BUY (High Conviction Asymmetric Setup)**`
+* **Net Horizon Upside**: `**+3.50%**`
+* **Objective Invalidation Stop-Loss**: `Rs. 2302.62` (Downside: `-38.4%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: `**0.09x**`
+* **Half-Kelly Capital Allocation**: `0.0%`
+* **Recommended Portfolio Exposure**: `**0.0%**` (Rs. 0.00 | **0 shares**)
+* **Institutional Executive Directive**: `**TRIM / TAKE PROFIT (Negative Expected Skew)**`

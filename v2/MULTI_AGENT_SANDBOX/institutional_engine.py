@@ -37,97 +37,169 @@ SECTOR_TICKER_MAP = {
 
 def get_macro_regime(as_of=None):
     """
-    Fetches real-time / point-in-time NIFTY 50 and India VIX macro benchmarks.
-    Computes market regime and risk multiplier.
+    Fetches real-time or point-in-time NIFTY 50 and India VIX macro benchmarks.
+    Computes market regime and risk multiplier without silent constant fabrication.
     """
+    as_of_dt = None
+    if as_of:
+        try:
+            as_of_dt = pd.Timestamp(as_of).tz_localize(None)
+        except Exception:
+            as_of_dt = None
+
+    # 1. NIFTY 50 Benchmark
+    nifty_close = None
+    nifty_trend = "UNAVAILABLE"
     try:
         nifty_tk = yf.Ticker("^NSEI")
-        nifty_hist = nifty_tk.history(period="1y")
-        if as_of:
-            nifty_hist = nifty_hist[nifty_hist.index <= pd.Timestamp(as_of)]
-        
-        nifty_close = float(nifty_hist["Close"].iloc[-1])
-        nifty_sma20 = float(nifty_hist["Close"].rolling(20).mean().iloc[-1])
-        nifty_sma50 = float(nifty_hist["Close"].rolling(50).mean().iloc[-1])
-        nifty_trend = "BULLISH_UPTREND" if nifty_close >= nifty_sma20 >= nifty_sma50 else (
-            "SIDEWAYS_CONSOLIDATION" if nifty_close >= nifty_sma50 else "BEARISH_DOWNTREND"
-        )
-    except Exception:
-        nifty_close = 23900.0
-        nifty_trend = "BULLISH_UPTREND"
+        if as_of_dt:
+            start_str = (as_of_dt - pd.Timedelta(days=400)).strftime("%Y-%m-%d")
+            end_str = (as_of_dt + pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+            nifty_hist = nifty_tk.history(start=start_str, end=end_str)
+        else:
+            nifty_hist = nifty_tk.history(period="1y")
 
+        if not nifty_hist.empty:
+            if nifty_hist.index.tz is not None:
+                nifty_hist.index = nifty_hist.index.tz_localize(None)
+            if as_of_dt:
+                nifty_hist = nifty_hist[nifty_hist.index <= as_of_dt]
+
+        if len(nifty_hist) >= 20:
+            nifty_close = float(nifty_hist["Close"].iloc[-1])
+            nifty_sma20 = float(nifty_hist["Close"].rolling(20).mean().iloc[-1])
+            nifty_sma50 = float(nifty_hist["Close"].rolling(50).mean().iloc[-1]) if len(nifty_hist) >= 50 else nifty_sma20
+            if nifty_close >= nifty_sma20 >= nifty_sma50:
+                nifty_trend = "BULLISH_UPTREND"
+            elif nifty_close >= nifty_sma50:
+                nifty_trend = "SIDEWAYS_CONSOLIDATION"
+            else:
+                nifty_trend = "BEARISH_DOWNTREND"
+    except Exception:
+        nifty_close = None
+        nifty_trend = "UNAVAILABLE"
+
+    # 2. India VIX Volatility Benchmark
+    vix_val = None
+    vix_regime = "UNAVAILABLE"
+    macro_mult = 1.00
     try:
         vix_tk = yf.Ticker("^INDIAVIX")
-        vix_hist = vix_tk.history(period="3mo")
-        if as_of:
-            vix_hist = vix_hist[vix_hist.index <= pd.Timestamp(as_of)]
-        vix_val = float(vix_hist["Close"].iloc[-1])
-    except Exception:
-        vix_val = 13.5
+        if as_of_dt:
+            start_str = (as_of_dt - pd.Timedelta(days=120)).strftime("%Y-%m-%d")
+            end_str = (as_of_dt + pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+            vix_hist = vix_tk.history(start=start_str, end=end_str)
+        else:
+            vix_hist = vix_tk.history(period="3mo")
 
-    if vix_val < 13.0:
-        vix_regime = "LOW_VOLATILITY (Complacent / Risk-On)"
-        macro_mult = 1.05
-    elif vix_val <= 18.0:
-        vix_regime = "NORMAL_VOLATILITY (Optimal Trading Environment)"
+        if not vix_hist.empty:
+            if vix_hist.index.tz is not None:
+                vix_hist.index = vix_hist.index.tz_localize(None)
+            if as_of_dt:
+                vix_hist = vix_hist[vix_hist.index <= as_of_dt]
+
+        if len(vix_hist) >= 1:
+            vix_val = float(vix_hist["Close"].iloc[-1])
+            if vix_val < 13.0:
+                vix_regime = "LOW_VOLATILITY (Complacent / Risk-On)"
+                macro_mult = 1.05
+            elif vix_val <= 18.0:
+                vix_regime = "NORMAL_VOLATILITY (Optimal Trading Environment)"
+                macro_mult = 1.00
+            elif vix_val <= 24.0:
+                vix_regime = "ELEVATED_VOLATILITY (Caution / Hedges Advised)"
+                macro_mult = 0.80
+            else:
+                vix_regime = "EXTREME_RISK_OFF (High Stress / Capital Defense)"
+                macro_mult = 0.50
+    except Exception:
+        vix_val = None
+        vix_regime = "UNAVAILABLE"
         macro_mult = 1.00
-    elif vix_val <= 24.0:
-        vix_regime = "ELEVATED_VOLATILITY (Caution / Hedges Advised)"
-        macro_mult = 0.80
-    else:
-        vix_regime = "EXTREME_RISK_OFF (High Stress / Capital Defense)"
-        macro_mult = 0.50
 
     return {
-        "nifty_close": nifty_close,
+        "nifty_close": round(nifty_close, 2) if nifty_close is not None else None,
         "nifty_trend": nifty_trend,
-        "india_vix": vix_val,
+        "india_vix": round(vix_val, 2) if vix_val is not None else None,
         "vix_regime": vix_regime,
         "macro_multiplier": macro_mult
     }
 
 def get_sector_and_beta(ticker, industry, stock_series, as_of=None):
     """
-    Computes Beta and Correlation against NIFTY 50 and Sector Index.
+    Computes Beta and Correlation against NIFTY 50 and Sector Index point-in-time.
+    No fake default constants are returned if data is unavailable.
     """
     sec_ticker = SECTOR_TICKER_MAP.get(industry, "^NSEI")
+    as_of_dt = None
+    if as_of:
+        try:
+            as_of_dt = pd.Timestamp(as_of).tz_localize(None)
+        except Exception:
+            as_of_dt = None
+
+    beta_nifty = None
+    corr_nifty = None
+    beta_sec = None
+    corr_sec = None
+
     try:
-        sec_hist = yf.Ticker(sec_ticker).history(period="1y")["Close"]
-        nifty_hist = yf.Ticker("^NSEI").history(period="1y")["Close"]
+        sec_tk = yf.Ticker(sec_ticker)
+        nifty_tk = yf.Ticker("^NSEI")
+        if as_of_dt:
+            start_str = (as_of_dt - pd.Timedelta(days=400)).strftime("%Y-%m-%d")
+            end_str = (as_of_dt + pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+            sec_hist = sec_tk.history(start=start_str, end=end_str)["Close"]
+            nifty_hist = nifty_tk.history(start=start_str, end=end_str)["Close"]
+        else:
+            sec_hist = sec_tk.history(period="1y")["Close"]
+            nifty_hist = nifty_tk.history(period="1y")["Close"]
 
-        if as_of:
-            sec_hist = sec_hist[sec_hist.index <= pd.Timestamp(as_of)]
-            nifty_hist = nifty_hist[nifty_hist.index <= pd.Timestamp(as_of)]
+        if sec_hist.index.tz is not None:
+            sec_hist.index = sec_hist.index.tz_localize(None)
+        if nifty_hist.index.tz is not None:
+            nifty_hist.index = nifty_hist.index.tz_localize(None)
 
-        # Align series
+        if as_of_dt:
+            sec_hist = sec_hist[sec_hist.index <= as_of_dt]
+            nifty_hist = nifty_hist[nifty_hist.index <= as_of_dt]
+
+        # Handle stock_series input (can be list, array, or Series)
+        if hasattr(stock_series, "index"):
+            s_s = stock_series.copy()
+            if s_s.index.tz is not None:
+                s_s.index = s_s.index.tz_localize(None)
+        else:
+            # Match recent dates from nifty
+            s_s = pd.Series(stock_series[-len(nifty_hist):], index=nifty_hist.index[-len(stock_series):])
+
+        # Align series on matching dates
         df = pd.DataFrame({
-            "stock": stock_series,
+            "stock": s_s,
             "sector": sec_hist,
             "nifty": nifty_hist
         }).dropna()
 
-        rets = df.pct_change().dropna()
-        var_nifty = rets["nifty"].var()
-        cov_nifty = rets["stock"].cov(rets["nifty"])
-        beta_nifty = float(cov_nifty / var_nifty) if var_nifty > 0 else 1.0
-        corr_nifty = float(rets["stock"].corr(rets["nifty"]))
+        if len(df) >= 30:
+            rets = df.pct_change().dropna()
+            var_nifty = rets["nifty"].var()
+            cov_nifty = rets["stock"].cov(rets["nifty"])
+            beta_nifty = float(cov_nifty / var_nifty) if var_nifty > 0 else 1.0
+            corr_nifty = float(rets["stock"].corr(rets["nifty"]))
 
-        var_sec = rets["sector"].var()
-        cov_sec = rets["stock"].cov(rets["sector"])
-        beta_sec = float(cov_sec / var_sec) if var_sec > 0 else 1.0
-        corr_sec = float(rets["stock"].corr(rets["sector"]))
+            var_sec = rets["sector"].var()
+            cov_sec = rets["stock"].cov(rets["sector"])
+            beta_sec = float(cov_sec / var_sec) if var_sec > 0 else 1.0
+            corr_sec = float(rets["stock"].corr(rets["sector"]))
     except Exception:
-        beta_nifty = 1.0
-        corr_nifty = 0.65
-        beta_sec = 1.0
-        corr_sec = 0.70
+        pass
 
     return {
         "sector_index_ticker": sec_ticker,
-        "beta_nifty": round(beta_nifty, 2),
-        "corr_nifty": round(corr_nifty, 2),
-        "beta_sector": round(beta_sec, 2),
-        "corr_sector": round(corr_sec, 2)
+        "beta_nifty": round(beta_nifty, 2) if beta_nifty is not None else None,
+        "corr_nifty": round(corr_nifty, 2) if corr_nifty is not None else None,
+        "beta_sector": round(beta_sec, 2) if beta_sec is not None else None,
+        "corr_sector": round(corr_sec, 2) if corr_sec is not None else None
     }
 
 def compute_institutional_risk_and_sizing(

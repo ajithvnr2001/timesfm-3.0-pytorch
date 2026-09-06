@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 .nvidia_key
 .akashml_key
+.env

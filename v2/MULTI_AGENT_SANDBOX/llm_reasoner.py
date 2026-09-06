@@ -19,17 +19,23 @@ def get_akashml_api_key() -> str:
     for loc in [
         os.path.join(os.path.dirname(__file__), ".akashml_key"),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), ".akashml_key"),
-        "/content/timesfm_repo/.akashml_key"
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+        os.path.join(os.path.dirname(__file__), ".env"),
+        ".env"
     ]:
         if os.path.exists(loc):
             try:
                 with open(loc) as f:
-                    k = f.read().strip()
-                    if k:
-                        return k
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("AKASHML_API_KEY="):
+                            return line.split("=", 1)[1].strip().strip('"').strip("'")
+                        elif not line.startswith("#") and loc.endswith(".akashml_key") and line:
+                            return line
             except Exception:
                 pass
-    return "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
+    return ""
 
 AKASHML_API_KEY = get_akashml_api_key()
 INVOKE_URL = "https://api.akashml.com/v1/chat/completions"
@@ -67,7 +73,7 @@ def invoke_akashml_reasoner(
     system_prompt: str = "You are an institutional quantitative equity research analyst.",
     model: str = DEFAULT_MODEL,
     max_tokens: int = 4096,
-    temperature: float = 0.7,
+    temperature: float = 0.0,
     top_p: float = 0.9,
     timeout: int = 90
 ) -> Dict[str, Any]:
@@ -75,6 +81,12 @@ def invoke_akashml_reasoner(
     Invokes AkashML API with zai-org/GLM-5.3.
     """
     api_key = get_akashml_api_key()
+    if not api_key:
+        return {
+            "success": False,
+            "error": "AKASHML_API_KEY not configured in environment or .env file",
+            "source": "heuristic_fallback"
+        }
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"

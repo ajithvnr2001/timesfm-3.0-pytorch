@@ -354,28 +354,30 @@ The current system completely resolves all five weaknesses:
 $$	ext{Base Target Price} = 	ext{Effective EPS} 	imes 	ext{Target P/E}$$
 
 * **Case I: Bear De-Rating Regime** (Downtrend = True and Earnings Growth < 8%):
-  $$	ext{Target P/E} = 	ext{clamp}(12.0, 17.0, 	ext{Trailing P/E} 	imes (0.70 + 1.5 	imes g))$$
-* **Case II: Hyper-Growth Wellness/FMCG Expansion** (Industry in {Personal Products} and Earnings Growth > 100%):
-  $$	ext{Target P/E} = 	ext{clamp}(	ext{Sector P/E}, 220.0, 	ext{Trailing P/E} 	imes 2.1)$$
-* **Case III: Small-Cap Engineering Re-Rating** (Industry in {Electrical Equipment}):
-  $$	ext{Target P/E} = 	ext{clamp}(8.0, 12.0, 	ext{Trailing P/E} 	imes 2.25)$$
+  $$\text{Target P/E} = \text{clamp}(12.0, 17.0, \text{Trailing P/E} \times (0.70 + 1.5 \times g))$$
+* **Case II: Hyper-Growth FMCG & Turnaround Expansion** (Industry in {Personal Products} and Earnings Growth > 25%):
+  $$\text{Target P/E} = \text{clamp}(\text{Sector P/E}, 240.0, \text{Trailing P/E} \times 1.85)$$
+* **Case III: High-Growth Turnaround & PEG Re-Rating** (Earnings Growth > 35% or Revenue Growth > 25%):
+  $$\text{Growth Mult} = 1.0 + \text{clamp}(0.15, 0.60, 0.5 \times g)$$
+  $$\text{Target P/E} = \text{clamp}(0.75 \times \text{Sector P/E}, 1.80 \times \text{Sector P/E}, \text{Trailing P/E} \times \text{Growth Mult})$$
 * **Case IV: Standard Growth Benchmark**:
-  $$	ext{Target P/E} = 	ext{SECTOR\_PE\_MAP}[	ext{Industry}]$$
+  $$\text{Target P/E} = \text{SECTOR\_PE\_MAP}[\text{Industry}]$$
 
-#### 2. Horizon-Aware Monte Carlo Bridge Simulation:
-For path $i \in \{1, \dots, N\}$ over horizon step $h \in \{1, \dots, H\}$:
-$$W_h = \left(rac{h}{H}
-ight) 	imes 	ext{target\_reach}$$
-$$	ext{Target}_{	ext{sim}} \sim \mathcal{N}\left(	ext{Target}, (0.12 	imes 	ext{Target})^2
-ight)$$
-$$	ext{Path}_h = (1 - W_h) 	imes \left(P_0 \exp\left(\sum \mathcal{N}(0, \sigma_{	ext{daily}}^2)
-ight)
-ight) + W_h 	imes 	ext{Target}_{	ext{sim}}$$
+#### 2. Ornstein-Uhlenbeck Stochastic Bridge (Honest Volatility Diffusion):
+Replaces artificial sigmoid pinning with an authentic mean-reverting stochastic process:
+$$d \ln P_t = \kappa (\ln P^* - \ln P_t) dt + \sigma dW_t$$
+where:
+* $\kappa = \frac{\ln 2}{\tau}$ is the mean reversion speed governed by fundamental valuation half-life ($\tau \approx 180$ trading days)
+* $\sigma$ is historical annualized volatility scaled to daily frequency $\sigma_{\text{daily}} = \sigma \sqrt{\frac{1}{252}}$
+* $P^*$ is the fundamental target price with institutional dispersion $\ln P^* \sim \mathcal{N}(\ln \text{Target}, 0.10^2)$
+* Discretized via Euler-Maruyama: continuous volatility shocks $\sigma_{\text{daily}} Z_t$ remain active across the entire horizon, ensuring authentic uncertainty bands ($Q_{10}, Q_{90}$) that do NOT artificially collapse to zero.
 
-#### 3. Institutional Foundation Model Ensemble:
-$$P_{	ext{hybrid}}(h) = w_{	ext{tfm}} P_{	ext{baseline}}(h) + (1 - w_{	ext{tfm}}) P_{	ext{fund\_weighted}}(h)$$
-* $w_{	ext{tfm}} = 0.40$ (when running TimesFM neural weights on GPU)
-* $w_{	ext{tfm}} = 0.15$ (when running empirical momentum fallback on CPU)
+#### 3. Foundation Model Shape Matching & Institutional Ensemble:
+* **Shape Alignment (`_match_horizon_length`)**: Prevents tensor dimension broadcast crashes when foundation models return fewer points than horizon (e.g. 128 points vs 663-day horizon) by projecting terminal empirical slope $\Delta P / \Delta t$ smoothly to $H$.
+* **Institutional Foundation Model Ensemble**:
+  $$P_{\text{hybrid}}(h) = w_{\text{tfm}} P_{\text{baseline}}(h) + (1 - w_{\text{tfm}}) P_{\text{fund\_weighted}}(h)$$
+  * $w_{\text{tfm}} = 0.30$ for long horizons ($H \ge 60$ days) where fundamental gravity dominates
+  * $w_{\text{tfm}} = 0.45$ for short horizons ($H < 60$ days) where high-frequency neural dynamics dominate
 
 #### 4. Institutional Risk & Sizing Equations:
 * **Parametric 95% Horizon VaR**:

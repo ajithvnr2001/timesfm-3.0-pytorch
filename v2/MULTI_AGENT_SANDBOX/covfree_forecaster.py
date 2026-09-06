@@ -1,49 +1,71 @@
 """
-covfree_forecaster.py  --  FIX for Weakness #2
-Replaces the target-anchored sigmoid covariate cheat
-(last_price + sigmoid(t)*(target-last_price)) with an honest
-volatility-scaled fundamental blend + Monte-Carlo CI.
-
-The forecast is NOT forced to hit the target; it converges toward
-it with a confidence weight, and the CI comes from simulated paths.
+covfree_forecaster.py
+=====================
+Institutional Stochastic Valuation Bridge (Ornstein-Uhlenbeck Guided Diffusion).
+Replaces the artificial target-pinned sigmoid cheat with an authentic mean-reverting
+stochastic process:
+  - Models log-price evolving with continuous daily volatility sigma * sqrt(dt)
+  - Fundamental valuation exerts a gradual gravitational drift toward fair value target
+  - Target is NOT mathematically pinned: terminal distribution is an authentic random variable
+  - Uncertainty bands (Q10/Q90) scale dynamically with asset volatility without variance collapse
+  - Un-fixed seed by default (seed=None), with optional integer for reproducible verification
 """
 import numpy as np
 
-def sigmoid_path_OLD(last, target, horizon, k=0.18, t0=None):
-    """The old cheat: endpoint is mathematically pinned to `target`."""
-    t0 = horizon/2 if t0 is None else t0
-    return np.array([last + (1/(1+np.exp(-k*(h+1-t0))))*(target-last) for h in range(horizon)])
-
-def monte_carlo_paths(last, annual_vol, horizon, n_sims=500, seed=11):
+def monte_carlo_paths(last: float, annual_vol: float, horizon: int, n_sims: int = 500, seed: int = None):
+    """Pure geometric Brownian motion paths without fundamental target drift."""
     rng = np.random.default_rng(seed)
-    daily_vol = annual_vol*np.sqrt(1/252)
+    dt = 1.0 / 252.0
+    daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)
     rets = rng.normal(0.0, daily_vol, (n_sims, horizon))
-    return last*np.exp(np.cumsum(rets, axis=1))
+    return last * np.exp(np.cumsum(rets, axis=1))
 
-def forecast_covfree(last, target, annual_vol, horizon, target_reach=None,
-                     n_sims=500, seed=11):
+def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int,
+                     target_reach: float = None, half_life_days: float = 180.0,
+                     n_sims: int = 500, seed: int = None):
     """
-    Honest hybrid:
-      - simulate vol-scaled paths from `last`
-      - blend the median path toward the fundamental `target` with a
-        linearly increasing confidence weight capped at `target_reach`
-      - CI from the actual distribution of simulated paths (not +/-10%)
-    Returns (point_forecast, q10, q90).
+    Honest Stochastic Valuation Bridge:
+      - Euler-Maruyama discretization of mean-reverting diffusion toward target
+      - Confidence intervals come strictly from simulated paths preserving volatility
+    Returns:
+      (point_forecast, q10, q90) as numpy arrays of length `horizon`.
     """
-    if target_reach is None:
-        target_reach = min(0.98, max(0.50, horizon / 180.0))
     rng = np.random.default_rng(seed)
-    daily_vol = annual_vol * np.sqrt(1/252)
-    rets = rng.normal(0.0, daily_vol, (n_sims, horizon))
-    paths = last * np.exp(np.cumsum(rets, axis=1))
-    target_sims = rng.normal(target, target * 0.12, (n_sims, 1))
-    w = np.linspace(0, target_reach, horizon)
-    drifted_paths = (1 - w) * paths + w * target_sims
-    point = np.median(drifted_paths, axis=0)
-    q10 = np.percentile(drifted_paths, 10, axis=0)
-    q90 = np.percentile(drifted_paths, 90, axis=0)
+    dt = 1.0 / 252.0
+    daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)
+
+    # Convert half-life of mispricing to annual mean reversion rate kappa
+    # Default half-life: ~180 trading days (~9 calendar months)
+    tau = max(21.0, float(half_life_days)) / 252.0
+    kappa = np.log(2.0) / tau
+
+    log_last = np.log(max(1e-4, float(last)))
+    # Fundamental target has realistic institutional dispersion (+/- 10%)
+    log_targets = rng.normal(np.log(max(1e-4, float(target))), 0.10, (n_sims, 1))
+
+    log_paths = np.zeros((n_sims, horizon), dtype=np.float64)
+    current_log = np.full((n_sims, 1), log_last, dtype=np.float64)
+    shocks = rng.normal(0.0, daily_vol, (n_sims, horizon))
+
+    for h in range(horizon):
+        drift = kappa * (log_targets - current_log) * dt - 0.5 * (daily_vol ** 2)
+        current_log = current_log + drift + shocks[:, h:h+1]
+        log_paths[:, h:h+1] = current_log
+
+    paths = np.exp(log_paths)
+    point = np.median(paths, axis=0)
+    q10 = np.percentile(paths, 10, axis=0)
+    q90 = np.percentile(paths, 90, axis=0)
     return point, q10, q90
 
 def annualized_vol(close_series):
-    r = close_series.pct_change().dropna()
-    return float(r.std()*np.sqrt(252))
+    """Calculates historical annualized volatility from close price series."""
+    if hasattr(close_series, "pct_change"):
+        r = close_series.pct_change().dropna()
+    else:
+        arr = np.asarray(close_series, dtype=float)
+        r = np.diff(arr) / arr[:-1]
+    if len(r) == 0:
+        return 0.25
+    vol = float(np.std(r) * np.sqrt(252.0))
+    return vol if (vol > 0 and not np.isnan(vol)) else 0.25
