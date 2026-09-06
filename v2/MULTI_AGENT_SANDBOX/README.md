@@ -337,3 +337,23 @@ python3 MULTI_AGENT_SANDBOX/multi_agent_system.py \
 * **`test_multi_agent_flow.py`**: Standalone verification test script.
 * **`sample_a2a_payload.json`**: Example of the anonymized wire format exchanged between Agent 1 and Agent 2.
 * **`test_run_output/`**: Complete verification output artifacts (chart, markdown report, JSON record).
+
+---
+
+## ⚠️ SUPERSEDED
+
+This directory is superseded by [`v2/INSTITUTIONAL/`](../INSTITUTIONAL/README.md).
+
+Audit of this engine found that **TimesFM never actually ran** — every committed result here
+records `neural_points: 0` and was produced by a heuristic drift line plus an
+Ornstein-Uhlenbeck bridge to an LLM-chosen P/E target. Other defects: the stop-loss was
+anchored to a multi-year terminal quantile (forcing 0% allocation on a +49% move), `p_win`
+was derived from RRR and then fed into a Kelly formula using the same RRR, covariates were
+built and never consumed, and `sanitize_text` was dead code so no LLM input was ever
+anonymised.
+
+The replacement loads the real `google/timesfm-3.0-pytorch` checkpoint (hard-fail, no
+fallback), uses its native multivariate context and 9 quantile heads, calibrates intervals
+point-in-time, anonymises all LLM input and runs an adversarial identity probe on every
+backtest run. Its measured result is that the model does **not** beat a naive random walk on
+price level — see `v2/INSTITUTIONAL/VALIDATION.md`.
