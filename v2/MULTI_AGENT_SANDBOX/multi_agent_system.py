@@ -110,13 +110,14 @@ except ImportError:
         build_scenarios = None
 
 try:
-    from covfree_forecaster import forecast_covfree, mixture_prediction_interval
+    from covfree_forecaster import forecast_covfree, mixture_prediction_interval, simulate_fused_scenario_paths
 except ImportError:
     try:
-        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree, mixture_prediction_interval
+        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree, mixture_prediction_interval, simulate_fused_scenario_paths
     except ImportError:
         forecast_covfree = None
         mixture_prediction_interval = None
+        simulate_fused_scenario_paths = None
 
 try:
     from institutional_engine import build_institutional_scorecard
@@ -485,6 +486,17 @@ class ProcessSandboxAgent:
             except Exception as e:
                 print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
 
+        # 1. Determine volatility from trailing context series over up to 252 trading days (~1 year)
+        vol_window = min(252, len(ctx))
+        if vol_window >= 2:
+            vol_ctx = ctx[-vol_window:]
+            returns = np.diff(vol_ctx) / vol_ctx[:-1]
+            ann_vol = float(np.std(returns) * np.sqrt(252))
+            if np.isnan(ann_vol) or ann_vol <= 0:
+                ann_vol = 0.25
+        else:
+            ann_vol = 0.25
+
         if "pure_baseline" not in forecast_results:
             neural_pts = 0
             extrap_pts = 0
@@ -502,10 +514,21 @@ class ProcessSandboxAgent:
             else:
                 raw_drift = 0.0005
 
-            # Horizon-aware total drift clip: cap cumulative drift between -50% and +75%
-            total_drift = float(np.clip(raw_drift * horizon, -0.50, +0.75))
+            # Soft horizon-aware total drift clip (Problem C):
+            # Bound cumulative drift using asset volatility over horizon T = H / 252
+            t_horiz = max(1, horizon) / 252.0
+            vol_drift_bound = float(ann_vol * np.sqrt(t_horiz))
+            max_drift = float(min(0.75, max(0.20, vol_drift_bound)))
+            min_drift = float(max(-0.50, min(-0.15, -vol_drift_bound)))
+
+            raw_total_drift = float(raw_drift * horizon)
+            drift_clip_binding = bool(raw_total_drift > max_drift or raw_total_drift < min_drift)
+            total_drift = float(np.clip(raw_total_drift, min_drift, max_drift))
             capped_daily_drift = total_drift / max(1, horizon)
             forecast_results["pure_baseline"] = [float(last_val * np.exp(capped_daily_drift * (h + 1))) for h in range(horizon)]
+            forecast_results["drift_clip_binding"] = drift_clip_binding
+        else:
+            forecast_results["drift_clip_binding"] = False
 
         # Ensure pure_base_arr is EXACTLY length horizon
         pure_base_arr = self._match_horizon_length(forecast_results["pure_baseline"], horizon, last_val)
@@ -513,6 +536,7 @@ class ProcessSandboxAgent:
         forecast_results["neural_points"] = neural_pts
         forecast_results["extrapolated_points"] = extrap_pts
         forecast_results["model_name"] = getattr(self, "model_name", "Calibrated Fallback")
+        forecast_results["annualized_vol"] = ann_vol
 
         if "pure_baseline_q10" in forecast_results:
             forecast_results["pure_baseline_q10"] = self._match_horizon_length(forecast_results["pure_baseline_q10"], horizon, last_val).tolist()
@@ -521,17 +545,6 @@ class ProcessSandboxAgent:
 
         # 2. Multi-Scenario Inferences (Conditioned on Fundamental Targets)
         sc_names = ["bear", "base", "bull"]
-
-        # Determine volatility from trailing context series over up to 252 trading days (~1 year)
-        vol_window = min(252, len(ctx))
-        if vol_window >= 2:
-            vol_ctx = ctx[-vol_window:]
-            returns = np.diff(vol_ctx) / vol_ctx[:-1]
-            ann_vol = float(np.std(returns) * np.sqrt(252))
-            if np.isnan(ann_vol) or ann_vol <= 0:
-                ann_vol = 0.25
-        else:
-            ann_vol = 0.25
 
         # Common Random Numbers (CRN): Use a single shared seed for Bear, Base, Bull
         # so that all scenarios experience the exact same Brownian shocks and differ solely by target
@@ -597,17 +610,6 @@ class ProcessSandboxAgent:
                 forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
             forecast_results[sc_name] = self._match_horizon_length(s_preds, horizon, last_val).tolist()
 
-        # Compute true probability-weighted mixture quantiles across pooled scenario paths
-        if scenario_sim_paths and mixture_prediction_interval is not None and scenarios:
-            try:
-                probs_by_sc = {s: scenarios[s]["probability"] for s in scenarios if s in scenario_sim_paths}
-                if len(probs_by_sc) == len(scenario_sim_paths) and sum(probs_by_sc.values()) > 0:
-                    mix_q10, mix_q90 = mixture_prediction_interval(scenario_sim_paths, probs_by_sc, q_low=0.10, q_high=0.90)
-                    forecast_results["mixture_q10"] = self._match_horizon_length(mix_q10, horizon, last_val).tolist()
-                    forecast_results["mixture_q90"] = self._match_horizon_length(mix_q90, horizon, last_val).tolist()
-            except Exception as e:
-                print(f"[{self.agent_id}] mixture_prediction_interval notice: {e}")
-
         # 3. Fundamental Scenario Weighted Path
         fund_weighted = (
             scenarios["bear"]["probability"] * np.array(forecast_results["bear"]) +
@@ -620,8 +622,43 @@ class ProcessSandboxAgent:
         # Short horizons (H < 60 days): statistical momentum and empirical microstructure dominate (w_tfm = 0.45, fundamental = 0.55).
         # Medium/Long horizons (H >= 60 days): fundamental valuation gravity dominates (w_tfm = 0.30, fundamental = 0.70).
         w_tfm = 0.30 if horizon >= 60 else 0.45
+        if forecast_results.get("drift_clip_binding", False):
+            # Scale down empirical weight when the fallback drift bound binds (Problem C)
+            w_tfm = float(w_tfm * 0.5)
+
         fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
         forecast_results["weighted_expected"] = fused_path
+
+        # 5. Fused Scenario Paths & True Probability-Weighted Mixture Prediction Interval (Problem A & B)
+        # Propagates the baseline into the prediction interval via X_{s, k}(t) = w_tfm * B_k(t) + (1 - w_tfm) * S_{s, k}(t)
+        if scenario_sim_paths and mixture_prediction_interval is not None and scenarios:
+            try:
+                probs_by_sc = {s: scenarios[s]["probability"] for s in scenarios if s in scenario_sim_paths}
+                if len(probs_by_sc) == len(scenario_sim_paths) and sum(probs_by_sc.values()) > 0:
+                    if simulate_fused_scenario_paths is not None:
+                        fused_sim_paths = simulate_fused_scenario_paths(
+                            scenario_sim_paths=scenario_sim_paths,
+                            pure_baseline=pure_base_arr,
+                            w_tfm=w_tfm,
+                            annual_vol=ann_vol,
+                            horizon=horizon,
+                            seed=common_seed
+                        )
+                    else:
+                        fused_sim_paths = scenario_sim_paths
+
+                    mix_q10, mix_q90 = mixture_prediction_interval(
+                        fused_sim_paths,
+                        probs_by_sc,
+                        q_low=0.10,
+                        q_high=0.90,
+                        diffusion_floor_vol=ann_vol,
+                        weighted_expected=np.array(fused_path, dtype=float)
+                    )
+                    forecast_results["mixture_q10"] = self._match_horizon_length(mix_q10, horizon, last_val).tolist()
+                    forecast_results["mixture_q90"] = self._match_horizon_length(mix_q90, horizon, last_val).tolist()
+            except Exception as e:
+                print(f"[{self.agent_id}] mixture_prediction_interval notice: {e}")
 
         out_msg = A2AMessage(
             sender=self.agent_id,
@@ -690,24 +727,33 @@ class OutputSynthesisAgent:
 
         # 80% Prediction Interval: True probability-weighted mixture quantiles across pooled scenario paths
         if "mixture_q10" in forecasts and "mixture_q90" in forecasts:
-            interval_lower = np.array(forecasts["mixture_q10"])
-            interval_upper = np.array(forecasts["mixture_q90"])
+            interval_lower = np.array(forecasts["mixture_q10"], dtype=float)
+            interval_upper = np.array(forecasts["mixture_q90"], dtype=float)
         else:
-            q10_candidates = [np.array(forecasts[k]) for k in ["bear_q10", "base_q10", "bull_q10"] if k in forecasts]
-            q90_candidates = [np.array(forecasts[k]) for k in ["bear_q90", "base_q90", "bull_q90"] if k in forecasts]
+            q10_candidates = [np.array(forecasts[k], dtype=float) for k in ["bear_q10", "base_q10", "bull_q10"] if k in forecasts]
+            q90_candidates = [np.array(forecasts[k], dtype=float) for k in ["bear_q90", "base_q90", "bull_q90"] if k in forecasts]
             if q10_candidates and q90_candidates:
                 interval_lower = np.min(q10_candidates, axis=0)
                 interval_upper = np.max(q90_candidates, axis=0)
             else:
-                interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
-                interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
+                interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price]), dtype=float), np.array(forecasts.get("bull", [last_price]), dtype=float))
+                interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price]), dtype=float), np.array(forecasts.get("bull", [last_price]), dtype=float))
 
+        weighted_arr = np.array(forecasts.get("weighted_expected", [last_price] * horizon), dtype=float)
+        # Pointwise assertion and guarantee: interval_lower <= weighted_expected <= interval_upper (Problem A & B)
+        interval_lower = np.minimum(interval_lower, weighted_arr)
+        interval_upper = np.maximum(interval_upper, weighted_arr)
+        assert np.all(interval_lower <= weighted_arr), "interval_lower must be <= weighted_expected pointwise"
+        assert np.all(weighted_arr <= interval_upper), "weighted_expected must be <= interval_upper pointwise"
+
+        drift_clip_binding = bool(forecasts.get("drift_clip_binding", False))
         # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode (Scalars Only, Item 5)
         metrics = {
             "pure_baseline_terminal": float(forecasts["pure_baseline"][-1]) if "pure_baseline" in forecasts and len(forecasts["pure_baseline"]) > 0 else float(last_price),
             "weighted_terminal": float(forecasts["weighted_expected"][-1]) if "weighted_expected" in forecasts and len(forecasts["weighted_expected"]) > 0 else float(last_price),
             "bull_terminal": bull_term,
             "bear_terminal": bear_term,
+            "drift_clip_binding": drift_clip_binding,
         }
         if actuals is not None and len(actuals) > 0:
             pure_preds = np.array(forecasts["pure_baseline"][:len(actuals)])
@@ -861,6 +907,18 @@ class OutputSynthesisAgent:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **{horizon} Trading Days** | **Rs. {last_price:,.2f}** | Rs. {forecasts['pure_baseline'][-1]:,.2f} | **Rs. {forecasts['bull'][-1]:,.2f}** | Rs. {forecasts['base'][-1]:,.2f} | Rs. {forecasts['bear'][-1]:,.2f} | **Rs. {forecasts['weighted_expected'][-1]:,.2f}** |"""
 
+        notes_block = ""
+        weighted_terminal = metrics.get("weighted_terminal", last_price)
+        w_tfm_pct = 15 if drift_clip_binding else (30 if horizon >= 60 else 45)
+        if weighted_terminal > bull_term:
+            notes_block += f"\n> [!NOTE]\n> **Empirical Momentum Extension**: The probabilistic weighted path (Rs. {weighted_terminal:.2f}) exceeds the fundamental bull target (Rs. {bull_term:.2f}) due to {w_tfm_pct}% blending with strong empirical market momentum from the foundation baseline.\n"
+        elif weighted_terminal < bear_term:
+            notes_block += f"\n> [!NOTE]\n> **Empirical Momentum Dampening**: The probabilistic weighted path (Rs. {weighted_terminal:.2f}) sits below the fundamental bear target (Rs. {bear_term:.2f}) due to {w_tfm_pct}% blending with persistent downtrend momentum from the foundation baseline.\n"
+
+        if drift_clip_binding:
+            ann_vol_display = forecasts.get("annualized_vol", 0.25)
+            notes_block += f"\n> [!WARNING]\n> **Baseline Drift Clip Active**: Long-horizon fallback drift reached the asset volatility boundary ({ann_vol_display*100:.1f}% vol). Baseline weight $w_{{\\text{{tfm}}}}$ was automatically scaled to {w_tfm_pct}% to preserve fundamental scenario targets.\n"
+
         # Save Markdown Report
         md_report = f"""# Multi-Agent Zero-Leakage Forecast Report: {real_ticker}
 ### Architecture: MainAgent (Ingestion) ➔ ProcessAgent (Sandbox TimesFM) ➔ OutputAgent (Reporting)
@@ -870,7 +928,7 @@ class OutputSynthesisAgent:
 ## 1. Multi-Agent Triad Performance Scorecard
 
 {scorecard_table}
-
+{notes_block}
 ---
 
 ## 2. High-Resolution Forecast Chart
@@ -974,6 +1032,7 @@ class OutputSynthesisAgent:
             "extrapolated_points": forecasts.get("extrapolated_points", 0),
             "model_name": forecasts.get("model_name", "TimesFM"),
             "quantiles_unavailable": forecasts.get("quantiles_unavailable", False),
+            "drift_clip_binding": drift_clip_binding,
             "recommendation": {"action": rec_action},
             "predictions": {
                 "pure_baseline": forecasts.get("pure_baseline", []),

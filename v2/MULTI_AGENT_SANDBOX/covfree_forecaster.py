@@ -88,11 +88,48 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
         return point, q10, q90, paths
     return point, q10, q90
 
-def mixture_prediction_interval(paths_by_scenario: dict, probs_by_scenario: dict, q_low: float = 0.10, q_high: float = 0.90):
+def simulate_fused_scenario_paths(scenario_sim_paths: dict, pure_baseline: list, w_tfm: float,
+                                  annual_vol: float, horizon: int, seed: int = None) -> dict:
+    """
+    Fuses empirical baseline diffusion paths with fundamental OU scenario paths:
+      X_{s, k}(t) = w_tfm * B_k(t) + (1 - w_tfm) * S_{s, k}(t)
+    Uses Common Random Numbers (CRN) with antithetic variates so baseline and scenario
+    paths share the exact same underlying Brownian shocks without Monte Carlo noise.
+    """
+    if not scenario_sim_paths:
+        return {}
+    n_sims = list(scenario_sim_paths.values())[0].shape[0]
+    half_n = max(1, n_sims // 2)
+    rng = np.random.default_rng(seed)
+    # Match the sequence of draws from forecast_covfree: target dispersion dev, then Brownian shocks z
+    dev = rng.normal(0.0, 0.10, (half_n, 1))
+    dt = 1.0 / 252.0
+    daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)
+    z = rng.normal(0.0, daily_vol, (half_n, horizon))
+    shocks = np.vstack([z, -z])
+    cum_shocks = np.cumsum(shocks, axis=1)
+
+    base_arr = np.asarray(pure_baseline, dtype=float)
+    if len(base_arr) != horizon:
+        base_arr = np.interp(np.linspace(0, 1, horizon), np.linspace(0, 1, len(base_arr)), base_arr)
+    b_paths = base_arr[None, :] * np.exp(cum_shocks)
+
+    fused_paths = {}
+    for sc_name, sc_paths in scenario_sim_paths.items():
+        fused_paths[sc_name] = w_tfm * b_paths + (1.0 - w_tfm) * sc_paths
+    return fused_paths
+
+def mixture_prediction_interval(paths_by_scenario: dict, probs_by_scenario: dict,
+                                q_low: float = 0.10, q_high: float = 0.90,
+                                diffusion_floor_vol: float = None,
+                                weighted_expected: np.ndarray = None):
     """
     Computes the true probability-weighted mixture prediction interval across scenarios.
     Avoids truncation or path discarding (Item 2) by pooling ALL simulated paths across
     scenarios with exact scenario-probability weights and computing weighted quantiles per timestep.
+
+    Optionally enforces a diffusion floor (Problem B) so the 80% interval half-width never drops
+    below 1.28155 * sigma_ann * sqrt((t+1)/252) in log space, and pointwise brackets weighted_expected.
     """
     sc_names = [s for s in ["bear", "base", "bull"] if s in paths_by_scenario]
     if not sc_names:
@@ -120,6 +157,18 @@ def mixture_prediction_interval(paths_by_scenario: dict, probs_by_scenario: dict
         y_grid = np.concatenate([[sy[0]], sy])
         mix_q_low[t] = np.interp(q_low, p_grid, y_grid)
         mix_q_high[t] = np.interp(q_high, p_grid, y_grid)
+
+    if diffusion_floor_vol is not None and weighted_expected is not None and diffusion_floor_vol > 0:
+        t_grid = np.arange(1, H + 1, dtype=float) / 252.0
+        delta_diff = 1.28155 * float(diffusion_floor_vol) * np.sqrt(t_grid)
+        w_exp = np.asarray(weighted_expected, dtype=float)
+        floor_lower = w_exp * np.exp(-delta_diff)
+        floor_upper = w_exp * np.exp(delta_diff)
+        mix_q_low = np.minimum(mix_q_low, floor_lower)
+        mix_q_high = np.maximum(mix_q_high, floor_upper)
+        # Enforce pointwise containment
+        mix_q_low = np.minimum(mix_q_low, w_exp)
+        mix_q_high = np.maximum(mix_q_high, w_exp)
 
     return mix_q_low, mix_q_high
 

@@ -399,6 +399,145 @@ def test_antithetic_target_dispersion():
     std_dispersion = float(np.std(terminals))
     assert std_dispersion < 0.05, f"Monte Carlo dispersion across seeds should be < 0.05 with antithetic shocks, got {std_dispersion:.4f}"
 
+def test_fused_scenario_interval_containment_and_centering():
+    """Verify that fusing baseline paths B_k(t) with scenarios S_{s, k}(t) centers the interval on weighted_expected (Problem A)."""
+    import numpy as np
+    a = mas.ProcessSandboxAgent(device="cpu")
+    h = 60
+    msg = mk({
+        "asset_pseudonym": "ASSET_FUSED",
+        "horizon": h,
+        "last_known_scalar": 100.0,
+        "numerical_context": [100.0 + 0.1 * i for i in range(120)],
+        "scenarios": {
+            "bear": {"probability": 0.25, "target_price": 85.0},
+            "base": {"probability": 0.50, "target_price": 105.0},
+            "bull": {"probability": 0.25, "target_price": 130.0},
+        }
+    }, [])
+    res = a.execute_forecast(msg)
+    forecasts = res.payload["forecast_results"]
+    q10 = np.array(forecasts["mixture_q10"])
+    q90 = np.array(forecasts["mixture_q90"])
+    w_exp = np.array(forecasts["weighted_expected"])
+
+    # Pointwise containment assertion
+    assert np.all(q10 <= w_exp), f"mixture_q10 must be <= weighted_expected pointwise, min diff: {np.min(w_exp - q10)}"
+    assert np.all(w_exp <= q90), f"weighted_expected must be <= mixture_q90 pointwise, min diff: {np.min(q90 - w_exp)}"
+
+    # Relative position within the band: (weighted - q10) / (q90 - q10) must be well-centered, not stuck at 96.7%
+    rel_pos = (w_exp - q10) / (q90 - q10)
+    assert 0.25 <= np.mean(rel_pos) <= 0.75, f"Expected centered rel_pos between 0.25 and 0.75, got mean {np.mean(rel_pos):.3f}"
+    assert np.all(rel_pos >= 0.10) and np.all(rel_pos <= 0.90), f"rel_pos breached bounds: min {np.min(rel_pos):.3f}, max {np.max(rel_pos):.3f}"
+
+def test_diffusion_floor_log_width():
+    """Verify that the diffusion floor prevents interval saturation over long horizons (Problem B)."""
+    import numpy as np
+    a = mas.ProcessSandboxAgent(device="cpu")
+    h = 252
+    msg = mk({
+        "asset_pseudonym": "ASSET_DIFF",
+        "horizon": h,
+        "last_known_scalar": 100.0,
+        "numerical_context": [100.0 * (1.0 + 0.01 * np.sin(i / 10.0)) for i in range(120)],
+        "scenarios": {
+            "bear": {"probability": 0.25, "target_price": 90.0},
+            "base": {"probability": 0.50, "target_price": 100.0},
+            "bull": {"probability": 0.25, "target_price": 110.0},
+        }
+    }, [])
+    res = a.execute_forecast(msg)
+    forecasts = res.payload["forecast_results"]
+    q10 = np.array(forecasts["mixture_q10"])
+    q90 = np.array(forecasts["mixture_q90"])
+    w_exp = np.array(forecasts["weighted_expected"])
+    ann_vol = forecasts.get("annualized_vol", 0.25)
+
+    # Diffusion floor: log(q90 / w_exp) >= 1.28155 * ann_vol * sqrt((t+1)/252)
+    t_grid = np.arange(1, h + 1, dtype=float) / 252.0
+    expected_log_half_width = 1.28155 * ann_vol * np.sqrt(t_grid)
+    actual_log_upper = np.log(q90 / w_exp)
+    actual_log_lower = np.log(w_exp / q10)
+
+    # Allow tiny float rounding tolerance of 1e-6
+    assert np.all(actual_log_upper >= expected_log_half_width - 1e-6), "Upper band violated diffusion floor"
+    assert np.all(actual_log_lower >= expected_log_half_width - 1e-6), "Lower band violated diffusion floor"
+
+def test_drift_clip_binding_and_scaling():
+    """Verify that fallback drift clipping sets drift_clip_binding=True and scales w_tfm down (Problem C)."""
+    a = mas.ProcessSandboxAgent(device="cpu")
+    # Highly steep historical context that exceeds the volatility-aware drift boundary over 663 days
+    ctx_steep = [100.0 * (1.005 ** i) for i in range(100)]
+    msg = mk({
+        "asset_pseudonym": "ASSET_CLIP",
+        "horizon": 663,
+        "last_known_scalar": ctx_steep[-1],
+        "numerical_context": ctx_steep,
+        "scenarios": {
+            "bear": {"probability": 0.25, "target_price": ctx_steep[-1] * 0.90},
+            "base": {"probability": 0.50, "target_price": ctx_steep[-1] * 1.05},
+            "bull": {"probability": 0.25, "target_price": ctx_steep[-1] * 1.20},
+        }
+    }, [])
+    res = a.execute_forecast(msg)
+    forecasts = res.payload["forecast_results"]
+    assert forecasts.get("drift_clip_binding") is True, "Expected drift_clip_binding=True for steep multi-year trend"
+
+    # Verify OutputSynthesisAgent captures drift_clip_binding in JSON and metrics
+    import tempfile, pandas as pd
+    out_agent = mas.OutputSynthesisAgent()
+    dates = pd.date_range("2024-01-01", periods=10, freq="B")
+    train_df = pd.DataFrame({"Close": [ctx_steep[-1]] * 10}, index=dates)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        json_out = out_agent.render(res, "CLIP.NS", train_df, pd.DataFrame(), output_dir=tmpdir)
+        assert json_out.get("drift_clip_binding") is True
+        assert json_out["metrics"].get("drift_clip_binding") is True
+
+        # Check that report includes the warning note
+        report_file = json_out["report_saved"]
+        with open(report_file, "r") as f:
+            report_text = f.read()
+        assert "Baseline Drift Clip Active" in report_text
+
+def test_empirical_momentum_extension_note_in_report():
+    """Verify that when weighted_expected > bull_terminal, report explains momentum blending (Problem D)."""
+    import tempfile, pandas as pd
+    out_agent = mas.OutputSynthesisAgent()
+    h = 10
+    msg = mas.A2AMessage(
+        sender="Process_Sandbox_Agent", recipient="Output_Synthesis_Agent",
+        message_type="PREDICTION_TENSOR_OUTPUT",
+        payload={
+            "asset_pseudonym": "ASSET_MOM",
+            "horizon": h,
+            "last_scalar": 100.0,
+            "forecast_results": {
+                "pure_baseline": [150.0] * h,
+                "weighted_expected": [135.0] * h,  # Above bull terminal of 120.0
+                "bear": [80.0] * h,
+                "base": [100.0] * h,
+                "bull": [120.0] * h,
+                "mixture_q10": [75.0] * h,
+                "mixture_q90": [140.0] * h,
+                "neural_points": 0,
+                "extrapolated_points": 0
+            },
+            "scenarios": {
+                "bear": {"probability": 0.25, "target_price": 80.0},
+                "base": {"probability": 0.50, "target_price": 100.0},
+                "bull": {"probability": 0.25, "target_price": 120.0}
+            },
+            "fundamental_metadata": {}
+        }
+    )
+    dates = pd.date_range("2024-01-01", periods=10, freq="B")
+    train_df = pd.DataFrame({"Close": [100.0] * 10}, index=dates)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        json_out = out_agent.render(msg, "MOM.NS", train_df, pd.DataFrame(), output_dir=tmpdir)
+        with open(json_out["report_saved"], "r") as f:
+            report_text = f.read()
+        assert "Empirical Momentum Extension" in report_text
+
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
