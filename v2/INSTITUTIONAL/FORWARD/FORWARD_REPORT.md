@@ -2,6 +2,11 @@
 
 Generated 2026-09-06 17:46 UTC | model `google/timesfm-3.0-pytorch` on `cuda` | Kelly win probability = 0.58 (walk-forward directional hit-rate)
 
+> **Stale sizing caveat:** this report was generated with `P_WIN=0.578`, taken from a
+> 192-run study whose directional edge did **not** replicate (53.2%, p=0.150 at 494 runs).
+> The allocation column therefore assumes an edge the validation no longer supports; read
+> the bands, not the position sizes. Re-run with `P_WIN=0.5` for the honest version.
+>
 > These are probabilistic projections, not advice. The walk-forward study found this model has **no edge over a random walk on price level** and only a modest directional edge, so the calibrated band matters more than the median path.
 
 ## Horizon 60 trading days

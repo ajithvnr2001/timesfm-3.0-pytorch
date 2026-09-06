@@ -12,32 +12,40 @@ T4; nothing is asserted that was not run.
 
 **TimesFM 3.0 does not beat a naive random walk on Indian equity price levels.**
 
-Across a 192-run walk-forward study (34 names × 3 cutoffs × 2 horizons):
+Across a **494-run** walk-forward study (35 names × 8 quarterly cutoffs × 2 horizons):
 
 | metric | TimesFM 3.0 | naive (last price) | drift | seasonal-naive |
 | :--- | ---: | ---: | ---: | ---: |
-| mean MAPE, 60d | **9.41%** | 9.48% | 10.71% | 12.68% |
-| mean MAPE, 252d | 17.26% | **16.62%** | 32.95% | 39.07% |
-| pooled mean MAPE | 13.34% | **13.05%** | – | – |
+| mean MAPE, 60d | **8.81%** | 8.76% | 10.67% | 12.85% |
+| mean MAPE, 252d (non-overlapping) | 17.01% | **16.47%** | 25.17% | 25.02% |
+| pooled mean MAPE | 13.23% | **12.98%** | – | – |
 
-It beats naive on 51% of runs — a coin flip. It crushes the *trend-following* baselines at
-long horizons (17.3% vs 32.9% drift, 39.1% seasonal), so it is not useless; it simply cannot
-beat the specific hypothesis "price stays where it is".
+It beats naive on 50% of runs — a coin flip. It crushes the *trend-following* baselines at
+long horizons, so it is not useless; it simply cannot beat the specific hypothesis "price
+stays where it is".
 
-**Two things do work:**
+**One thing works: the calibrated interval.** The native 80% band covers 77.8% of outcomes;
+point-in-time conformal calibration in log space brings pooled coverage to **80.0%** — exactly
+nominal — with every bound strictly positive (60d 80.5%, 252d 79.5%).
 
-1. **Direction.** Pooled directional accuracy is **57.8%** on n=192 (z=2.17, two-sided
-   p=0.030 against 50%). Modest, but measurable, and it is what feeds position sizing.
-2. **Calibrated uncertainty.** The model's native 80% band covers only **75.3%** of outcomes;
-   point-in-time conformal calibration in log space lifts pooled coverage to **77.9%**
-   (60d 76.5%, 252d 79.3%) against a nominal 80% band, with every bound strictly positive.
+**Two results were overturned by expanding the sample, and both are reported rather than
+buried:**
 
-**What does not work:** the anonymised LLM conviction score showed **no cross-sectional
-predictive power** in this sample — mean Spearman rank-IC **+0.009** across six
-(horizon, cutoff) panels, positive in only 2 of 6. It did not find the multi-baggers: CUPID
-returned +415% over 252 days from the 2024-12-31 cutoff and the screener scored it 38/100.
-That is reported rather than hidden, and it is why the engine never lets the LLM touch the
-price path.
+1. **Directional accuracy is not significant.** A first pass with 3 cutoffs (n=192) measured
+   57.8%, p=0.030, and this README previously called it "the one component with measurable
+   edge". At 8 cutoffs (n=494) it is **53.2%, p=0.150**. The original figure was a
+   small-sample artefact.
+2. **Pre-cutoff evidence does not buy skill, it buys leakage.** With 3 cutoffs the
+   `with_evidence` LLM mode showed mean rank-IC +0.132 (t=2.32, p=0.021) that appeared to
+   survive the identity probe. At 8 cutoffs it is **+0.058, p=0.183** — while the adversarial
+   probe identifies the company in **52%** of evidence-mode runs versus 17% in numbers-only
+   mode. Evidence roughly triples identity leakage and delivers no measurable predictive
+   power. See [`EVIDENCE_EXPERIMENT.md`](EVIDENCE_EXPERIMENT.md).
+
+**The screener has no demonstrated skill either:** mean rank-IC **+0.003** across 16
+(horizon, cutoff) panels for numbers-only conviction. It did not find the multi-baggers —
+CUPID returned +415% over 252 days from the 2024-12-31 cutoff and the screener scored it
+38/100. That is why the engine never lets the LLM touch the price path.
 
 Live forward predictions: [`FORWARD/FORWARD_REPORT.md`](FORWARD/FORWARD_REPORT.md).
 Full numbers: [`VALIDATION.md`](VALIDATION.md). Configuration evidence:
@@ -166,8 +174,15 @@ into the repository.
 * **Coverage is right on average, not per name.** Pooled coverage is 77.9% versus 80% nominal,
   but the per-run spread is wide (mean |coverage-80| is 20pp), so an individual band should be
   read as an order-of-magnitude risk range, not a precise interval.
-* **Three cutoffs is a small sample.** Six (horizon, cutoff) panels cannot resolve a rank-IC
-  of ±0.10. The negative screener result is "no evidence of skill", not "proof of no skill".
+* **Even eight cutoffs is a modest sample.** Sixteen panels give a rank-IC standard error of
+  about 0.04, so effects smaller than roughly ±0.09 are unresolvable. The negative screener
+  result is "no evidence of skill", not "proof of no skill".
+* **252d panels from adjacent quarterly cutoffs overlap** ~80% of their return path. The
+  headline 252d numbers therefore use only the annually spaced subset (2022-12-30, 2023-12-29,
+  2024-12-31); the overlapping set is reported alongside and flagged.
+* **Two earlier findings in this repo's history did not replicate** (directional accuracy,
+  evidence-mode IC). Treat any single-sample result here as provisional until it survives a
+  sample expansion.
 * **Backtests use adjusted close** from yfinance, which is itself restated over time.
 * The 252-day horizon spans a regime the model never saw in training; treat long-horizon bands
   as scenario ranges, not forecasts.

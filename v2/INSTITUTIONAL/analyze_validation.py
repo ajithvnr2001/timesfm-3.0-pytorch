@@ -36,6 +36,22 @@ def spearman(x, y):
     return (float((rx * ry).sum() / denom) if denom > 0 else None), len(x)
 
 
+def _skill_groups(runs):
+    """(horizon, label, subset) groups: all quarterly cutoffs for 60d, plus both the
+    non-overlapping and full sets for 252d."""
+    out = []
+    for H in sorted({r["horizon"] for r in runs}):
+        sub = [r for r in runs if r["horizon"] == H]
+        if H >= 252:
+            no = [r for r in sub if r["cutoff"] in NON_OVERLAPPING_252D]
+            if no:
+                out.append((H, f"{H}d non-overlapping", no))
+            out.append((H, f"{H}d all cutoffs (overlapping)", sub))
+        else:
+            out.append((H, f"{H}d", sub))
+    return out
+
+
 def leak_tier(probe: dict) -> str:
     if not probe:
         return "no_probe"
@@ -46,6 +62,9 @@ def leak_tier(probe: dict) -> str:
 
 def fmt(v, nd=2, dash="  n/a"):
     return dash if v is None else f"{v:.{nd}f}"
+
+
+NON_OVERLAPPING_252D = ["2022-12-30", "2023-12-29", "2024-12-31"]
 
 
 def main(ledger_path: str, out_md: str):
@@ -72,19 +91,28 @@ def main(ledger_path: str, out_md: str):
     emit()
 
     # ---------------------------------------------------------------- 1. skill
+    emit("## 0. Panel design")
+    emit()
+    emit("60 trading days is roughly one quarter, so quarterly cutoffs give near-independent "
+         "60d panels and all of them are used. 252-day windows from adjacent quarterly cutoffs "
+         "share ~80% of their return path, so for the 252d horizon the **headline** uses only "
+         f"the annually spaced, non-overlapping subset `{NON_OVERLAPPING_252D}`; the full "
+         "overlapping set is reported alongside and flagged, because its panels are correlated "
+         "and its effective sample size is smaller than n suggests.")
+    emit()
+
     emit("## 1. Point-forecast skill vs baselines")
     emit()
     emit("| horizon | n | TimesFM MAPE (mean / median) | naive | drift | seasonal | "
          "beats naive | directional acc |")
     emit("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
-    for H in sorted({r["horizon"] for r in runs}):
-        sub = [r for r in runs if r["horizon"] == H]
+    for H, label, sub in _skill_groups(runs):
         m = np.array([r["metrics"]["mape"] for r in sub], dtype=float)
         nv = np.array([r["metrics"]["naive_mape"] for r in sub], dtype=float)
         dr = np.array([r.get("baselines", {}).get("drift_mape", np.nan) for r in sub], dtype=float)
         se = np.array([r.get("baselines", {}).get("seasonal_mape", np.nan) for r in sub], dtype=float)
         d = np.array([r["metrics"]["directional_correct"] for r in sub], dtype=float)
-        emit(f"| {H}d | {len(sub)} | **{m.mean():.2f} / {np.median(m):.2f}** | "
+        emit(f"| {label} | {len(sub)} | **{m.mean():.2f} / {np.median(m):.2f}** | "
              f"{nv.mean():.2f} / {np.median(nv):.2f} | {np.nanmean(dr):.2f} | "
              f"{np.nanmean(se):.2f} | {100*np.mean(m < nv):.0f}% | {100*d.mean():.0f}% |")
     emit()
@@ -101,9 +129,19 @@ def main(ledger_path: str, out_md: str):
     emit(f"Pooled: TimesFM mean MAPE {allm.mean():.2f}% vs naive {alln.mean():.2f}% "
          f"(**{allm.mean()-alln.mean():+.2f}pp**), beats naive on {100*np.mean(allm<alln):.0f}% of runs.")
     emit()
+    verdict = ("statistically significant at the 5% level" if pval < 0.05
+               else "NOT statistically significant" if pval >= 0.05 else "")
     emit(f"Directional accuracy **{100*hit:.1f}%** on n={n} runs "
-         f"(z={z:.2f}, two-sided p={pval:.3f} against a 50% coin flip). "
-         f"This is the one component with measurable edge; the level forecast has none.")
+         f"(z={z:.2f}, two-sided p={pval:.3f} against a 50% coin flip) - {verdict}.")
+    emit()
+    if pval >= 0.05:
+        emit("> An earlier, smaller version of this study (n=192, three cutoffs) measured 57.8% "
+             "with p=0.030 and the docs described it as the model's one real edge. Expanding to "
+             f"{n} runs across eight cutoffs pulled it back to {100*hit:.1f}% with p={pval:.3f}. "
+             "The original figure was a small-sample artefact. The honest conclusion is that "
+             "**no component of the point forecast has demonstrated skill** on this data; only "
+             "the calibrated interval survives scrutiny.")
+        emit()
     emit()
     emit(f"Against the *trend-following* baselines the model is far ahead at long horizons: "
          f"252d mean MAPE {np.mean([r['metrics']['mape'] for r in runs if r['horizon']==252]):.1f}% "

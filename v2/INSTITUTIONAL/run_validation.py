@@ -41,7 +41,13 @@ from pit_data import build_pit_bundle, industry_of, pit_fundamentals  # noqa: E4
 from timesfm3_adapter import TimesFM3Adapter  # noqa: E402
 from universe import forward_return_pct, save_universe, screen_universe  # noqa: E402
 
-CUTOFFS = ["2023-12-29", "2024-06-28", "2024-12-31"]
+# Cutoff design (see VALIDATION.md "panel design"):
+#   * 60d headline  -> quarterly cutoffs; 60 trading days is ~3 months so panels barely overlap
+#   * 252d headline -> the annually spaced subset below, which does NOT overlap:
+#                      2022-12-30, 2023-12-29, 2024-12-31
+CUTOFFS = ["2022-12-30", "2023-06-30", "2023-12-29", "2024-03-28",
+           "2024-06-28", "2024-09-30", "2024-12-31", "2025-06-30"]
+NON_OVERLAPPING_252D = ["2022-12-30", "2023-12-29", "2024-12-31"]
 HORIZONS = [60, 252]
 
 COMPANY_NAMES = {
@@ -201,6 +207,7 @@ def main():
             if b.actuals is not None and len(b.actuals) > 0:
                 row["baselines"] = baselines(b)
             ledger["runs"][key] = row
+            print("##RUN##" + json.dumps({"key": key, "row": row}), flush=True)
             done_now += 1
             m = row["metrics"]
             print(f"  [{done_now}/{len(todo)}] {ticker} {cut} H{H}: "

@@ -184,10 +184,15 @@ def main(ledger_path, out_md):
 
     emit("## Interpretation")
     emit()
-    emit("Read this cautiously: k=6 panels is a small sample, the panels overlap in time "
-         "(adjacent 252-day windows share most of their return path), and this is a single "
-         "pre-specified test rather than a survey. The result is suggestive, not established. "
-         "The natural check is more, non-overlapping cutoffs.")
+    k_panels = len([v for v in panel.values() if v["with_evidence"][0] is not None])
+    emit(f"Panels: k={k_panels}. 252-day panels from adjacent quarterly cutoffs overlap, so the "
+         "effective sample is smaller than k suggests; treat the 252d rows as correlated.")
+    emit()
+    emit("**History of this result, stated plainly.** An earlier run with only three cutoffs "
+         "(k=6 panels) measured with_evidence mean IC +0.132 with t=2.32, p=0.021, and the "
+         "probe-clean subset carried the signal - which looked like genuine, non-leaked skill. "
+         f"Expanding to eight cutoffs (k={k_panels}) pulled that to the value in the table above "
+         "and removed its significance. The earlier figure was a small-sample artefact.")
     emit()
     ics0 = [v["numbers_only"][0] for v in panel.values() if v["numbers_only"][0] is not None]
     ics1 = [v["with_evidence"][0] for v in panel.values() if v["with_evidence"][0] is not None]

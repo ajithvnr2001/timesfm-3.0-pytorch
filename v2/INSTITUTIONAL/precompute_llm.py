@@ -127,17 +127,23 @@ def main():
         print("REMAINING:0")
         return
 
+    max_blocks = int(os.environ.get("MAX_BLOCKS", "0"))
     pairs = []
     for cut in CUTOFFS:
         for m in ledger["universes"][cut]["members"]:
             key = f"{m['ticker']}|{cut}|{evidence_mode}"
             if key not in ledger["llm_cache"]:
                 pairs.append((m["ticker"], cut))
+    total_pending = len(pairs)
+    if max_blocks > 0:
+        pairs = pairs[:max_blocks]
+        print(f"[precompute] bounded to {len(pairs)} of {total_pending} pending blocks "
+              f"(MAX_BLOCKS) so a lost VM costs one short pass")
     print(f"[precompute] {len(pairs)} (ticker,cutoff) LLM blocks to compute, workers={workers}")
 
     jobs = []
     for ticker, cut in pairs:
-        if time.time() - t0 > budget * 0.35:
+        if time.time() - t0 > budget * 0.5:
             break
         try:
             if ticker not in ledger["industries"]:
@@ -157,7 +163,12 @@ def main():
             job = futs[fut]
             try:
                 ticker, cut, block = fut.result()
-                ledger["llm_cache"][f"{ticker}|{cut}|{evidence_mode}"] = block
+                key = f"{ticker}|{cut}|{evidence_mode}"
+                ledger["llm_cache"][key] = block
+                # Stream the finished block to stdout. The Colab VM is recycled without
+                # warning, so anything only written to the VM's disk can vanish; stdout is
+                # captured by the caller and merged into the local ledger.
+                print("##BLOCK##" + json.dumps({"key": key, "block": block}), flush=True)
                 done += 1
                 pr = block["identity_probe"]
                 print(f"  [{done}/{len(jobs)}] {ticker} {cut}: conv={block['conviction_score']} "

@@ -34,6 +34,9 @@ DEFAULT_TICKERS = ["MODISONLTD.NS", "CUPID.NS", "INFY.NS", "TCS.NS", "NETWEB.NS"
 def main():
     horizons = [int(h) for h in os.environ.get("HORIZONS", "60,252").split(",")]
     tickers = [t.strip() for t in os.environ.get("TICKERS", ",".join(DEFAULT_TICKERS)).split(",") if t.strip()]
+    # Directional accuracy was 53.2% (p=0.150) over 494 walk-forward runs - not
+    # statistically distinguishable from a coin flip - so the default is 0.50. Supplying a
+    # higher P_WIN asserts an edge the validation does not support.
     p_win = float(os.environ.get("P_WIN", "0.5"))
     out_dir = os.environ.get("OUT_DIR", "/content/OUT/FORWARD")
     evidence_mode = os.environ.get("EVIDENCE_MODE", "numbers_only")
