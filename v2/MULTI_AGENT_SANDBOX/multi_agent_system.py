@@ -20,8 +20,10 @@ Architectural Triad:
 2. Process Agent (TimesFM 3.0 Sandbox Agent):
    - Runs inside an isolated sandbox with ZERO network access and ZERO ticker identity.
    - Enforces an automated leak-check: rejects any payload containing real company names or dates.
-   - Feeds anonymized context tensor + dynamic covariates to TimesFM 3.0.
-   - Emits pure numerical forecast paths.
+   - Feeds anonymized historical price context tensor to TimesFM 3.0 to capture empirical market microstructure.
+   - Simulates 3-branch fundamental scenarios via stochastic mean-reverting diffusion bridges with Common Random Numbers (CRN).
+   - Fuses TimesFM empirical baseline with fundamental scenario attractor via institutional ensemble weighting.
+
 3. Output Agent (Synthesis & Reporting Agent):
    - Ingests raw mathematical tensors from Process Agent.
    - Re-associates with reporting metadata, calculates metrics (MAE/MAPE/Coverage),
@@ -208,7 +210,7 @@ class MainIngestionAgent:
             raise ValueError(f"No historical ticks found for {ticker} before {cutoff_date}")
 
         last_price = float(train_df.iloc[-1]["Close"])
-        ctx_len = min(64, len(train_df))
+        ctx_len = min(512, len(train_df))
         context_series = train_df["Close"].values[-ctx_len:].astype(float).tolist()
 
         # Statement-driven fundamental valuation (Bear, Base, Bull) via scenario_builder
@@ -412,7 +414,10 @@ class ProcessSandboxAgent:
         else:
             slope = 0.0
         capped_slope = np.clip(slope, -last_val * 0.003, last_val * 0.003)
-        extension = arr[-1] + capped_slope * np.arange(1, extrap_pts + 1)
+        # Geometrically damp slope toward zero (half-life ~20 steps) to prevent linear runaways
+        decay_factors = np.exp(-0.035 * np.arange(extrap_pts))
+        cum_decay = np.cumsum(decay_factors)
+        extension = arr[-1] + capped_slope * cum_decay
         matched = np.concatenate([arr, extension])
         return (matched, neural_pts, extrap_pts) if return_counts else matched
 
@@ -456,7 +461,7 @@ class ProcessSandboxAgent:
         self._init_forecaster(horizon)
 
         forecast_results = {}
-        neural_pts = horizon
+        neural_pts = 0
         extrap_pts = 0
 
         # Log exact engine running honestly
@@ -469,42 +474,53 @@ class ProcessSandboxAgent:
         if self.forecaster is not None:
             try:
                 if hasattr(self.forecaster, "predict_batch"):
-                    # Official TimesFM 3.0: single forward pass for entire horizon (no autoregressive chunking)
+                    # Official TimesFM 3.0: single forward pass for entire horizon
                     outs = list(self.forecaster.predict_batch([ctx], horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
                     out = outs[0]
                     pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
                     matched_base, neural_pts, extrap_pts = self._match_horizon_length(pred_vals, horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if hasattr(out, "quantiles") and out.quantiles is not None:
-                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(out.quantiles[:, 0], horizon, last_val).tolist()
-                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(out.quantiles[:, 8], horizon, last_val).tolist()
+                        q = np.asarray(out.quantiles)
+                        if q.ndim == 3:
+                            q = q[0]
+                        assert q.ndim == 2 and q.shape[1] >= 9, f"TimesFM 3.0 quantiles expected shape [H, >=9], got {q.shape}"
+                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(q[:, 0], horizon, last_val).tolist()
+                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(q[:, 8], horizon, last_val).tolist()
                 elif hasattr(self.forecaster, "forecast"):
                     # Google Research TimesFm API
                     point_forecast, experimental_quantiles = self.forecaster.forecast([ctx])
                     matched_base, neural_pts, extrap_pts = self._match_horizon_length(point_forecast[0], horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if experimental_quantiles is not None:
-                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(experimental_quantiles[0, :, 1], horizon, last_val).tolist()
-                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(experimental_quantiles[0, :, 9], horizon, last_val).tolist()
+                        eq = np.asarray(experimental_quantiles)
+                        assert eq.ndim == 3 and eq.shape[0] >= 1 and eq.shape[2] >= 10, f"TimesFM 1.0 quantiles expected shape [1, H, >=10], got {eq.shape}"
+                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(eq[0, :, 1], horizon, last_val).tolist()
+                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(eq[0, :, 9], horizon, last_val).tolist()
             except Exception as e:
                 print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
 
         if "pure_baseline" not in forecast_results:
+            neural_pts = 0
+            extrap_pts = 0
             macro_mom = payload.get("macro_momentum", {}) or {}
             is_down = macro_mom.get("is_downtrend", False)
             ret_1y = macro_mom.get("ret_1y", 0.0)
 
             if is_down and ret_1y < 0:
-                daily_drift = float(max(-0.002, min(-0.0003, ret_1y / 252.0)))
+                raw_drift = float(max(-0.002, min(-0.0003, ret_1y / 252.0)))
             elif len(ctx) >= 5:
                 rets = np.diff(ctx) / ctx[:-1]
                 weights = np.exp(np.linspace(-1.5, 0, len(rets)))
                 weights /= weights.sum()
-                daily_drift = float(np.sum(rets * weights))
-                daily_drift = float(np.clip(daily_drift, -0.002, 0.006))
+                raw_drift = float(np.sum(rets * weights))
             else:
-                daily_drift = 0.001
-            forecast_results["pure_baseline"] = [float(last_val * np.exp(daily_drift * (h + 1))) for h in range(horizon)]
+                raw_drift = 0.0005
+
+            # Horizon-aware total drift clip: cap cumulative drift between -50% and +75%
+            total_drift = float(np.clip(raw_drift * horizon, -0.50, +0.75))
+            capped_daily_drift = total_drift / max(1, horizon)
+            forecast_results["pure_baseline"] = [float(last_val * np.exp(capped_daily_drift * (h + 1))) for h in range(horizon)]
 
         # Ensure pure_base_arr is EXACTLY length horizon
         pure_base_arr = self._match_horizon_length(forecast_results["pure_baseline"], horizon, last_val)
@@ -521,31 +537,58 @@ class ProcessSandboxAgent:
         # 2. Multi-Scenario Inferences (Conditioned on Fundamental Targets)
         sc_names = list(scenarios.keys()) if scenarios else list(covariates.keys())
 
-        # Determine volatility from context series
-        if len(ctx) >= 2:
-            returns = np.diff(ctx) / ctx[:-1]
+        # Determine volatility from trailing context series over up to 252 trading days (~1 year)
+        vol_window = min(252, len(ctx))
+        if vol_window >= 2:
+            vol_ctx = ctx[-vol_window:]
+            returns = np.diff(vol_ctx) / vol_ctx[:-1]
             ann_vol = float(np.std(returns) * np.sqrt(252))
             if np.isnan(ann_vol) or ann_vol <= 0:
                 ann_vol = 0.25
         else:
             ann_vol = 0.25
 
-        # Extract TimesFM neural high-frequency oscillations around its own linear drift
-        tfm_linear_drift = np.linspace(last_val, pure_base_arr[-1], horizon)
-        tfm_oscillations = pure_base_arr - tfm_linear_drift
+        # Common Random Numbers (CRN): Use a single shared seed for Bear, Base, Bull
+        # so that all scenarios experience the exact same Brownian shocks and differ solely by target
+        common_seed = int(hashlib.sha256(f"{payload.get('asset_pseudonym', 'A')}_{horizon}_{round(float(last_val), 2)}".encode()).hexdigest()[:8], 16) % (2**31)
+
+        # Scale half-life to horizon (e.g. clip(horizon/2, 21, 252)) so short horizons are not dominated by prior inertia
+        half_life_scaled = float(np.clip(horizon / 2.0, 21.0, 252.0))
+
+        # Extract TimesFM neural oscillations with stationary continuation across extrapolated tail
+        if neural_pts >= 2:
+            neural_base = pure_base_arr[:neural_pts]
+            tfm_neural_drift = np.linspace(last_val, neural_base[-1], neural_pts)
+            neural_oscillations = neural_base - tfm_neural_drift
+            if extrap_pts > 0:
+                osc_std = float(np.std(neural_oscillations))
+                osc_rng = np.random.default_rng(common_seed + 999)
+                extrap_shocks = osc_rng.normal(0.0, osc_std, extrap_pts)
+                extrap_oscillations = np.zeros(extrap_pts)
+                val = float(neural_oscillations[-1]) if len(neural_oscillations) > 0 else 0.0
+                for i in range(extrap_pts):
+                    val = 0.7 * val + extrap_shocks[i] * 0.7
+                    extrap_oscillations[i] = val
+                tfm_oscillations = np.concatenate([neural_oscillations, extrap_oscillations])
+            else:
+                tfm_oscillations = neural_oscillations
+        else:
+            tfm_oscillations = np.zeros(horizon)
 
         for sc_name in sc_names:
             tgt = scenarios[sc_name]["target_price"]
             s_preds = None
             if forecast_covfree is not None:
                 try:
-                    sc_seed = int(hashlib.sha256(f"{payload.get('asset_pseudonym', 'A')}_{sc_name}_{horizon}_{last_val:.2f}".encode()).hexdigest()[:8], 16) % (2**31)
-                    point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon, seed=sc_seed)
+                    point, q10, q90 = forecast_covfree(
+                        last_val, tgt, ann_vol, horizon,
+                        half_life_days=half_life_scaled, seed=common_seed
+                    )
                     p_m = self._match_horizon_length(point, horizon, last_val)
                     q10_m = self._match_horizon_length(q10, horizon, last_val)
                     q90_m = self._match_horizon_length(q90, horizon, last_val)
                     # Modulate fundamental scenario with TimesFM's empirical neural oscillations
-                    if self.forecaster is not None:
+                    if self.forecaster is not None and neural_pts > 0:
                         s_preds = (p_m + 0.4 * tfm_oscillations).tolist()
                     else:
                         s_preds = p_m.tolist()
@@ -568,14 +611,12 @@ class ProcessSandboxAgent:
         )
 
         # 4. Institutional Foundation Model Ensemble:
-        # Fuse TimesFM Empirical Market Structure with Fundamental Scenario Attractor
-        if "pure_baseline" in forecast_results:
-            # Over long horizons (>= 60 days), fundamental valuation gravitationally dominates pure random walk
-            w_tfm = 0.30 if horizon >= 60 else 0.45
-            fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
-            forecast_results["weighted_expected"] = fused_path
-        else:
-            forecast_results["weighted_expected"] = fund_weighted.tolist()
+        # Fuse TimesFM Empirical Market Structure with Fundamental Scenario Attractor.
+        # Short horizons (H < 60 days): statistical momentum and empirical microstructure dominate (w_tfm = 0.45, fundamental = 0.55).
+        # Medium/Long horizons (H >= 60 days): fundamental valuation gravity dominates (w_tfm = 0.30, fundamental = 0.70).
+        w_tfm = 0.30 if horizon >= 60 else 0.45
+        fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
+        forecast_results["weighted_expected"] = fused_path
 
         out_msg = A2AMessage(
             sender=self.agent_id,
@@ -625,12 +666,32 @@ class OutputSynthesisAgent:
         else:
             future_dates = list(pd.bdate_range(start=train_df.index[-1] + pd.Timedelta(days=1), periods=horizon))
 
+        bear_term = float(forecasts["bear"][-1]) if "bear" in forecasts and len(forecasts["bear"]) > 0 else float(last_price)
+        base_term = float(forecasts["base"][-1]) if "base" in forecasts and len(forecasts["base"]) > 0 else float(last_price)
+        bull_term = float(forecasts["bull"][-1]) if "bull" in forecasts and len(forecasts["bull"]) > 0 else float(last_price)
+        if "bear" in forecasts and "base" in forecasts and "bull" in forecasts:
+            assert bear_term <= base_term <= bull_term, (
+                f"Fundamental scenario terminal ordering violated: Bear ({bear_term:.2f}) <= Base ({base_term:.2f}) <= Bull ({bull_term:.2f})"
+            )
+
+        # 80% Prediction Interval: min(bear_q10) to max(bull_q90) across scenarios
+        q10_candidates = [np.array(forecasts[k]) for k in ["bear_q10", "base_q10", "bull_q10"] if k in forecasts]
+        q90_candidates = [np.array(forecasts[k]) for k in ["bear_q90", "base_q90", "bull_q90"] if k in forecasts]
+        if q10_candidates and q90_candidates:
+            interval_lower = np.min(q10_candidates, axis=0)
+            interval_upper = np.max(q90_candidates, axis=0)
+        else:
+            interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
+            interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
+
         # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode
         metrics = {
             "pure_baseline_terminal": float(forecasts["pure_baseline"][-1]) if "pure_baseline" in forecasts and len(forecasts["pure_baseline"]) > 0 else float(last_price),
             "weighted_terminal": float(forecasts["weighted_expected"][-1]) if "weighted_expected" in forecasts and len(forecasts["weighted_expected"]) > 0 else float(last_price),
-            "bull_terminal": float(forecasts["bull"][-1]) if "bull" in forecasts and len(forecasts["bull"]) > 0 else float(last_price),
-            "bear_terminal": float(forecasts["bear"][-1]) if "bear" in forecasts and len(forecasts["bear"]) > 0 else float(last_price),
+            "bull_terminal": bull_term,
+            "bear_terminal": bear_term,
+            "interval_lower": interval_lower.tolist(),
+            "interval_upper": interval_upper.tolist(),
         }
         if actuals is not None and len(actuals) > 0:
             pure_preds = np.array(forecasts["pure_baseline"][:len(actuals)])
@@ -643,8 +704,8 @@ class OutputSynthesisAgent:
             weighted_mae = float(np.mean(np.abs(weighted_preds - actuals)))
             weighted_mape = float(np.mean(np.abs((actuals - weighted_preds) / actuals)) * 100)
 
-            # Scenario Envelope Coverage Rate: actual ground truth within [min(bear, bull), max(bear, bull)]
-            inside = np.sum((actuals >= np.minimum(bear_preds, bull_preds)) & (actuals <= np.maximum(bear_preds, bull_preds)))
+            # 80% Prediction Interval Coverage: actual ground truth within [interval_lower, interval_upper]
+            inside = np.sum((actuals >= interval_lower[:len(actuals)]) & (actuals <= interval_upper[:len(actuals)]))
             cov_rate = float((inside / len(actuals)) * 100)
 
             metrics.update({
@@ -659,6 +720,7 @@ class OutputSynthesisAgent:
                 "pure_mape": pure_mape,
                 "weighted_mae": weighted_mae,
                 "weighted_mape": weighted_mape,
+                "interval_80_coverage_pct": cov_rate,
                 "envelope_coverage_pct": cov_rate
             })
 
@@ -726,8 +788,19 @@ class OutputSynthesisAgent:
             plt.plot(test_dates, actuals, label=f"Actual Ground Truth (Rs. {actuals[-1]:.0f})", color="#107c41", linewidth=3.2, zorder=5)
 
         # Baseline
-        plt.plot(future_dates, forecasts["pure_baseline"], label=f"Agent 2 Pure Baseline (Rs. {forecasts['pure_baseline'][-1]:.0f})",
-                 color="#d83b01", linestyle="--", linewidth=2.0)
+        neural_pts = forecasts.get("neural_points", 0)
+        extrap_pts = forecasts.get("extrapolated_points", 0)
+        if neural_pts > 0 and extrap_pts > 0:
+            plt.plot(future_dates[:neural_pts], forecasts["pure_baseline"][:neural_pts],
+                     label=f"Neural Baseline ({neural_pts} pts: Rs. {forecasts['pure_baseline'][neural_pts-1]:.0f})",
+                     color="#d83b01", linestyle="--", linewidth=2.0)
+            plt.plot(future_dates[neural_pts-1:], forecasts["pure_baseline"][neural_pts-1:],
+                     label=f"Extrapolated Tail ({extrap_pts} pts: Rs. {forecasts['pure_baseline'][-1]:.0f})",
+                     color="#d83b01", linestyle=":", linewidth=1.8)
+        else:
+            plt.plot(future_dates, forecasts["pure_baseline"],
+                     label=f"Agent 2 Pure Baseline (Rs. {forecasts['pure_baseline'][-1]:.0f})",
+                     color="#d83b01", linestyle="--", linewidth=2.0)
 
         # Scenarios
         plt.plot(future_dates, forecasts["bull"], label=f"Bull Scenario (25% prob): Rs. {forecasts['bull'][-1]:.0f}", color="#6b29b2", linestyle="-.", linewidth=2.0)
@@ -738,9 +811,9 @@ class OutputSynthesisAgent:
         plt.plot(future_dates, forecasts["weighted_expected"], label=f"Probabilistic Expected Path (Rs. {forecasts['weighted_expected'][-1]:.0f})",
                  color="#004e8c", linewidth=3.0)
 
-        # Envelope
-        plt.fill_between(future_dates, forecasts["bear"], forecasts["bull"], color="#0078d4", alpha=0.12,
-                         label=f"Zero-Leakage Envelope ({metrics.get('envelope_coverage_pct', 0):.0f}% Coverage)")
+        # 80% Prediction Interval
+        plt.fill_between(future_dates, interval_lower, interval_upper, color="#0078d4", alpha=0.15,
+                         label=f"80% Prediction Interval ({metrics.get('interval_80_coverage_pct', 0):.0f}% Coverage)")
 
         # Institutional Invalidation Stop
         if stop_loss_val:
@@ -767,7 +840,7 @@ class OutputSynthesisAgent:
 | **Terminal Error (%)** | — | {metrics.get('pure_baseline_error_pct', 0):+.2f}% | **{metrics.get('bull_error_pct', 0):+.2f}%** | {metrics.get('weighted_error_pct', 0):+.2f}% |
 | **Multi-Year MAE** | — | Rs. {metrics.get('pure_mae', 0):.2f} | — | **Rs. {metrics.get('weighted_mae', 0):.2f}** |
 | **Multi-Year MAPE** | — | {metrics.get('pure_mape', 0):.2f}% | — | **{metrics.get('weighted_mape', 0):.2f}%** |
-| **Scenario Envelope Coverage** | — | — | — | **{metrics.get('envelope_coverage_pct', 0):.1f}% of all trading days** |"""
+| **80% Scenario Interval Coverage** | — | — | — | **{metrics.get('interval_80_coverage_pct', 0):.1f}% of all trading days** |"""
         else:
             scorecard_table = f"""| Projection Horizon | Last Session Close | Pure Baseline Terminal | Bull Terminal (25% Prob) | Base Terminal (50% Prob) | Bear Terminal (25% Prob) | Probabilistic Weighted Fair Target |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

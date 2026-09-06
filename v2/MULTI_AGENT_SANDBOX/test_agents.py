@@ -153,14 +153,106 @@ def test_stochastic_bridge_reproducibility():
         from covfree_forecaster import forecast_covfree
     except ImportError:
         from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
-
-
     import numpy as np
     p1, q10_1, q90_1 = forecast_covfree(100.0, 250.0, 0.30, 100)
     p2, q10_2, q90_2 = forecast_covfree(100.0, 250.0, 0.30, 100)
     assert np.allclose(p1, p2), "Stochastic bridge must be deterministic when seed=None"
     assert np.allclose(q10_1, q10_2), "Q10 must match"
     assert np.allclose(q90_1, q90_2), "Q90 must match"
+
+def test_stochastic_bridge_unbiased_median():
+    try:
+        from covfree_forecaster import forecast_covfree
+    except ImportError:
+        from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+    target = 250.0
+    for vol in [0.10, 0.50, 0.90]:
+        point, q10, q90 = forecast_covfree(
+            last=100.0, target=target, annual_vol=vol, horizon=2000,
+            half_life_days=60.0, n_sims=5000, seed=42
+        )
+        terminal_median = point[-1]
+        bias_pct = abs(terminal_median - target) / target * 100.0
+        assert bias_pct < 3.0, f"Vol {vol} terminal median {terminal_median:.2f} biased by {bias_pct:.2f}% (target {target})"
+
+def test_common_random_numbers_and_monotonicity():
+    try:
+        from covfree_forecaster import forecast_covfree
+    except ImportError:
+        from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+    import numpy as np
+    seed = 42
+    h = 60
+    half_life = float(np.clip(h / 2.0, 21.0, 252.0))
+    bear, bear_q10, bear_q90 = forecast_covfree(100.0, 80.0, 0.35, h, half_life_days=half_life, seed=seed)
+    base, base_q10, base_q90 = forecast_covfree(100.0, 110.0, 0.35, h, half_life_days=half_life, seed=seed)
+    bull, bull_q10, bull_q90 = forecast_covfree(100.0, 150.0, 0.35, h, half_life_days=half_life, seed=seed)
+
+    assert bear[-1] <= base[-1] <= bull[-1], f"Terminal ordering failed: {bear[-1]} <= {base[-1]} <= {bull[-1]}"
+    assert np.all(bear <= base) and np.all(base <= bull), "Monotonicity violated across scenario paths with CRN"
+
+def test_honest_neural_points_and_horizon_aware_drift():
+    a = mas.ProcessSandboxAgent(device="cpu")
+    msg = mas.A2AMessage(
+        sender="T", recipient="P",
+        payload={
+            "asset_pseudonym": "ASSET_TEST",
+            "horizon": 663,
+            "last_known_scalar": 100.0,
+            "numerical_context": [95.0 + 0.1 * i for i in range(100)],
+            "scenarios": {
+                "bear": {"probability": 0.25, "target_price": 80.0},
+                "base": {"probability": 0.50, "target_price": 110.0},
+                "bull": {"probability": 0.25, "target_price": 150.0},
+            }
+        },
+        security_metadata={"prohibited_tokens": []}
+    )
+    res = a.execute_forecast(msg)
+    forecasts = res.payload["forecast_results"]
+    assert forecasts["neural_points"] == 0, f"Expected 0 neural points in fallback, got {forecasts['neural_points']}"
+    assert forecasts["extrapolated_points"] == 0
+    base_term = forecasts["pure_baseline"][-1]
+    assert base_term <= 250.0, f"Exploded baseline detected: terminal {base_term:.2f} for last_val 100.0"
+
+def test_prediction_interval_coverage_metric():
+    out_agent = mas.OutputSynthesisAgent()
+    h = 10
+    msg = mas.A2AMessage(
+        sender="Process_Sandbox_Agent", recipient="Output_Synthesis_Agent",
+        message_type="PREDICTION_TENSOR_OUTPUT",
+        payload={
+            "asset_pseudonym": "ASSET_TEST",
+            "horizon": h,
+            "last_scalar": 100.0,
+            "forecast_results": {
+                "pure_baseline": [100.0] * h,
+                "weighted_expected": [100.0] * h,
+                "bear": [90.0] * h,
+                "base": [100.0] * h,
+                "bull": [110.0] * h,
+                "bear_q10": [80.0] * h,
+                "bull_q90": [120.0] * h,
+                "neural_points": 0,
+                "extrapolated_points": 0
+            },
+            "scenarios": {
+                "bear": {"probability": 0.25, "target_price": 90.0},
+                "base": {"probability": 0.50, "target_price": 100.0},
+                "bull": {"probability": 0.25, "target_price": 110.0}
+            },
+            "fundamental_metadata": {}
+        }
+    )
+    import tempfile, pandas as pd
+    dates = pd.date_range("2024-01-01", periods=10, freq="B")
+    train_df = pd.DataFrame({"Close": [100.0]*10}, index=dates)
+    test_df = pd.DataFrame({"Close": [115.0]*h}, index=pd.date_range("2024-01-15", periods=h, freq="B"))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        res = out_agent.render(msg, "TEST.NS", train_df, test_df, output_dir=tmpdir)
+        metrics = res["metrics"]
+        assert metrics["interval_80_coverage_pct"] == 100.0, f"Expected 100% interval coverage, got {metrics['interval_80_coverage_pct']}"
+
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

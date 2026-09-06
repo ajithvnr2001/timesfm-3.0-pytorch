@@ -13,7 +13,9 @@ stochastic process:
 import hashlib
 import numpy as np
 
-def derive_deterministic_seed(last: float, target: float, annual_vol: float, horizon: int, half_life_days: float) -> int:
+def derive_deterministic_seed(last: float, target: float, annual_vol: float, horizon: int, half_life_days: float = None) -> int:
+    if half_life_days is None:
+        half_life_days = float(np.clip(horizon / 2.0, 21.0, 252.0))
     key = f"{round(float(last), 4)}_{round(float(target), 4)}_{round(float(annual_vol), 4)}_{int(horizon)}_{round(float(half_life_days), 2)}"
     return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16) % (2**31)
 
@@ -29,16 +31,22 @@ def monte_carlo_paths(last: float, annual_vol: float, horizon: int, n_sims: int 
     return last * np.exp(np.cumsum(rets, axis=1))
 
 def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int,
-                     target_reach: float = None, half_life_days: float = 180.0,
+                     target_reach: float = None, half_life_days: float = None,
                      n_sims: int = 500, seed: int = None):
     """
-    Honest Stochastic Valuation Bridge:
-      - Euler-Maruyama discretization of mean-reverting diffusion toward target
-      - Confidence intervals come strictly from simulated paths preserving volatility
+    Honest Stochastic Valuation Bridge (Ornstein-Uhlenbeck Guided Diffusion):
+      - Euler-Maruyama discretization of mean-reverting diffusion toward target in log-price space
+      - Stationary median converges to fair-value target T without volatility-proportional bearish bias
+      - Half-life scales adaptively with projection horizon: clip(horizon / 2, 21, 252)
       - Deterministic seed derived from parameters when seed=None for 100% reproducible backtests
     Returns:
       (point_forecast, q10, q90) as numpy arrays of length `horizon`.
     """
+    if half_life_days is None:
+        half_life_days = float(np.clip(horizon / 2.0, 21.0, 252.0))
+    else:
+        half_life_days = float(max(10.0, half_life_days))
+
     if seed is None:
         seed = derive_deterministic_seed(last, target, annual_vol, horizon, half_life_days)
     rng = np.random.default_rng(seed)
@@ -46,8 +54,7 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
     daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)
 
     # Convert half-life of mispricing to annual mean reversion rate kappa
-    # Default half-life: ~180 trading days (~9 calendar months)
-    tau = max(21.0, float(half_life_days)) / 252.0
+    tau = max(10.0, float(half_life_days)) / 252.0
     kappa = np.log(2.0) / tau
 
     log_last = np.log(max(1e-4, float(last)))
@@ -59,7 +66,10 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
     shocks = rng.normal(0.0, daily_vol, (n_sims, horizon))
 
     for h in range(horizon):
-        drift = kappa * (log_targets - current_log) * dt - 0.5 * (daily_vol ** 2)
+        # In log-space OU, drift = kappa * (log_target - current_log) * dt.
+        # Dropping the -0.5*sigma^2 term ensures the stationary log-median converges to log(T),
+        # so median price paths cleanly reach the fundamental target T without artificial downward bias.
+        drift = kappa * (log_targets - current_log) * dt
         current_log = current_log + drift + shocks[:, h:h+1]
         log_paths[:, h:h+1] = current_log
 

@@ -7,11 +7,11 @@
 
 | Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
 | :--- | :--- | :--- | :--- | :--- |
-| **Terminal Price** | **Rs. 5555.00** | Rs. 199517.20 | **Rs. 4403.60** | Rs. 62594.36 |
-| **Terminal Error (%)** | — | +3491.67% | **-20.73%** | +1026.81% |
-| **Multi-Year MAE** | — | Rs. 44661.74 | — | **Rs. 12854.11** |
-| **Multi-Year MAPE** | — | 892.16% | — | **257.30%** |
-| **Scenario Envelope Coverage** | — | — | — | **23.8% of all trading days** |
+| **Terminal Price** | **Rs. 5555.00** | Rs. 7908.20 | **Rs. 4375.65** | Rs. 5058.50 |
+| **Terminal Error (%)** | — | +42.36% | **-21.23%** | -8.94% |
+| **Multi-Year MAE** | — | Rs. 1149.57 | — | **Rs. 588.38** |
+| **Multi-Year MAPE** | — | 24.93% | — | **12.16%** |
+| **80% Scenario Interval Coverage** | — | — | — | **74.4% of all trading days** |
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 3. Sandboxing & Security Audit Log
 
-* **Ingress Message ID**: `d32aa239`
+* **Ingress Message ID**: `c992ee8d`
 * **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
 * **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
@@ -43,15 +43,15 @@
 | **Parametric 95% 1-Day VaR** | **2.73%** | 95% confidence max expected single-day loss |
 | **Parametric 95% Horizon VaR** | **70.21%** | Cumulative 663-day volatility exposure |
 | **Conditional VaR (CVaR / Expected Shortfall)** | **55.04%** | Average loss in worst 5% tail-risk scenarios |
-| **Historical Max Drawdown** | **-6.54%** | Deepest peak-to-trough historical correction |
+| **Historical Max Drawdown** | **-6.55%** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `+8.75%`
+* **Gross Potential Upside**: `+2.75%`
 * **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
-* **Net Horizon Upside**: **`+8.50%`**
-* **Objective Invalidation Stop-Loss**: `Rs. 2448.58` (Downside: `-34.5%`)
-* **Asymmetric Risk/Reward Ratio (RRR)**: **`0.25x`**
+* **Net Horizon Upside**: **`+2.50%`**
+* **Objective Invalidation Stop-Loss**: `Rs. 2471.82` (Downside: `-33.8%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: **`0.07x`**
 * **Half-Kelly Capital Allocation**: `0.0%`
 * **Recommended Portfolio Exposure**: **`0.0%`** (Rs. 0.00 | **0 shares**)
 * **Institutional Executive Directive**: **`TRIM / TAKE PROFIT (Negative Expected Skew)`**
-* **Foundation Horizon Structure**: `663 neural foundation points, 0 boundary extrapolated points`
+* **Foundation Horizon Structure**: `0 neural foundation points, 0 boundary extrapolated points`
