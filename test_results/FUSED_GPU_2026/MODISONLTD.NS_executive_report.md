@@ -1,0 +1,56 @@
+# Multi-Agent Zero-Leakage Forecast Report: MODISONLTD.NS
+### Architecture: MainAgent (Ingestion) ➔ ProcessAgent (Sandbox TimesFM) ➔ OutputAgent (Reporting)
+
+---
+
+## 1. Multi-Agent Triad Performance Scorecard
+
+| Metric | Actual Ground Truth | ProcessAgent Pure Baseline | ProcessAgent Bull Scenario | Probabilistic Weighted Path |
+| :--- | :--- | :--- | :--- | :--- |
+| **Terminal Price** | **Rs. 469.95** | Rs. 136.23 | **Rs. 311.64** | Rs. 207.93 |
+| **Terminal Error (%)** | — | -71.01% (Exploded) | **-33.69%** | -55.75% |
+| **Multi-Year MAE** | — | Rs. 89.28 | — | **Rs. 67.57** |
+| **Multi-Year MAPE** | — | 29.89% | — | **24.94%** |
+| **Scenario Envelope Coverage** | — | 0% | — | **56.5% of all trading days** |
+
+---
+
+## 2. High-Resolution Forecast Chart
+
+![Multi Agent Forecast](MODISONLTD.NS_multi_agent_forecast.png)
+
+---
+
+## 3. Sandboxing & Security Audit Log
+
+* **Ingress Message ID**: `3dc89f4a`
+* **Air-Gapped Protocol**: `A2A/v1.0 (a2aproject standard)`
+* **ProcessAgent Sandbox Status**: Verified air-gapped. Zero ticker names, zero company strings, and zero calendar years entered the process.
+* **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
+
+---
+
+## 4. Institutional Risk, Macro Regime & Capital Sizing Matrix
+
+### A. Cross-Asset Macro & Sector Alignment
+* **NIFTY 50 Macro Regime**: `BULLISH_UPTREND` (Benchmark Close: Rs. 23,900.00)
+* **India VIX Volatility Regime**: `NORMAL_VOLATILITY (Optimal Trading Environment)` (Level: 13.50 | Multiplier: 1.00x)
+* **Sector Benchmark**: `^NSEI` (Stock Beta to NIFTY: `1.0` | Beta to Sector: `1.0`)
+
+### B. Value at Risk (VaR) & Tail Risk Profile
+| Metric | Horizon Risk (% of Equity) | Interpretation |
+| :--- | :--- | :--- |
+| **Parametric 95% 1-Day VaR** | **3.62%** | 95% confidence max expected single-day loss |
+| **Parametric 95% Horizon VaR** | **47.15%** | Cumulative 170-day volatility exposure |
+| **Conditional VaR (CVaR / Expected Shortfall)** | **48.84%** | Average loss in worst 5% tail-risk scenarios |
+| **Historical Max Drawdown** | **-17.71%** | Deepest peak-to-trough historical correction |
+
+### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
+* **Gross Potential Upside**: `+59.35%`
+* **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-0.25%`
+* **Net Horizon Upside**: `**+59.10%**`
+* **Objective Invalidation Stop-Loss**: `Rs. 142.88` (Downside: `-6.5%`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: `**9.1x**`
+* **Half-Kelly Capital Allocation**: `37.8%`
+* **Recommended Portfolio Exposure**: `**15.0%**` (Rs. 150,000.00 | **981 shares**)
+* **Institutional Executive Directive**: `**STRONG BUY (High Conviction Asymmetric Setup)**`
