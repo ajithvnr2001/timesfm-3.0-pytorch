@@ -207,8 +207,8 @@ def compute_institutional_target(ticker: str, start_price: float, fin_data: dict
         target_pe = round(min(17.0, max(12.0, trailing_pe * (0.70 + earn_g * 1.5))), 1)
         regime = "DE_RATING_BEAR"
     # 2. Super-growth consumer FMCG multiple expansion
-    elif industry in ["Household & Personal Products", "Personal Products"] and (earn_g > 1.0 or rev_g > 1.0):
-        target_pe = min(220.0, max(sec_pe, trailing_pe * 2.1))
+    elif industry in ["Household & Personal Products", "Personal Products"] and (earn_g > 0.25 or rev_g > 0.10 or fin_data.get("ret_1y", 0) > 1.0 or trailing_pe > 50.0):
+        target_pe = min(240.0, max(sec_pe, trailing_pe * 1.85))
         regime = "EXPANSION_BULL"
     # 3. Small-cap industrial re-rating (e.g. Modison)
     elif industry in ["Electrical Equipment & Parts"]:
