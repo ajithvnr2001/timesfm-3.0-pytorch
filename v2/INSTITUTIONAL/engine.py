@@ -27,7 +27,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from calibration import calibrate_pit, rolling_origins
+from calibration import calibrate_pit, rolling_origins, volatility_band_cap
 from pit_data import build_pit_bundle, industry_of, pit_fundamentals
 from risk_sizing import compute_risk
 from timesfm3_adapter import TimesFM3Adapter
@@ -101,6 +101,12 @@ def run_single(
         kw["past_future_covariates"] = bundle.past_future_covariates
     fres = adapter.predict(context=ctx, horizon=H, target_names=names, ts_id="ASSET_ALPHA", **kw)
 
+    hist_for_vol = bundle.context[0]
+    _rets = np.diff(hist_for_vol) / hist_for_vol[:-1]
+    _win = _rets[-252:] if len(_rets) >= 252 else _rets
+    ann_vol_hist = float(np.std(_win) * np.sqrt(252)) if len(_win) > 2 else 0.30
+    band_cap = volatility_band_cap(ann_vol_hist, H)
+
     raw_low, raw_high = fres.q10.copy(), fres.q90.copy()
     cal_info = {"status": "disabled", "k_low": 1.0, "k_high": 1.0}
     band_low, band_high = raw_low, raw_high
@@ -123,8 +129,11 @@ def run_single(
 
         cal = calibrate_pit(predict_fn, origins, H)
         cal_info = asdict(cal)
+        cal_info["ann_vol_hist"] = round(ann_vol_hist, 4)
+        cal_info["log_halfwidth_cap"] = round(band_cap, 4)
         if cal.status == "fitted":
-            band_low, band_high = cal.apply(fres.median, raw_low, raw_high)
+            band_low, band_high = cal.apply(fres.median, raw_low, raw_high,
+                                            max_log_halfwidth=band_cap)
     elif cfg.calibrate and cutoff is None:
         # Live mode: calibrate on origins ending at the last available date
         origins = rolling_origins(bundle.dates, bundle.dates[-1], H,
@@ -142,8 +151,11 @@ def run_single(
 
         cal = calibrate_pit(predict_fn_live, origins, H)
         cal_info = asdict(cal)
+        cal_info["ann_vol_hist"] = round(ann_vol_hist, 4)
+        cal_info["log_halfwidth_cap"] = round(band_cap, 4)
         if cal.status == "fitted":
-            band_low, band_high = cal.apply(fres.median, raw_low, raw_high)
+            band_low, band_high = cal.apply(fres.median, raw_low, raw_high,
+                                            max_log_halfwidth=band_cap)
 
     band_low = np.minimum(band_low, fres.median)
     band_high = np.maximum(band_high, fres.median)

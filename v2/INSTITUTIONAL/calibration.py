@@ -46,21 +46,36 @@ class CalibrationResult:
     status: str = "identity"
     detail: dict = field(default_factory=dict)
 
-    def apply(self, median: np.ndarray, q10: np.ndarray, q90: np.ndarray):
+    def apply(self, median: np.ndarray, q10: np.ndarray, q90: np.ndarray,
+              max_log_halfwidth: Optional[float] = None):
         """Widen (or tighten) a band using the fitted multipliers, in LOG space.
 
         Working in log space is not cosmetic: price-space widening with a large multiplier
         produced negative lower bounds (a -4125 rupee floor for a 5193 rupee stock) and
         absurd upper bounds. In log space the band is strictly positive and asymmetric in the
         way prices actually are.
+
+        `max_log_halfwidth` caps the calibrated half-width so an extreme multiplier on an
+        extreme-volatility name cannot produce a meaningless band (an uncapped CUPID 252-day
+        upper bound came out at 380x spot). The caller supplies a volatility-aware cap, e.g.
+        twice the log-normal 80% half-width implied by realised volatility over the horizon.
         """
         med = np.maximum(np.asarray(median, dtype=float), 1e-9)
         lo = np.maximum(np.asarray(q10, dtype=float), 1e-9)
         hi = np.maximum(np.asarray(q90, dtype=float), 1e-9)
         half_log = np.maximum((np.log(hi) - np.log(lo)) / 2.0, 1e-9)
-        low = med * np.exp(-self.k_low * half_log)
-        high = med * np.exp(self.k_high * half_log)
-        return low, high
+        w_low = self.k_low * half_log
+        w_high = self.k_high * half_log
+        if max_log_halfwidth is not None and max_log_halfwidth > 0:
+            w_low = np.minimum(w_low, max_log_halfwidth)
+            w_high = np.minimum(w_high, max_log_halfwidth)
+        return med * np.exp(-w_low), med * np.exp(w_high)
+
+
+def volatility_band_cap(ann_vol: float, horizon: int, slack: float = 2.0) -> float:
+    """Log-space half-width cap: `slack` x the log-normal 80% half-width over the horizon."""
+    ann_vol = float(max(0.05, min(2.5, ann_vol)))
+    return float(slack * 1.28155 * ann_vol * np.sqrt(max(1, horizon) / 252.0))
 
 
 def _standardised_errors(actual, median, q10, q90):
@@ -80,7 +95,7 @@ def calibrate_pit(
     target_coverage: float = 0.80,
     asymmetric: bool = True,
     min_points: int = 40,
-    max_multiplier: float = 12.0,
+    max_multiplier: float = 6.0,
 ) -> CalibrationResult:
     """Fit conformal multipliers from rolling origins that are entirely pre-cutoff.
 

@@ -19,7 +19,8 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 from anonymizer import (GENERIC_NAME_TOKENS, anonymise_text, audit_packet,  # noqa: E402
                         build_name_variants, distinctive_tokens, identity_probe_verdict)
-from calibration import CalibrationResult, _standardised_errors, calibrate_pit, rolling_origins  # noqa: E402
+from calibration import (CalibrationResult, _standardised_errors, calibrate_pit,  # noqa: E402
+                         rolling_origins, volatility_band_cap)
 from pit_data import (build_past_covariates, build_past_future_covariates,  # noqa: E402
                       PAST_COVARIATE_NAMES, PAST_FUTURE_COVARIATE_NAMES, future_business_days)
 from risk_sizing import compute_risk  # noqa: E402
@@ -50,6 +51,21 @@ def test_log_space_band_stays_positive():
     assert np.all(low < median) and np.all(high > median)
     # geometric symmetry when k_low == k_high
     assert abs((median[0] ** 2) - low[0] * high[0]) / median[0] ** 2 < 1e-6
+
+
+def test_band_cap_prevents_absurd_upper_bound():
+    """An uncapped multiplier on a very volatile name produced an 81779 upper bound on a
+    215 rupee stock. The volatility-aware cap must bound it."""
+    cal = CalibrationResult(k_low=6.0, k_high=6.0, status="fitted")
+    median = np.array([215.0])
+    q10, q90 = np.array([100.0]), np.array([500.0])   # very wide raw band
+    cap = volatility_band_cap(ann_vol=0.90, horizon=252, slack=2.0)
+    low, high = cal.apply(median, q10, q90, max_log_halfwidth=cap)
+    assert low[0] > 0
+    assert high[0] / median[0] < 15, f"upper bound still absurd: {high[0]:.0f}"
+    uncapped_low, uncapped_high = cal.apply(median, q10, q90)
+    assert uncapped_high[0] > high[0], "cap did not bind"
+    assert volatility_band_cap(0.2, 60) < volatility_band_cap(0.2, 252)
 
 
 def test_standardised_errors_are_log_ratios():

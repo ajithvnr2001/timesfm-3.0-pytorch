@@ -20,10 +20,10 @@ Against the *trend-following* baselines the model is far ahead at long horizons:
 
 | horizon | n | raw q10-q90 coverage | PIT-conformal coverage | median k_low | median k_high | calibration status |
 | :--- | ---: | ---: | ---: | ---: | ---: | :--- |
-| 60d | 96 | 74.3% | **77.4%** | 0.78 | 1.50 | 96/96 fitted |
-| 252d | 96 | 76.2% | **80.6%** | 0.69 | 1.77 | 96/96 fitted |
+| 60d | 96 | 74.3% | **76.5%** | 0.84 | 1.35 | 96/96 fitted |
+| 252d | 96 | 76.2% | **79.3%** | 0.74 | 1.37 | 96/96 fitted |
 
-Pooled coverage: raw **75.3%** -> calibrated **79.0%** against an 80% nominal band. Absolute miscalibration |coverage-80| improves from 22.4pp to 20.1pp.
+Pooled coverage: raw **75.3%** -> calibrated **77.9%** against an 80% nominal band. Absolute miscalibration |coverage-80| improves from 22.4pp to 20.1pp.
 
 ## 3. Multi-bagger screener: does the anonymised LLM conviction rank anything?
 
@@ -57,14 +57,14 @@ Screener recomputed on probe-clean runs only (n=138):
 
 | ticker | cutoff | realised fwd return | conviction | probe | TimesFM predicted move | directive |
 | :--- | :--- | ---: | ---: | :--- | ---: | :--- |
-| CUPID.NS | 2024-12-31 | **+415.2%** | 38 | clean | -13.7% | AVOID / TRIM |
-| RPOWER.NS | 2024-06-28 | **+126.5%** | 25 | clean | -4.7% | AVOID / TRIM |
-| ARROWGREEN.NS | 2023-12-29 | **+84.8%** | 30 | clean | 1.2% | HOLD / MONITOR |
-| RPOWER.NS | 2023-12-29 | **+81.9%** | 22 | clean | -9.9% | AVOID / TRIM |
-| COFORGE.NS | 2024-06-28 | **+79.4%** | 32 | clean | 3.0% | HOLD / MONITOR |
-| PERSISTENT.NS | 2023-12-29 | **+69.6%** | 35 | suspected | 13.8% | ACCUMULATE |
-| SOUTHBANK.NS | 2024-12-31 | **+60.9%** | 48 | clean | 1.1% | HOLD / MONITOR |
-| MARUTI.NS | 2024-12-31 | **+59.7%** | 50 | confirmed | 3.8% | HOLD / MONITOR |
-| SUZLON.NS | 2023-12-29 | **+57.1%** | 25 | clean | 0.2% | HOLD / MONITOR |
-| BHARTIARTL.NS | 2023-12-29 | **+55.8%** | 30 | suspected | -0.7% | HOLD / MONITOR |
+| CUPID.NS | 2024-12-31 | **+415.2%** | 38 | clean | -13.7% | UNFAVOURABLE / AVOID |
+| RPOWER.NS | 2024-06-28 | **+126.5%** | 25 | clean | -4.7% | UNFAVOURABLE / AVOID |
+| ARROWGREEN.NS | 2023-12-29 | **+84.8%** | 30 | clean | 1.2% | NEUTRAL / MONITOR |
+| RPOWER.NS | 2023-12-29 | **+81.9%** | 22 | clean | -9.9% | UNFAVOURABLE / AVOID |
+| COFORGE.NS | 2024-06-28 | **+79.4%** | 32 | clean | 3.0% | NEUTRAL / MONITOR |
+| PERSISTENT.NS | 2023-12-29 | **+69.6%** | 35 | suspected | 13.8% | MILDLY FAVOURABLE |
+| SOUTHBANK.NS | 2024-12-31 | **+60.9%** | 48 | clean | 1.1% | NEUTRAL / MONITOR |
+| MARUTI.NS | 2024-12-31 | **+59.7%** | 50 | confirmed | 3.8% | NEUTRAL / MONITOR |
+| SUZLON.NS | 2023-12-29 | **+57.1%** | 25 | clean | 0.2% | NEUTRAL / MONITOR |
+| BHARTIARTL.NS | 2023-12-29 | **+55.8%** | 30 | suspected | -0.7% | NEUTRAL / MONITOR |
 

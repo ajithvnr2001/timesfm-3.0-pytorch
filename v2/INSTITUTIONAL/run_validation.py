@@ -125,7 +125,7 @@ def main():
     t0 = time.time()
 
     ledger = load_ledger(ledger_path)
-    adapter = TimesFM3Adapter(device="cuda").load()
+    adapter = TimesFM3Adapter(device=os.environ.get("DEVICE", "cuda")).load()
     print(f"[harness] model loaded in {adapter.load_seconds}s | evidence_mode={evidence_mode}")
 
     # ---- universes (point-in-time, cached in the ledger)
@@ -136,9 +136,12 @@ def main():
             save_universe(u, out_dir)
             save_ledger(ledger, ledger_path)
 
+    only = {t.strip() for t in os.environ.get("TICKER_FILTER", "").split(",") if t.strip()}
     todo = []
     for cut in CUTOFFS:
         for m in ledger["universes"][cut]["members"]:
+            if only and m["ticker"] not in only:
+                continue
             for H in HORIZONS:
                 key = f"{m['ticker']}|{cut}|{H}|{evidence_mode}"
                 if key not in ledger["runs"]:

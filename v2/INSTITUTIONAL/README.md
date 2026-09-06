@@ -28,8 +28,9 @@ beat the specific hypothesis "price stays where it is".
 
 1. **Direction.** Pooled directional accuracy is **57.8%** on n=192 (z=2.17, two-sided
    p=0.030 against 50%). Modest, but measurable, and it is what feeds position sizing.
-2. **Calibrated uncertainty.** The model's native 80% band covers only ~75% of outcomes;
-   point-in-time conformal calibration brings mean coverage to ~79–80% of a nominal 80% band.
+2. **Calibrated uncertainty.** The model's native 80% band covers only **75.3%** of outcomes;
+   point-in-time conformal calibration in log space lifts pooled coverage to **77.9%**
+   (60d 76.5%, 252d 79.3%) against a nominal 80% band, with every bound strictly positive.
 
 **What does not work:** the anonymised LLM conviction score showed **no cross-sectional
 predictive power** in this sample — mean Spearman rank-IC **+0.009** across six
@@ -38,6 +39,7 @@ returned +415% over 252 days from the 2024-12-31 cutoff and the screener scored 
 That is reported rather than hidden, and it is why the engine never lets the LLM touch the
 price path.
 
+Live forward predictions: [`FORWARD/FORWARD_REPORT.md`](FORWARD/FORWARD_REPORT.md).
 Full numbers: [`VALIDATION.md`](VALIDATION.md). Configuration evidence:
 [`ABLATION.md`](ABLATION.md). Verified model contract: [`TIMESFM3_API.md`](TIMESFM3_API.md).
 
@@ -161,6 +163,9 @@ into the repository.
   materially.
 * **Single-asset risk only.** No portfolio covariance, no factor exposure, no liquidity
   constraint beyond the universe screen. Frictions are a flat 25 bp round trip.
+* **Coverage is right on average, not per name.** Pooled coverage is 77.9% versus 80% nominal,
+  but the per-run spread is wide (mean |coverage-80| is 20pp), so an individual band should be
+  read as an order-of-magnitude risk range, not a precise interval.
 * **Three cutoffs is a small sample.** Six (horizon, cutoff) panels cannot resolve a rank-IC
   of ±0.10. The negative screener result is "no evidence of skill", not "proof of no skill".
 * **Backtests use adjusted close** from yfinance, which is itself restated over time.

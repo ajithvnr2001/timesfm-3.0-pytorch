@@ -39,7 +39,7 @@ def main():
     evidence_mode = os.environ.get("EVIDENCE_MODE", "numbers_only")
     os.makedirs(out_dir, exist_ok=True)
 
-    adapter = TimesFM3Adapter(device="cuda").load()
+    adapter = TimesFM3Adapter(device=os.environ.get("DEVICE", "cuda")).load()
     print(f"[forward] model loaded {adapter.load_seconds}s | p_win={p_win} | horizons={horizons}")
 
     results = []
