@@ -1,0 +1,209 @@
+{
+  "cutoff": "2024-12-31",
+  "rules": {
+    "min_listed_days": 750,
+    "min_median_turnover_inr": 20000000.0,
+    "min_price": 10.0,
+    "max_price": 1000000.0
+  },
+  "pool_size": 38,
+  "n_members": 31,
+  "members": [
+    {
+      "ticker": "RELIANCE.NS",
+      "listed_days_at_cutoff": 7281,
+      "price_at_cutoff": 1205.04,
+      "median_turnover_60d_inr": 18488330977.0
+    },
+    {
+      "ticker": "TCS.NS",
+      "listed_days_at_cutoff": 5557,
+      "price_at_cutoff": 3813.6,
+      "median_turnover_60d_inr": 7984152860.0
+    },
+    {
+      "ticker": "INFY.NS",
+      "listed_days_at_cutoff": 7284,
+      "price_at_cutoff": 1787.29,
+      "median_turnover_60d_inr": 8524486439.0
+    },
+    {
+      "ticker": "HDFCBANK.NS",
+      "listed_days_at_cutoff": 7284,
+      "price_at_cutoff": 860.37,
+      "median_turnover_60d_inr": 22089725037.0
+    },
+    {
+      "ticker": "ICICIBANK.NS",
+      "listed_days_at_cutoff": 5586,
+      "price_at_cutoff": 1261.2,
+      "median_turnover_60d_inr": 14373103726.0
+    },
+    {
+      "ticker": "SBIN.NS",
+      "listed_days_at_cutoff": 7282,
+      "price_at_cutoff": 765.5,
+      "median_turnover_60d_inr": 8821393291.0
+    },
+    {
+      "ticker": "ITC.NS",
+      "listed_days_at_cutoff": 7281,
+      "price_at_cutoff": 429.25,
+      "median_turnover_60d_inr": 4919328013.0
+    },
+    {
+      "ticker": "BHARTIARTL.NS",
+      "listed_days_at_cutoff": 5586,
+      "price_at_cutoff": 1555.02,
+      "median_turnover_60d_inr": 7340561048.0
+    },
+    {
+      "ticker": "HEROMOTOCO.NS",
+      "listed_days_at_cutoff": 5586,
+      "price_at_cutoff": 3865.01,
+      "median_turnover_60d_inr": 2648145093.0
+    },
+    {
+      "ticker": "MARUTI.NS",
+      "listed_days_at_cutoff": 5322,
+      "price_at_cutoff": 10635.32,
+      "median_turnover_60d_inr": 4821849471.0
+    },
+    {
+      "ticker": "SUNPHARMA.NS",
+      "listed_days_at_cutoff": 7284,
+      "price_at_cutoff": 1851.98,
+      "median_turnover_60d_inr": 3086743589.0
+    },
+    {
+      "ticker": "TITAN.NS",
+      "listed_days_at_cutoff": 7284,
+      "price_at_cutoff": 3232.78,
+      "median_turnover_60d_inr": 3164261793.0
+    },
+    {
+      "ticker": "HAL.NS",
+      "listed_days_at_cutoff": 1667,
+      "price_at_cutoff": 4092.01,
+      "median_turnover_60d_inr": 5704656948.0
+    },
+    {
+      "ticker": "BEL.NS",
+      "listed_days_at_cutoff": 5586,
+      "price_at_cutoff": 289.23,
+      "median_turnover_60d_inr": 4740670458.0
+    },
+    {
+      "ticker": "BHEL.NS",
+      "listed_days_at_cutoff": 7281,
+      "price_at_cutoff": 228.18,
+      "median_turnover_60d_inr": 2666046250.0
+    },
+    {
+      "ticker": "TATAPOWER.NS",
+      "listed_days_at_cutoff": 7281,
+      "price_at_cutoff": 387.7,
+      "median_turnover_60d_inr": 4068260014.0
+    },
+    {
+      "ticker": "PERSISTENT.NS",
+      "listed_days_at_cutoff": 3639,
+      "price_at_cutoff": 6373.99,
+      "median_turnover_60d_inr": 2019728441.0
+    },
+    {
+      "ticker": "COFORGE.NS",
+      "listed_days_at_cutoff": 5024,
+      "price_at_cutoff": 1901.65,
+      "median_turnover_60d_inr": 3102014260.0
+    },
+    {
+      "ticker": "POLYCAB.NS",
+      "listed_days_at_cutoff": 1410,
+      "price_at_cutoff": 7197.73,
+      "median_turnover_60d_inr": 1738777088.0
+    },
+    {
+      "ticker": "APLAPOLLO.NS",
+      "listed_days_at_cutoff": 3217,
+      "price_at_cutoff": 1562.8,
+      "median_turnover_60d_inr": 623377152.0
+    },
+    {
+      "ticker": "CGPOWER.NS",
+      "listed_days_at_cutoff": 5589,
+      "price_at_cutoff": 724.95,
+      "median_turnover_60d_inr": 1701555887.0
+    },
+    {
+      "ticker": "SUZLON.NS",
+      "listed_days_at_cutoff": 4734,
+      "price_at_cutoff": 62.22,
+      "median_turnover_60d_inr": 3498224864.0
+    },
+    {
+      "ticker": "CUPID.NS",
+      "listed_days_at_cutoff": 2047,
+      "price_at_cutoff": 15.14,
+      "median_turnover_60d_inr": 20804152.0
+    },
+    {
+      "ticker": "STLTECH.NS",
+      "listed_days_at_cutoff": 5995,
+      "price_at_cutoff": 114.57,
+      "median_turnover_60d_inr": 149743530.0
+    },
+    {
+      "ticker": "MTARTECH.NS",
+      "listed_days_at_cutoff": 938,
+      "price_at_cutoff": 1658.25,
+      "median_turnover_60d_inr": 197823083.0
+    },
+    {
+      "ticker": "ARROWGREEN.NS",
+      "listed_days_at_cutoff": 2374,
+      "price_at_cutoff": 780.7,
+      "median_turnover_60d_inr": 35839022.0
+    },
+    {
+      "ticker": "KPITTECH.NS",
+      "listed_days_at_cutoff": 1408,
+      "price_at_cutoff": 1439.5,
+      "median_turnover_60d_inr": 1405884853.0
+    },
+    {
+      "ticker": "YESBANK.NS",
+      "listed_days_at_cutoff": 4802,
+      "price_at_cutoff": 19.59,
+      "median_turnover_60d_inr": 1414684931.0
+    },
+    {
+      "ticker": "RPOWER.NS",
+      "listed_days_at_cutoff": 4160,
+      "price_at_cutoff": 42.6,
+      "median_turnover_60d_inr": 612036332.0
+    },
+    {
+      "ticker": "JPPOWER.NS",
+      "listed_days_at_cutoff": 4863,
+      "price_at_cutoff": 17.7,
+      "median_turnover_60d_inr": 965017046.0
+    },
+    {
+      "ticker": "SOUTHBANK.NS",
+      "listed_days_at_cutoff": 6511,
+      "price_at_cutoff": 24.44,
+      "median_turnover_60d_inr": 273560109.0
+    }
+  ],
+  "rejected": {
+    "MODISONLTD.NS": "illiquid(median_turnover=3.01e+06)",
+    "NETWEB.NS": "short_history(351d)",
+    "AETHER.NS": "short_history(636d)",
+    "VENUSREM.NS": "illiquid(median_turnover=7.12e+06)",
+    "WHEELS.NS": "illiquid(median_turnover=1.37e+07)",
+    "RAYMONDREL.NS": "short_history(0d)",
+    "IDEA.NS": "price_out_of_range(7.9)"
+  },
+  "selection_note": "Membership decided using only data at or before the cutoff. Pool is hand-specified and intentionally includes names that later underperformed."
+}

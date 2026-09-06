@@ -1,0 +1,19 @@
+{
+  "n_runs": 36,
+  "pooled_raw_coverage_pct": 70.5,
+  "pooled_calibrated_coverage_pct": 79.72,
+  "pooled_abs_miscal_raw_pp": 24.16,
+  "pooled_abs_miscal_cal_pp": 17.79,
+  "by_horizon": {
+    "60": {
+      "n": 18,
+      "raw": 71.67,
+      "cal": 78.33
+    },
+    "252": {
+      "n": 18,
+      "raw": 69.33,
+      "cal": 81.1
+    }
+  }
+}
