@@ -38,9 +38,9 @@ def main():
     bull_err = f" (Error: {record['metrics']['bull_error_pct']:+.1f}%)" if "bull_error_pct" in record["metrics"] else ""
     print(f"• Bull Scenario Terminal: Rs. {record['metrics']['bull_terminal']:.2f}{bull_err}")
     print(f"• Weighted Model Terminal: Rs. {record['metrics']['weighted_terminal']:.2f}")
-    cov_pct = record['metrics'].get('envelope_coverage_pct')
+    cov_pct = record['metrics'].get('interval_80_coverage_pct', record['metrics'].get('envelope_coverage_pct'))
     cov_str = f"{cov_pct:.1f}%" if cov_pct is not None else "N/A (Live Mode)"
-    print(f"• Scenario Envelope Coverage: {cov_str}")
+    print(f"• 80% Prediction Interval Coverage: {cov_str}")
     print(f"• Chart: {record['chart_saved']}")
     print(f"• Report: {record['report_saved']}")
     print("=================================================================")

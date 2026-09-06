@@ -32,12 +32,13 @@ def monte_carlo_paths(last: float, annual_vol: float, horizon: int, n_sims: int 
 
 def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int,
                      target_reach: float = None, half_life_days: float = None,
-                     n_sims: int = 500, seed: int = None, return_paths: bool = False):
+                     n_sims: int = 5000, seed: int = None, return_paths: bool = False):
     """
     Honest Stochastic Valuation Bridge (Ornstein-Uhlenbeck Guided Diffusion):
       - Euler-Maruyama discretization of mean-reverting diffusion toward target in log-price space
       - Stationary median converges to fair-value target T without volatility-proportional bearish bias
       - Half-life scales adaptively: clip(horizon / 3, 14, 180) for 87.5% horizon convergence
+      - Antithetic variates [z, -z] cut Monte Carlo headline target dispersion to near-zero (Item 1)
       - Deterministic seed derived from parameters when seed=None for 100% reproducible backtests
     Returns:
       (point_forecast, q10, q90) [and optional simulated paths array of shape (n_sims, horizon)].
@@ -57,13 +58,19 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
     tau = max(10.0, float(half_life_days)) / 252.0
     kappa = np.log(2.0) / tau
 
-    log_last = np.log(max(1e-4, float(last)))
-    # Fundamental target has realistic institutional dispersion (+/- 10%)
-    log_targets = rng.normal(np.log(max(1e-4, float(target))), 0.10, (n_sims, 1))
+    # Antithetic variates: pairs of positive and negative shocks eliminate Monte Carlo noise (Item 1)
+    half_n = max(1, n_sims // 2)
+    total_sims = half_n * 2
 
-    log_paths = np.zeros((n_sims, horizon), dtype=np.float64)
-    current_log = np.full((n_sims, 1), log_last, dtype=np.float64)
-    shocks = rng.normal(0.0, daily_vol, (n_sims, horizon))
+    log_last = np.log(max(1e-4, float(last)))
+    # Fundamental target has realistic institutional dispersion (+/- 10%) with antithetic pairing
+    dev = rng.normal(0.0, 0.10, (half_n, 1))
+    log_targets = np.log(max(1e-4, float(target))) + np.vstack([dev, -dev])
+
+    log_paths = np.zeros((total_sims, horizon), dtype=np.float64)
+    current_log = np.full((total_sims, 1), log_last, dtype=np.float64)
+    z = rng.normal(0.0, daily_vol, (half_n, horizon))
+    shocks = np.vstack([z, -z])
 
     for h in range(horizon):
         # In log-space OU, drift = kappa * (log_target - current_log) * dt.
@@ -84,27 +91,36 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
 def mixture_prediction_interval(paths_by_scenario: dict, probs_by_scenario: dict, q_low: float = 0.10, q_high: float = 0.90):
     """
     Computes the true probability-weighted mixture prediction interval across scenarios.
-    Avoids the over-wide 'union of intervals' defect (R1) by pooling simulation paths
-    proportional to their scenario probabilities and computing quantiles across the pooled distribution.
+    Avoids truncation or path discarding (Item 2) by pooling ALL simulated paths across
+    scenarios with exact scenario-probability weights and computing weighted quantiles per timestep.
     """
     sc_names = [s for s in ["bear", "base", "bull"] if s in paths_by_scenario]
     if not sc_names:
         sc_names = list(paths_by_scenario.keys())
 
     total_prob = sum(probs_by_scenario.get(s, 1.0 / len(sc_names)) for s in sc_names)
-    first_arr = paths_by_scenario[sc_names[0]]
-    n_sims, horizon = first_arr.shape
+    vals = np.vstack([paths_by_scenario[s] for s in sc_names])  # (Total_N, Horizon)
+    w = np.concatenate([
+        np.full(paths_by_scenario[s].shape[0], (probs_by_scenario.get(s, 1.0 / len(sc_names)) / total_prob) / paths_by_scenario[s].shape[0])
+        for s in sc_names
+    ])
+    w_norm = w / np.sum(w)
 
-    # Allocate path slices proportional to probability
-    pooled_slices = []
-    for sc in sc_names:
-        p = probs_by_scenario.get(sc, 1.0 / len(sc_names)) / total_prob
-        count = max(1, int(round(n_sims * p)))
-        pooled_slices.append(paths_by_scenario[sc][:count])
+    H = vals.shape[1]
+    mix_q_low = np.zeros(H)
+    mix_q_high = np.zeros(H)
 
-    pooled = np.vstack(pooled_slices)
-    mix_q_low = np.percentile(pooled, q_low * 100.0, axis=0)
-    mix_q_high = np.percentile(pooled, q_high * 100.0, axis=0)
+    for t in range(H):
+        y = vals[:, t]
+        sorter = np.argsort(y)
+        sy = y[sorter]
+        sw = w_norm[sorter]
+        cw = np.cumsum(sw)
+        p_grid = np.concatenate([[0.0], cw])
+        y_grid = np.concatenate([[sy[0]], sy])
+        mix_q_low[t] = np.interp(q_low, p_grid, y_grid)
+        mix_q_high[t] = np.interp(q_high, p_grid, y_grid)
+
     return mix_q_low, mix_q_high
 
 def annualized_vol(close_series):

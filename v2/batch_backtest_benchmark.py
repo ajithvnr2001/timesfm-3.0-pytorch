@@ -91,7 +91,7 @@ def generate_multi_panel_chart(all_results, out_dir):
         bear_proj = rec["predictions"]["scenarios"]["bear"]
         int_low = rec["predictions"].get("interval_lower", cal.get("interval_lower", bear_proj))
         int_high = rec["predictions"].get("interval_upper", cal.get("interval_upper", bull_proj))
-        cov_pct = metrics.get("interval_80_coverage_pct", metrics.get("envelope_coverage_pct", 0.0))
+        cov_pct = metrics.get("interval_80_coverage_pct", 0.0)
 
         # 1. Actual Market Ground Truth
         ax.plot(test_dates, actual_prices, label=f"Actual Ground Truth (Day 60: Rs. {metrics['actual_terminal']:.2f})", color="#107c41", linewidth=2.5)
@@ -138,7 +138,7 @@ def print_summary_table(all_results):
         end_p = m["actual_terminal"]
         act_chg = (end_p - start_p) / start_p * 100
         action = r["recommendation"]["action"]
-        cov_pct = m.get("interval_80_coverage_pct", m.get("envelope_coverage_pct", 0.0))
+        cov_pct = m.get("interval_80_coverage_pct", 0.0)
         print(f"{tk:<14} | {start_p:9.2f} | {end_p:9.2f} | {act_chg:+7.1f}% | {m['pure_baseline_terminal']:10.2f} | {m['pure_baseline_error_pct']:+8.1f}% | {m['weighted_terminal']:9.2f} | {m['weighted_error_pct']:+8.1f}% | {cov_pct:8.0f}% | {action:<15}")
     print("="*125)
 

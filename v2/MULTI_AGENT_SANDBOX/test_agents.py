@@ -40,7 +40,22 @@ def test_poisoned_year_rejected():
 
 def test_clean_payload_accepted():
     a = mas.ProcessSandboxAgent(device="cpu")
-    a._verify_sandbox_security(mk({"asset_pseudonym":"ASSET_ALPHA"}, ["HEROMOTOCO","2023"]))
+    a._verify_sandbox_security(mk({
+        "asset_pseudonym": "ASSET_ALPHA",
+        "scenarios": {
+            "bear": {"probability": 0.25, "target_price": 90.0},
+            "base": {"probability": 0.50, "target_price": 105.0},
+            "bull": {"probability": 0.25, "target_price": 120.0}
+        }
+    }, ["HEROMOTOCO","2023"]))
+
+def test_missing_scenarios_rejected():
+    a = mas.ProcessSandboxAgent(device="cpu")
+    try:
+        a._verify_sandbox_security(mk({"asset_pseudonym": "ASSET_NO_SCENARIOS"}, []))
+        raise AssertionError("Payload without scenarios MUST raise SecurityError")
+    except mas.SecurityError:
+        pass
 
 def test_fallback_forecast_runs_without_gpu():
     # Force the no-timesfm fallback branch by monkeypatching HAS_TIMESFM
@@ -49,7 +64,6 @@ def test_fallback_forecast_runs_without_gpu():
     a = mas.ProcessSandboxAgent(device="cpu")
     msg = mk({"asset_pseudonym":"ASSET_ALPHA","horizon":5,"last_known_scalar":100.0,
               "numerical_context":[98.0,99.0,100.0],
-              "covariates":{"bear":[0]*8,"base":[0]*8,"bull":[0]*8},
               "scenarios":{"bear":{"probability":0.25,"target_price":90.0},
                            "base":{"probability":0.50,"target_price":105.0},
                            "bull":{"probability":0.25,"target_price":120.0}}},
@@ -312,18 +326,26 @@ def test_non_asserting_terminal_ordering_and_monotonic_repair():
             "fundamental_metadata": {}
         }
     )
-    import tempfile, pandas as pd
+    import tempfile, pandas as pd, numpy as np
     dates = pd.date_range("2024-01-01", periods=10, freq="B")
     train_df = pd.DataFrame({"Close": [100.0]*10}, index=dates)
     test_df = pd.DataFrame()
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Must execute cleanly and repair terminal order
+        # Must execute cleanly and repair terminal order pointwise
         res = out_agent.render(msg, "INVERTED.NS", train_df, test_df, output_dir=tmpdir)
         assert res is not None
         assert res["metrics"]["bear_terminal"] <= res["metrics"]["bull_terminal"]
+        # Pointwise repair across full scenario paths (Item 3)
+        sc_res = res["predictions"]["scenarios"]
+        assert np.all(np.array(sc_res["bear"]) <= np.array(sc_res["base"]))
+        assert np.all(np.array(sc_res["base"]) <= np.array(sc_res["bull"]))
+        # Intervals in predictions only, metrics has scalars only (Item 5)
         assert "interval_lower" in res["predictions"]
         assert "interval_upper" in res["predictions"]
-        assert "interval_lower" in res["calendar"]
+        assert "interval_lower" not in res["metrics"]
+        assert "interval_upper" not in res["metrics"]
+        assert "interval_lower" not in res["calendar"]
+        assert "interval_upper" not in res["calendar"]
 
 def test_quantiles_unavailable_handling():
     """Verify that tensor layout exceptions set quantiles_unavailable=True and preserve pure baseline."""
@@ -348,6 +370,34 @@ def test_quantiles_unavailable_handling():
     assert forecasts.get("quantiles_unavailable") is True
     assert "pure_baseline" in forecasts
     assert len(forecasts["pure_baseline"]) == 5
+
+def test_covariates_payload_rejected():
+    """Verify that sending undeclared 'covariates' fails closed with SecurityError (Item 6)."""
+    a = mas.ProcessSandboxAgent(device="cpu")
+    msg = mk({
+        "asset_pseudonym": "ASSET_COV", "horizon": 5, "last_known_scalar": 100.0,
+        "numerical_context": [98.0, 99.0, 100.0],
+        "covariates": {"bear": [0]*8},
+        "scenarios": {"bear": {"probability": 0.25, "target_price": 90.0},
+                     "base": {"probability": 0.50, "target_price": 100.0},
+                     "bull": {"probability": 0.25, "target_price": 110.0}}
+    }, [])
+    try:
+        a._verify_sandbox_security(msg)
+        raise AssertionError("Sending 'covariates' key MUST raise SecurityError")
+    except mas.SecurityError:
+        pass
+
+def test_antithetic_target_dispersion():
+    """Verify that n_sims=5000 with antithetic variates reduces seed-to-seed noise to near-zero (Item 1)."""
+    try:
+        from covfree_forecaster import forecast_covfree
+    except ImportError:
+        from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+    import numpy as np
+    terminals = [forecast_covfree(100.0, 105.0, 0.35, 252, n_sims=5000, seed=s)[0][-1] for s in range(5)]
+    std_dispersion = float(np.std(terminals))
+    assert std_dispersion < 0.05, f"Monte Carlo dispersion across seeds should be < 0.05 with antithetic shocks, got {std_dispersion:.4f}"
 
 
 if __name__ == "__main__":

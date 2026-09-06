@@ -99,7 +99,7 @@ def run_2026_benchmark():
                 "bull_pred": round(bull_term, 2),
                 "bear_pred": round(bear_term, 2),
                 "err_pct": round(err_pct, 1),
-                "coverage_pct": round(m.get("interval_80_coverage_pct", m.get("envelope_coverage_pct", 0.0)), 1),
+                "coverage_pct": round(m.get("interval_80_coverage_pct", 0.0), 1),
                 "direction_match": "YES" if dir_match else "NO",
                 "status": status,
                 "record": rec,

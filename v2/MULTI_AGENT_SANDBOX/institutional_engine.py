@@ -234,13 +234,16 @@ def compute_institutional_risk_and_sizing(
 
     ctx = np.array(stock_context, dtype=float)
     if len(ctx) >= 5:
-        returns = np.diff(ctx) / ctx[:-1]
-        daily_vol = float(np.std(returns))
-        ann_vol = float(daily_vol * np.sqrt(252))
-        # Historical Max Drawdown
+        # Historical Max Drawdown measured across full historical series (Item 4)
         cum = np.maximum.accumulate(ctx)
         dd = (ctx - cum) / cum
         max_dd = float(np.min(dd)) * 100.0
+
+        # Volatility and returns measured over trailing 252 trading days (~1 year) (Item 4)
+        vol_ctx = ctx[-252:] if len(ctx) >= 252 else ctx
+        returns = np.diff(vol_ctx) / vol_ctx[:-1]
+        daily_vol = float(np.std(returns))
+        ann_vol = float(daily_vol * np.sqrt(252))
     else:
         daily_vol = 0.015
         ann_vol = 0.24
@@ -353,8 +356,14 @@ def build_institutional_scorecard(
     q10 = forecast_results.get("base_q10", [last_price * 0.90] * horizon)[-1]
     q90 = forecast_results.get("base_q90", [last_price * 1.10] * horizon)[-1]
 
+    stock_context_input = forecast_results.get("stock_series")
+    if stock_context_input is None:
+        stock_context_input = forecast_results.get("numerical_context", [last_price] * 10)
+    elif hasattr(stock_context_input, "values"):
+        stock_context_input = stock_context_input.values
+
     risk_sizing = compute_institutional_risk_and_sizing(
-        stock_context=forecast_results.get("numerical_context", [last_price]*10),
+        stock_context=stock_context_input,
         last_price=last_price,
         weighted_target=weighted_tgt,
         bull_target=bull_tgt,

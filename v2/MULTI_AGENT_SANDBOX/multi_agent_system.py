@@ -335,7 +335,7 @@ class ProcessSandboxAgent:
         """Hardware/Process Gate: Fail-closed schema audit and token leakage detection."""
         ALLOWED_PAYLOAD_KEYS = {
             "asset_pseudonym", "context_length", "horizon", "last_known_scalar",
-            "numerical_context", "past_volume_ratio", "covariates", "scenarios",
+            "numerical_context", "past_volume_ratio", "scenarios",
             "weighted_target", "macro_momentum", "fundamental_metadata"
         }
         payload = message.payload
@@ -343,6 +343,10 @@ class ProcessSandboxAgent:
         extra_keys = set(payload.keys()) - ALLOWED_PAYLOAD_KEYS
         if extra_keys:
             raise SecurityError(f"SECURITY VIOLATION: Undeclared payload keys detected: {extra_keys}")
+
+        # Require scenarios in schema audit (Item 6)
+        if "scenarios" not in payload or not isinstance(payload["scenarios"], dict) or not all(k in payload["scenarios"] for k in ["bear", "base", "bull"]):
+            raise SecurityError("SECURITY VIOLATION: payload must contain valid 'scenarios' dictionary with 'bear', 'base', and 'bull'.")
 
         # 2. Assert numerical leaves in numerical_context if present
         if "numerical_context" in payload:
@@ -429,7 +433,6 @@ class ProcessSandboxAgent:
         ctx = np.array(payload["numerical_context"], dtype=np.float32)
         horizon = payload["horizon"]
         last_val = payload["last_known_scalar"]
-        covariates = payload.get("covariates") or {}
         scenarios = payload["scenarios"]
 
         self._init_forecaster(horizon)
@@ -517,7 +520,7 @@ class ProcessSandboxAgent:
             forecast_results["pure_baseline_q90"] = self._match_horizon_length(forecast_results["pure_baseline_q90"], horizon, last_val).tolist()
 
         # 2. Multi-Scenario Inferences (Conditioned on Fundamental Targets)
-        sc_names = list(scenarios.keys()) if scenarios else list(covariates.keys())
+        sc_names = ["bear", "base", "bull"]
 
         # Determine volatility from trailing context series over up to 252 trading days (~1 year)
         vol_window = min(252, len(ctx))
@@ -668,15 +671,22 @@ class OutputSynthesisAgent:
         else:
             future_dates = list(pd.bdate_range(start=train_df.index[-1] + pd.Timedelta(days=1), periods=horizon))
 
+        if "bear" in forecasts and "base" in forecasts and "bull" in forecasts:
+            bear_arr = np.array(forecasts["bear"], dtype=float)
+            base_arr = np.array(forecasts["base"], dtype=float)
+            bull_arr = np.array(forecasts["bull"], dtype=float)
+            if not (np.all(bear_arr <= base_arr) and np.all(base_arr <= bull_arr)):
+                print(f"[{self.agent_id}] WARNING: Fundamental scenario ordering inverted along horizon. "
+                      f"Applying pointwise monotonic repair across all timesteps.")
+                stacked = np.stack([bear_arr, base_arr, bull_arr], axis=0)
+                repaired = np.sort(stacked, axis=0)
+                forecasts["bear"] = repaired[0].tolist()
+                forecasts["base"] = repaired[1].tolist()
+                forecasts["bull"] = repaired[2].tolist()
+
         bear_term = float(forecasts["bear"][-1]) if "bear" in forecasts and len(forecasts["bear"]) > 0 else float(last_price)
         base_term = float(forecasts["base"][-1]) if "base" in forecasts and len(forecasts["base"]) > 0 else float(last_price)
         bull_term = float(forecasts["bull"][-1]) if "bull" in forecasts and len(forecasts["bull"]) > 0 else float(last_price)
-        if "bear" in forecasts and "base" in forecasts and "bull" in forecasts:
-            if not (bear_term <= base_term <= bull_term):
-                print(f"[{self.agent_id}] WARNING: Fundamental scenario terminal ordering inverted: "
-                      f"Bear ({bear_term:.2f}), Base ({base_term:.2f}), Bull ({bull_term:.2f}). Applying monotonic repair.")
-                sorted_terms = sorted([bear_term, base_term, bull_term])
-                bear_term, base_term, bull_term = sorted_terms[0], sorted_terms[1], sorted_terms[2]
 
         # 80% Prediction Interval: True probability-weighted mixture quantiles across pooled scenario paths
         if "mixture_q10" in forecasts and "mixture_q90" in forecasts:
@@ -692,14 +702,12 @@ class OutputSynthesisAgent:
                 interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
                 interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
 
-        # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode
+        # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode (Scalars Only, Item 5)
         metrics = {
             "pure_baseline_terminal": float(forecasts["pure_baseline"][-1]) if "pure_baseline" in forecasts and len(forecasts["pure_baseline"]) > 0 else float(last_price),
             "weighted_terminal": float(forecasts["weighted_expected"][-1]) if "weighted_expected" in forecasts and len(forecasts["weighted_expected"]) > 0 else float(last_price),
             "bull_terminal": bull_term,
             "bear_terminal": bear_term,
-            "interval_lower": interval_lower.tolist(),
-            "interval_upper": interval_upper.tolist(),
         }
         if actuals is not None and len(actuals) > 0:
             pure_preds = np.array(forecasts["pure_baseline"][:len(actuals)])
@@ -729,7 +737,6 @@ class OutputSynthesisAgent:
                 "weighted_mae": weighted_mae,
                 "weighted_mape": weighted_mape,
                 "interval_80_coverage_pct": cov_rate,
-                "envelope_coverage_pct": cov_rate
             })
 
         # Build Institutional-Grade Scorecard & Risk Sizing
@@ -769,7 +776,7 @@ class OutputSynthesisAgent:
                     fundamental_data=fund_data,
                     forecast_results={
                         "stock_series": train_df["Close"] if not train_df.empty else None,
-                        "numerical_context": train_df["Close"].values[-64:].tolist() if not train_df.empty else [last_price]*10,
+                        "numerical_context": train_df["Close"].values[-min(512, len(train_df)):].tolist() if not train_df.empty else [last_price]*10,
                         "weighted_expected": forecasts.get("weighted_expected", []),
                         "base_q10": interval_lower.tolist() if isinstance(interval_lower, np.ndarray) else list(interval_lower),
                         "base_q90": interval_upper.tolist() if isinstance(interval_upper, np.ndarray) else list(interval_upper),
@@ -951,8 +958,6 @@ class OutputSynthesisAgent:
             "actual_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in test_dates],
             "actual_closes": [float(x) for x in actuals] if actuals is not None else [],
             "future_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in future_dates],
-            "interval_lower": interval_lower.tolist() if isinstance(interval_lower, np.ndarray) else list(interval_lower),
-            "interval_upper": interval_upper.tolist() if isinstance(interval_upper, np.ndarray) else list(interval_upper),
         }
         rec_action = (
             scorecard["institutional_risk_and_sizing"]["institutional_directive"]
