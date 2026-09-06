@@ -11,6 +11,9 @@ mas_path = os.path.join(current_dir, "multi_agent_system.py")
 if not os.path.exists(mas_path):
     mas_path = os.path.join(current_dir, "MULTI_AGENT_SANDBOX", "multi_agent_system.py")
 
+if os.path.dirname(mas_path) not in sys.path:
+    sys.path.insert(0, os.path.dirname(mas_path))
+
 spec = importlib.util.spec_from_file_location("mas", mas_path)
 mas = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mas)
@@ -55,6 +58,109 @@ def test_fallback_forecast_runs_without_gpu():
     assert "weighted_expected" in out.payload["forecast_results"]
     assert len(out.payload["forecast_results"]["pure_baseline"]) == 5
     mas.HAS_TIMESFM = orig
+
+def test_render_report_with_all_none_macro():
+    """Verifies that OutputSynthesisAgent renders cleanly without crash when macro/scorecard fields are None."""
+    import pandas as pd
+    out_agent = mas.OutputSynthesisAgent()
+    
+    # Message with all-None macro and partial scorecard
+    msg = mas.A2AMessage(
+        sender="Process_Sandbox_Agent",
+        recipient="Output_Synthesis_Agent",
+        message_type="PREDICTION_TENSOR_OUTPUT",
+        payload={
+            "asset_pseudonym": "ASSET_TEST",
+            "horizon": 5,
+            "last_scalar": 100.0,
+            "forecast_results": {
+                "pure_baseline": [100.0, 101.0, 102.0, 103.0, 104.0],
+                "weighted_expected": [100.0, 101.5, 102.5, 103.5, 105.0],
+                "bear": [98.0, 97.0, 96.0, 95.0, 94.0],
+                "base": [100.0, 101.0, 102.0, 103.0, 104.0],
+                "bull": [102.0, 104.0, 106.0, 108.0, 110.0],
+                "neural_points": 5,
+                "extrapolated_points": 0
+            },
+            "scenarios": {
+                "bear": {"probability": 0.25, "target_price": 94.0},
+                "base": {"probability": 0.50, "target_price": 104.0},
+                "bull": {"probability": 0.25, "target_price": 110.0}
+            },
+            "fundamental_metadata": {}
+        }
+    )
+    
+    dates = pd.date_range("2025-01-01", periods=10, freq="B")
+    train_df = pd.DataFrame({"Close": [95.0 + i for i in range(10)]}, index=dates)
+    test_df = pd.DataFrame()
+    
+    # Monkeypatch scorecard builder to return an all-None macro scorecard
+    orig_builder = mas.build_institutional_scorecard
+    def mock_none_builder(**kwargs):
+        return {
+            "macro_environment": {
+                "nifty_close": None,
+                "nifty_trend": "UNAVAILABLE",
+                "india_vix": None,
+                "vix_regime": "UNAVAILABLE",
+                "macro_multiplier": None
+            },
+            "sector_relative_strength": {
+                "sector_index_ticker": "^NSEI",
+                "beta_nifty": None,
+                "corr_nifty": None,
+                "beta_sector": None,
+                "corr_sector": None
+            },
+            "institutional_risk_and_sizing": {
+                "var_95_1day_pct": None,
+                "var_95_horizon_pct": None,
+                "cvar_95_horizon_pct": None,
+                "historical_max_drawdown_pct": None,
+                "gross_upside_pct": None,
+                "friction_deduction_pct": None,
+                "net_upside_pct": None,
+                "stop_loss_invalidation_level": None,
+                "downside_risk_pct": None,
+                "net_risk_reward_ratio": None,
+                "half_kelly_alloc_pct": None,
+                "recommended_portfolio_alloc_pct": None,
+                "recommended_capital_inr": None,
+                "recommended_shares": None,
+                "institutional_directive": "HOLD / UNAVAILABLE"
+            }
+        }
+    mas.build_institutional_scorecard = mock_none_builder
+    try:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            res = out_agent.render(msg, "TEST.NS", train_df, test_df, output_dir=tmpdir)
+            assert res is not None
+            assert res["recommendation"]["action"] == "HOLD / UNAVAILABLE"
+            # Verify report file exists and contains N/A without crashing
+            report_file = os.path.join(tmpdir, "TEST.NS_executive_report.md")
+            assert os.path.exists(report_file)
+            with open(report_file) as f:
+                content = f.read()
+                assert "Benchmark Close: N/A" in content
+                assert "Level: N/A" in content
+    finally:
+        mas.build_institutional_scorecard = orig_builder
+
+def test_stochastic_bridge_reproducibility():
+    try:
+        from covfree_forecaster import forecast_covfree
+    except ImportError:
+        from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+
+
+    import numpy as np
+    p1, q10_1, q90_1 = forecast_covfree(100.0, 250.0, 0.30, 100)
+    p2, q10_2, q90_2 = forecast_covfree(100.0, 250.0, 0.30, 100)
+    assert np.allclose(p1, p2), "Stochastic bridge must be deterministic when seed=None"
+    assert np.allclose(q10_1, q10_2), "Q10 must match"
+    assert np.allclose(q90_1, q90_2), "Q90 must match"
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

@@ -39,7 +39,7 @@ print(f"Forecast horizon: {horizon} trading days ({actual_dates[0]} to {actual_d
 
 # 2. Query Exa for Macro Milestones in 2026
 print("Querying Exa for 2026 Indian Market Macro Signals...")
-exa = Exa("5a51f858-e6b9-41ee-8881-e61b8af5821f")
+exa = Exa(os.environ.get("EXA_API_KEY", ""))
 macro_info = {}
 try:
     res_mpc = exa.search("RBI MPC meeting repo rate dates 2026", num_results=2)

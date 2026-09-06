@@ -11,17 +11,17 @@
 
 | Service | Key / Credential | Endpoint / Model | Purpose |
 | :--- | :--- | :--- | :--- |
-| **AkashML** | `akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL` | `https://api.akashml.com/v1/chat/completions`<br>Model: `zai-org/GLM-5.3` | Qualitative scenario reasoning, multiple calibration, corporate filing synthesis |
-| **Exa Neural Search** | `5a51f858-e6b9-41ee-8881-e61b8af5821f` | `https://api.exa.ai/search`<br>Type: `neural` | Pre-cutoff regulatory filings, order wins, capacity expansion (zero-leakage guaranteed) |
-| **NVIDIA NIM API** | `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` | `https://integrate.api.nvidia.com/v1` | Secondary LLM fallback provider for reasoning models |
+| **AkashML** | `YOUR_AKASHML_API_KEY` | `https://api.akashml.com/v1/chat/completions`<br>Model: `zai-org/GLM-5.3` | Qualitative scenario reasoning, multiple calibration, corporate filing synthesis |
+| **Exa Neural Search** | `YOUR_EXA_API_KEY` | `https://api.exa.ai/search`<br>Type: `neural` | Pre-cutoff regulatory filings, order wins, capacity expansion (zero-leakage guaranteed) |
+| **NVIDIA NIM API** | `YOUR_NVIDIA_NIM_API_KEY` | `https://integrate.api.nvidia.com/v1` | Secondary LLM fallback provider for reasoning models |
 | **Google Colab CLI** | `--auth=adc` / `--auth=oauth2` | Google Cloud Vertex / Colab Enterprise | Managing remote GPU (T4 / A100) runtimes for TimesFM PyTorch models |
 | **GitHub PAT** | `<YOUR_GITHUB_PAT>` | `https://github.com/ajithvnr2001/timesfm-3.0-pytorch.git` | Authenticated Git clone & push access |
 
 #### Ready-to-Run Shell Export (Zero Setup):
 ```bash
-export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
-export NVIDIA_NIM_API_KEY="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"
+export AKASHML_API_KEY="YOUR_AKASHML_API_KEY"
+export EXA_API_KEY="YOUR_EXA_API_KEY"
+export NVIDIA_NIM_API_KEY="YOUR_NVIDIA_NIM_API_KEY"
 export GITHUB_PAT="<YOUR_GITHUB_PAT>"
 ```
 

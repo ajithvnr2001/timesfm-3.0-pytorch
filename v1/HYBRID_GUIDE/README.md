@@ -237,7 +237,7 @@ python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
   --mode live \
   --tickers MODISONLTD.NS,CUPID.NS \
   --horizon 14 \
-  --exa_key 5a51f858-e6b9-41ee-8881-e61b8af5821f \
+  --exa_key YOUR_EXA_API_KEY \
   --output_dir ./output_portfolio_live
 ```
 
@@ -247,7 +247,7 @@ python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
 *Leveraging Gemini 2.5 Flash for fundamental extraction and valuation synthesis:*
 ```bash
 export GEMINI_API_KEY="your-gemini-key"
-export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
+export EXA_API_KEY="YOUR_EXA_API_KEY"
 
 python HYBRID_GUIDE/hybrid_agentic_pipeline.py \
   --mode live \

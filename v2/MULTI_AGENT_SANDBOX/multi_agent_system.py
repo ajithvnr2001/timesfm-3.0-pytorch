@@ -30,6 +30,7 @@ Architectural Triad:
 
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -44,6 +45,17 @@ import yfinance as yf
 
 class SecurityError(Exception):
     pass
+
+def fmt_val(val, spec="", prefix="", suffix="", default="N/A"):
+    """Safely formats numerical values or returns default if None/invalid."""
+    if val is None:
+        return default
+    try:
+        formatted = f"{val:{spec}}" if spec else str(val)
+        return f"{prefix}{formatted}{suffix}"
+    except (ValueError, TypeError):
+        return default
+
 
 # Load local .env file dynamically if present
 for _env_path in [
@@ -344,79 +356,114 @@ class ProcessSandboxAgent:
         self.forecaster = None
 
     def _verify_sandbox_security(self, message: A2AMessage):
-        """Hardware/Process Gate: Rejects payload if leakage tokens are detected in payload."""
-        payload_serialized = json.dumps(message.payload)
+        """Hardware/Process Gate: Fail-closed schema audit and token leakage detection."""
+        ALLOWED_PAYLOAD_KEYS = {
+            "asset_pseudonym", "context_length", "horizon", "last_known_scalar",
+            "numerical_context", "past_volume_ratio", "covariates", "scenarios",
+            "weighted_target", "macro_momentum", "fundamental_metadata"
+        }
+        payload = message.payload
+        # 1. Enforce strict declared schema (fail-closed)
+        extra_keys = set(payload.keys()) - ALLOWED_PAYLOAD_KEYS
+        if extra_keys:
+            raise SecurityError(f"SECURITY VIOLATION: Undeclared payload keys detected: {extra_keys}")
+
+        # 2. Assert numerical leaves in numerical_context if present
+        if "numerical_context" in payload:
+            ctx = payload["numerical_context"]
+            if not isinstance(ctx, (list, np.ndarray)) or len(ctx) == 0:
+                raise SecurityError("SECURITY VIOLATION: numerical_context must be a non-empty list/array of floats.")
+            if "context_length" in payload and len(ctx) != payload["context_length"]:
+                raise SecurityError("SECURITY VIOLATION: numerical_context length mismatch against context_length.")
+            for val in ctx:
+                if not isinstance(val, (int, float, np.number)):
+                    raise SecurityError(f"SECURITY VIOLATION: Non-numeric element in numerical_context: {type(val)}")
+
+        # 3. Prohibited entity/year token leakage audit
+        payload_serialized = json.dumps(payload)
         prohibited = message.security_metadata.get("prohibited_tokens", [])
         for tok in prohibited:
             if tok and re.search(rf"\b{re.escape(tok)}\b", payload_serialized, re.IGNORECASE):
                 raise SecurityError(f"CRITICAL LEAKAGE DETECTED: Prohibited token '{tok}' found in A2A message payload!")
-        print(f"[{self.agent_id}] Security Audit PASSED: Payload is 100% anonymized with zero identifying tokens.")
+        print(f"[{self.agent_id}] Security Audit PASSED: Payload is 100% anonymized (fail-closed schema verified, zero leakage tokens).")
 
-    def _match_horizon_length(self, arr, horizon: int, last_val: float) -> np.ndarray:
+    def _match_horizon_length(self, arr, horizon: int, last_val: float, return_counts: bool = False):
         """
         Guarantees that the forecast array matches exactly `horizon` points,
         preventing broadcast crashes when foundation models return fewer points
         (e.g., Google TimesFM returning 128 points for a 663-day horizon).
         """
         arr = np.asarray(arr, dtype=float)
-        if len(arr) == horizon:
-            return arr
-        if len(arr) > horizon:
-            return arr[:horizon]
-        if len(arr) == 0:
-            return np.full(horizon, last_val, dtype=float)
-        if len(arr) >= 5:
-            recent = arr[-min(10, len(arr)):]
+        n_raw = len(arr)
+        if n_raw == horizon:
+            return (arr, horizon, 0) if return_counts else arr
+        if n_raw > horizon:
+            return (arr[:horizon], horizon, 0) if return_counts else arr[:horizon]
+        neural_pts = n_raw
+        extrap_pts = horizon - n_raw
+        if n_raw == 0:
+            res = np.full(horizon, last_val, dtype=float)
+            return (res, 0, horizon) if return_counts else res
+        if n_raw >= 5:
+            recent = arr[-min(10, n_raw):]
             slope = (recent[-1] - recent[0]) / max(1, len(recent) - 1)
-        elif len(arr) >= 2:
-            slope = (arr[-1] - arr[0]) / (len(arr) - 1)
+        elif n_raw >= 2:
+            slope = (arr[-1] - arr[0]) / (n_raw - 1)
         else:
             slope = 0.0
         capped_slope = np.clip(slope, -last_val * 0.003, last_val * 0.003)
-        needed = horizon - len(arr)
-        extension = arr[-1] + capped_slope * np.arange(1, needed + 1)
-        return np.concatenate([arr, extension])
+        extension = arr[-1] + capped_slope * np.arange(1, extrap_pts + 1)
+        matched = np.concatenate([arr, extension])
+        return (matched, neural_pts, extrap_pts) if return_counts else matched
 
-    def _init_forecaster(self):
+    def _init_forecaster(self, horizon: int = 512):
         if self.forecaster is None and HAS_TIMESFM:
+            horizon_len = max(512, int(horizon))
             if HAS_TIMESFM3_EVALUATOR:
                 try:
                     print(f"[{self.agent_id}] Initializing TimesFM 3.0 Official Evaluator on {self.device}...")
                     config = ModelConfig(checkpoint_path="google/timesfm-3.0-pytorch", per_core_batch_size=32, device=self.device)
                     self.forecaster = TimesFM3Evaluator(config)
+                    self.model_name = "Google TimesFM 3.0 (Official PyTorch Evaluator)"
                     return
                 except Exception as e:
                     print(f"[{self.agent_id}] TimesFM3Evaluator init notice: {e}")
             if HAS_TIMESFM_GOOGLE:
                 try:
-                    print(f"[{self.agent_id}] Initializing Google TimesFM PyTorch model on {self.device}...")
+                    print(f"[{self.agent_id}] Initializing Google TimesFM PyTorch model on {self.device} (horizon_len={horizon_len})...")
                     self.forecaster = timesfm.TimesFm(
-                        hparams=timesfm.TimesFmHparams(backend="gpu" if self.device == "cuda" else "cpu", per_core_batch_size=32, horizon_len=512),
+                        hparams=timesfm.TimesFmHparams(backend="gpu" if self.device == "cuda" else "cpu", per_core_batch_size=32, horizon_len=horizon_len),
                         checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch")
                     )
+                    self.model_name = f"Google TimesFM 1.0 (200m-pytorch, horizon_len={horizon_len})"
                     return
                 except Exception as e:
                     print(f"[{self.agent_id}] Google TimesFM init notice: {e}")
+        if self.forecaster is None:
+            self.model_name = "Calibrated Stochastic Valuation Bridge & Empirical Drift Fallback"
 
     def execute_forecast(self, message: A2AMessage) -> A2AMessage:
         print(f"[{self.agent_id}] Ingested A2A message {message.message_id} from {message.sender}.")
         self._verify_sandbox_security(message)
-        self._init_forecaster()
 
         payload = message.payload
         ctx = np.array(payload["numerical_context"], dtype=np.float32)
         horizon = payload["horizon"]
         last_val = payload["last_known_scalar"]
-        covariates = payload["covariates"]
+        covariates = payload.get("covariates") or {}
         scenarios = payload["scenarios"]
 
+        self._init_forecaster(horizon)
+
         forecast_results = {}
+        neural_pts = horizon
+        extrap_pts = 0
 
         # Log exact engine running honestly
         if self.forecaster is not None:
-            print(f"[{self.agent_id}] Running TimesFM 3.0 PyTorch Foundation Model on {self.device}...")
+            print(f"[{self.agent_id}] Running {getattr(self, 'model_name', 'TimesFM')} on {self.device}...")
         else:
-            print(f"[{self.agent_id}] WARNING: TimesFM 3.0 PyTorch model unavailable — executing calibrated heuristic & Monte Carlo fallback.")
+            print(f"[{self.agent_id}] WARNING: TimesFM neural model unavailable — executing calibrated stochastic & Monte Carlo fallback.")
 
         # 1. Pure Baseline Forecast
         if self.forecaster is not None:
@@ -426,7 +473,7 @@ class ProcessSandboxAgent:
                     outs = list(self.forecaster.predict_batch([ctx], horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
                     out = outs[0]
                     pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
-                    matched_base = self._match_horizon_length(pred_vals, horizon, last_val)
+                    matched_base, neural_pts, extrap_pts = self._match_horizon_length(pred_vals, horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if hasattr(out, "quantiles") and out.quantiles is not None:
                         forecast_results["pure_baseline_q10"] = self._match_horizon_length(out.quantiles[:, 0], horizon, last_val).tolist()
@@ -434,7 +481,7 @@ class ProcessSandboxAgent:
                 elif hasattr(self.forecaster, "forecast"):
                     # Google Research TimesFm API
                     point_forecast, experimental_quantiles = self.forecaster.forecast([ctx])
-                    matched_base = self._match_horizon_length(point_forecast[0], horizon, last_val)
+                    matched_base, neural_pts, extrap_pts = self._match_horizon_length(point_forecast[0], horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if experimental_quantiles is not None:
                         forecast_results["pure_baseline_q10"] = self._match_horizon_length(experimental_quantiles[0, :, 1], horizon, last_val).tolist()
@@ -443,7 +490,7 @@ class ProcessSandboxAgent:
                 print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
 
         if "pure_baseline" not in forecast_results:
-            macro_mom = payload.get("macro_momentum", {})
+            macro_mom = payload.get("macro_momentum", {}) or {}
             is_down = macro_mom.get("is_downtrend", False)
             ret_1y = macro_mom.get("ret_1y", 0.0)
 
@@ -462,6 +509,10 @@ class ProcessSandboxAgent:
         # Ensure pure_base_arr is EXACTLY length horizon
         pure_base_arr = self._match_horizon_length(forecast_results["pure_baseline"], horizon, last_val)
         forecast_results["pure_baseline"] = pure_base_arr.tolist()
+        forecast_results["neural_points"] = neural_pts
+        forecast_results["extrapolated_points"] = extrap_pts
+        forecast_results["model_name"] = getattr(self, "model_name", "Calibrated Fallback")
+
         if "pure_baseline_q10" in forecast_results:
             forecast_results["pure_baseline_q10"] = self._match_horizon_length(forecast_results["pure_baseline_q10"], horizon, last_val).tolist()
         if "pure_baseline_q90" in forecast_results:
@@ -488,7 +539,8 @@ class ProcessSandboxAgent:
             s_preds = None
             if forecast_covfree is not None:
                 try:
-                    point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
+                    sc_seed = int(hashlib.sha256(f"{payload.get('asset_pseudonym', 'A')}_{sc_name}_{horizon}_{last_val:.2f}".encode()).hexdigest()[:8], 16) % (2**31)
+                    point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon, seed=sc_seed)
                     p_m = self._match_horizon_length(point, horizon, last_val)
                     q10_m = self._match_horizon_length(q10, horizon, last_val)
                     q90_m = self._match_horizon_length(q90, horizon, last_val)
@@ -646,10 +698,13 @@ class OutputSynthesisAgent:
                     last_price=last_price,
                     fundamental_data=fund_data,
                     forecast_results={
+                        "stock_series": train_df["Close"] if not train_df.empty else None,
                         "numerical_context": train_df["Close"].values[-64:].tolist() if not train_df.empty else [last_price]*10,
                         "weighted_expected": forecasts.get("weighted_expected", []),
                         "base_q10": forecasts.get("bear_q10", forecasts.get("bear", [])),
-                        "base_q90": forecasts.get("bull_q90", forecasts.get("bull", []))
+                        "base_q90": forecasts.get("bull_q90", forecasts.get("bull", [])),
+                        "neural_points": forecasts.get("neural_points", horizon),
+                        "extrapolated_points": forecasts.get("extrapolated_points", 0)
                     },
                     horizon=horizon,
                     as_of=train_df.index[-1].strftime("%Y-%m-%d") if not train_df.empty else None
@@ -744,37 +799,67 @@ class OutputSynthesisAgent:
 * **Leakage Detected**: **0 Tokens (100% Blind-Box Verified)**.
 """
         if scorecard:
-            macro = scorecard["macro_environment"]
-            sec = scorecard["sector_relative_strength"]
-            risk = scorecard["institutional_risk_and_sizing"]
-            md_report += f"""
+            try:
+                macro = scorecard.get("macro_environment", {}) or {}
+                sec = scorecard.get("sector_relative_strength", {}) or {}
+                risk = scorecard.get("institutional_risk_and_sizing", {}) or {}
+
+                nifty_close_str = fmt_val(macro.get("nifty_close"), ",.2f", prefix="Rs. ")
+                vix_val_str = fmt_val(macro.get("india_vix"), ".2f")
+                vix_mult_str = fmt_val(macro.get("macro_multiplier"), ".2f", suffix="x")
+                beta_nifty_str = fmt_val(sec.get("beta_nifty"), ".2f")
+                beta_sec_str = fmt_val(sec.get("beta_sector"), ".2f")
+
+                var_1d_str = fmt_val(risk.get("var_95_1day_pct"), ".2f", suffix="%")
+                var_horiz_str = fmt_val(risk.get("var_95_horizon_pct"), ".2f", suffix="%")
+                cvar_str = fmt_val(risk.get("cvar_95_horizon_pct"), ".2f", suffix="%")
+                mdd_str = fmt_val(risk.get("historical_max_drawdown_pct"), ".2f", suffix="%")
+                gross_up_str = fmt_val(risk.get("gross_upside_pct"), "+.2f", suffix="%")
+                frict_str = fmt_val(risk.get("friction_deduction_pct"), ".2f", prefix="-", suffix="%")
+                net_up_str = fmt_val(risk.get("net_upside_pct"), "+.2f", suffix="%")
+                stop_str = fmt_val(risk.get("stop_loss_invalidation_level"), ".2f", prefix="Rs. ")
+                down_str = fmt_val(risk.get("downside_risk_pct"), ".1f", prefix="-", suffix="%")
+                rrr_str = fmt_val(risk.get("net_risk_reward_ratio"), suffix="x")
+                kelly_str = fmt_val(risk.get("half_kelly_alloc_pct"), suffix="%")
+                alloc_str = fmt_val(risk.get("recommended_portfolio_alloc_pct"), suffix="%")
+                cap_str = fmt_val(risk.get("recommended_capital_inr"), ",.2f", prefix="Rs. ")
+                shares_str = fmt_val(risk.get("recommended_shares"), suffix=" shares")
+                directive_str = str(risk.get("institutional_directive", "HOLD / MONITOR"))
+
+                neural_pts = forecasts.get("neural_points", horizon)
+                extrap_pts = forecasts.get("extrapolated_points", 0)
+
+                md_report += f"""
 ---
 
 ## 4. Institutional Risk, Macro Regime & Capital Sizing Matrix
 
 ### A. Cross-Asset Macro & Sector Alignment
-* **NIFTY 50 Macro Regime**: `{macro['nifty_trend']}` (Benchmark Close: Rs. {macro['nifty_close']:,.2f})
-* **India VIX Volatility Regime**: `{macro['vix_regime']}` (Level: {macro['india_vix']:.2f} | Multiplier: {macro['macro_multiplier']:.2f}x)
-* **Sector Benchmark**: `{sec['sector_index_ticker']}` (Stock Beta to NIFTY: `{sec['beta_nifty']}` | Beta to Sector: `{sec['beta_sector']}`)
+* **NIFTY 50 Macro Regime**: `{macro.get('nifty_trend', 'UNAVAILABLE')}` (Benchmark Close: {nifty_close_str})
+* **India VIX Volatility Regime**: `{macro.get('vix_regime', 'UNAVAILABLE')}` (Level: {vix_val_str} | Multiplier: {vix_mult_str})
+* **Sector Benchmark**: `{sec.get('sector_index_ticker', '^NSEI')}` (Stock Beta to NIFTY: `{beta_nifty_str}` | Beta to Sector: `{beta_sec_str}`)
 
 ### B. Value at Risk (VaR) & Tail Risk Profile
 | Metric | Horizon Risk (% of Equity) | Interpretation |
 | :--- | :--- | :--- |
-| **Parametric 95% 1-Day VaR** | **{risk['var_95_1day_pct']:.2f}%** | 95% confidence max expected single-day loss |
-| **Parametric 95% Horizon VaR** | **{risk['var_95_horizon_pct']:.2f}%** | Cumulative {horizon}-day volatility exposure |
-| **Conditional VaR (CVaR / Expected Shortfall)** | **{risk['cvar_95_horizon_pct']:.2f}%** | Average loss in worst 5% tail-risk scenarios |
-| **Historical Max Drawdown** | **{risk['historical_max_drawdown_pct']:.2f}%** | Deepest peak-to-trough historical correction |
+| **Parametric 95% 1-Day VaR** | **{var_1d_str}** | 95% confidence max expected single-day loss |
+| **Parametric 95% Horizon VaR** | **{var_horiz_str}** | Cumulative {horizon}-day volatility exposure |
+| **Conditional VaR (CVaR / Expected Shortfall)** | **{cvar_str}** | Average loss in worst 5% tail-risk scenarios |
+| **Historical Max Drawdown** | **{mdd_str}** | Deepest peak-to-trough historical correction |
 
 ### C. Capital Allocation & Execution Matrix (Indian Market Frictions Deducted)
-* **Gross Potential Upside**: `{risk['gross_upside_pct']:+.2f}%`
-* **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `-{risk['friction_deduction_pct']:.2f}%`
-* **Net Horizon Upside**: `**{risk['net_upside_pct']:+.2f}%**`
-* **Objective Invalidation Stop-Loss**: `Rs. {risk['stop_loss_invalidation_level']:.2f}` (Downside: `-{risk['downside_risk_pct']:.1f}%`)
-* **Asymmetric Risk/Reward Ratio (RRR)**: `**{risk['net_risk_reward_ratio']}x**`
-* **Half-Kelly Capital Allocation**: `{risk['half_kelly_alloc_pct']}%`
-* **Recommended Portfolio Exposure**: `**{risk['recommended_portfolio_alloc_pct']}%**` (Rs. {risk['recommended_capital_inr']:,.2f} | **{risk['recommended_shares']} shares**)
-* **Institutional Executive Directive**: `**{risk['institutional_directive']}**`
+* **Gross Potential Upside**: `{gross_up_str}`
+* **Indian Frictions Deducted (STT + SEBI + GST + Slippage)**: `{frict_str}`
+* **Net Horizon Upside**: **`{net_up_str}`**
+* **Objective Invalidation Stop-Loss**: `{stop_str}` (Downside: `{down_str}`)
+* **Asymmetric Risk/Reward Ratio (RRR)**: **`{rrr_str}`**
+* **Half-Kelly Capital Allocation**: `{kelly_str}`
+* **Recommended Portfolio Exposure**: **`{alloc_str}`** ({cap_str} | **{shares_str}**)
+* **Institutional Executive Directive**: **`{directive_str}`**
+* **Foundation Horizon Structure**: `{neural_pts} neural foundation points, {extrap_pts} boundary extrapolated points`
 """
+            except Exception as e:
+                md_report += f"\n\n> [!NOTE]\n> Institutional scorecard render notice: {e}\n"
 
         report_path = os.path.join(output_dir, f"{real_ticker}_executive_report.md")
         with open(report_path, "w") as f:
@@ -797,6 +882,9 @@ class OutputSynthesisAgent:
             "a2a_message_id": message.message_id,
             "metrics": metrics,
             "calendar": calendar_info,
+            "neural_points": forecasts.get("neural_points", horizon),
+            "extrapolated_points": forecasts.get("extrapolated_points", 0),
+            "model_name": forecasts.get("model_name", "TimesFM"),
             "recommendation": {"action": rec_action},
             "predictions": {
                 "pure_baseline": forecasts.get("pure_baseline", []),

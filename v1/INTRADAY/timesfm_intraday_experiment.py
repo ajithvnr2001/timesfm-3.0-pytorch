@@ -39,7 +39,7 @@ print(f"Daily Pivots: PP={pp:.2f}, R1={r1:.2f}, S1={s1:.2f}, R2={r2:.2f}, S2={s2
 
 # 2. Exa Pre-Market Intelligence
 print("Querying Exa for September 3 pre-market and expiry cues...")
-exa = Exa("5a51f858-e6b9-41ee-8881-e61b8af5821f")
+exa = Exa(os.environ.get("EXA_API_KEY", ""))
 premarket_cues = {}
 try:
     res = exa.search("GIFT Nifty opening September 3 2026 pre-market India", num_results=1)

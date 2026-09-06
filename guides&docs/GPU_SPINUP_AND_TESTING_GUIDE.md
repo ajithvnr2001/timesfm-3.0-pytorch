@@ -12,15 +12,15 @@ Because this repository is private, all production credentials for the quantitat
 
 | Service | Environment Variable | Hardcoded Value | Purpose |
 | :--- | :--- | :--- | :--- |
-| **AkashML** | `AKASHML_API_KEY` | `akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL` | Qualitative scenario reasoning & forward multiple calibration (`zai-org/GLM-5.3`) |
-| **Exa Search** | `EXA_API_KEY` | `5a51f858-e6b9-41ee-8881-e61b8af5821f` | Pre-cutoff regulatory disclosures, earnings transcripts & capacity expansions |
-| **NVIDIA NIM** | `NVIDIA_NIM_API_KEY` | `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` | Secondary fallback reasoning endpoint (`moonshotai/kimi-k3` / `llama-3.2`) |
+| **AkashML** | `AKASHML_API_KEY` | `YOUR_AKASHML_API_KEY` | Qualitative scenario reasoning & forward multiple calibration (`zai-org/GLM-5.3`) |
+| **Exa Search** | `EXA_API_KEY` | `YOUR_EXA_API_KEY` | Pre-cutoff regulatory disclosures, earnings transcripts & capacity expansions |
+| **NVIDIA NIM** | `NVIDIA_NIM_API_KEY` | `YOUR_NVIDIA_NIM_API_KEY` | Secondary fallback reasoning endpoint (`moonshotai/kimi-k3` / `llama-3.2`) |
 
 ### Ready-to-Run Shell Export:
 ```bash
-export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
-export NVIDIA_NIM_API_KEY="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"
+export AKASHML_API_KEY="YOUR_AKASHML_API_KEY"
+export EXA_API_KEY="YOUR_EXA_API_KEY"
+export NVIDIA_NIM_API_KEY="YOUR_NVIDIA_NIM_API_KEY"
 ```
 
 ---
@@ -188,9 +188,9 @@ git clone https://github.com/ajithvnr2001/timesfm-3.0-pytorch.git
 cd timesfm-3.0-pytorch
 
 # 2. Export active API keys
-export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
-export NVIDIA_NIM_API_KEY="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"
+export AKASHML_API_KEY="YOUR_AKASHML_API_KEY"
+export EXA_API_KEY="YOUR_EXA_API_KEY"
+export NVIDIA_NIM_API_KEY="YOUR_NVIDIA_NIM_API_KEY"
 
 # 3. Install dependencies
 pip install torch torchvision tqdm yfinance pandas numpy scipy matplotlib seaborn pypdf exa-py requests
@@ -225,9 +225,9 @@ To run the entire pipeline inside an interactive browser-based Google Colab note
 
 # Set hardcoded environment keys
 import os
-os.environ["AKASHML_API_KEY"] = "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-os.environ["EXA_API_KEY"] = "5a51f858-e6b9-41ee-8881-e61b8af5821f"
-os.environ["NVIDIA_NIM_API_KEY"] = "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"
+os.environ["AKASHML_API_KEY"] = "YOUR_AKASHML_API_KEY"
+os.environ["EXA_API_KEY"] = "YOUR_EXA_API_KEY"
+os.environ["NVIDIA_NIM_API_KEY"] = "YOUR_NVIDIA_NIM_API_KEY"
 
 # Verify GPU
 import torch

@@ -70,7 +70,7 @@ print(f"Forecast Horizon: {horizon} trading days (Feb 2, 2026 to Sep 2, 2026)")
 
 # 2. Exa Intelligence: Volatility Events
 print("Querying Exa for options volatility events in 2026...")
-exa = Exa("5a51f858-e6b9-41ee-8881-e61b8af5821f")
+exa = Exa(os.environ.get("EXA_API_KEY", ""))
 options_macro = {}
 try:
     res = exa.search("India VIX volatility spike 2026 election budget", num_results=1)

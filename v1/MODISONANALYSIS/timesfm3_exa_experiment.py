@@ -14,7 +14,7 @@ print("=== TimesFM 3.0 + Exa Event-Informed Forecasting Experiment ===")
 
 # 1. Use Exa API to fetch corporate event dates and macro signals
 print("Querying Exa API for event intelligence...")
-exa = Exa("5a51f858-e6b9-41ee-8881-e61b8af5821f")
+exa = Exa(os.environ.get("EXA_API_KEY", ""))
 
 event_info = {}
 try:

@@ -10,10 +10,18 @@ stochastic process:
   - Uncertainty bands (Q10/Q90) scale dynamically with asset volatility without variance collapse
   - Un-fixed seed by default (seed=None), with optional integer for reproducible verification
 """
+import hashlib
 import numpy as np
+
+def derive_deterministic_seed(last: float, target: float, annual_vol: float, horizon: int, half_life_days: float) -> int:
+    key = f"{round(float(last), 4)}_{round(float(target), 4)}_{round(float(annual_vol), 4)}_{int(horizon)}_{round(float(half_life_days), 2)}"
+    return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16) % (2**31)
 
 def monte_carlo_paths(last: float, annual_vol: float, horizon: int, n_sims: int = 500, seed: int = None):
     """Pure geometric Brownian motion paths without fundamental target drift."""
+    if seed is None:
+        key = f"mc_{round(float(last), 4)}_{round(float(annual_vol), 4)}_{int(horizon)}"
+        seed = int(hashlib.sha256(key.encode()).hexdigest()[:8], 16) % (2**31)
     rng = np.random.default_rng(seed)
     dt = 1.0 / 252.0
     daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)
@@ -27,9 +35,12 @@ def forecast_covfree(last: float, target: float, annual_vol: float, horizon: int
     Honest Stochastic Valuation Bridge:
       - Euler-Maruyama discretization of mean-reverting diffusion toward target
       - Confidence intervals come strictly from simulated paths preserving volatility
+      - Deterministic seed derived from parameters when seed=None for 100% reproducible backtests
     Returns:
       (point_forecast, q10, q90) as numpy arrays of length `horizon`.
     """
+    if seed is None:
+        seed = derive_deterministic_seed(last, target, annual_vol, horizon, half_life_days)
     rng = np.random.default_rng(seed)
     dt = 1.0 / 252.0
     daily_vol = max(0.05, float(annual_vol)) * np.sqrt(dt)

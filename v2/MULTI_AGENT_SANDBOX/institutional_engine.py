@@ -164,21 +164,31 @@ def get_sector_and_beta(ticker, industry, stock_series, as_of=None):
             sec_hist = sec_hist[sec_hist.index <= as_of_dt]
             nifty_hist = nifty_hist[nifty_hist.index <= as_of_dt]
 
-        # Handle stock_series input (can be list, array, or Series)
-        if hasattr(stock_series, "index"):
+        # Handle stock_series input (pd.Series with DateTimeIndex, list, or array)
+        if isinstance(stock_series, pd.Series) and len(stock_series) > 0:
             s_s = stock_series.copy()
             if s_s.index.tz is not None:
                 s_s.index = s_s.index.tz_localize(None)
+            if as_of_dt:
+                s_s = s_s[s_s.index <= as_of_dt]
+        elif hasattr(stock_series, "__len__") and len(stock_series) > 0:
+            n = min(len(stock_series), len(nifty_hist))
+            if n >= 30:
+                s_s = pd.Series(list(stock_series)[-n:], index=nifty_hist.index[-n:])
+            else:
+                s_s = None
         else:
-            # Match recent dates from nifty
-            s_s = pd.Series(stock_series[-len(nifty_hist):], index=nifty_hist.index[-len(stock_series):])
+            s_s = None
 
-        # Align series on matching dates
-        df = pd.DataFrame({
-            "stock": s_s,
-            "sector": sec_hist,
-            "nifty": nifty_hist
-        }).dropna()
+        if s_s is not None:
+            # Align series on matching dates with inner join
+            df = pd.DataFrame({
+                "stock": s_s,
+                "sector": sec_hist,
+                "nifty": nifty_hist
+            }).sort_index().dropna()
+        else:
+            df = pd.DataFrame()
 
         if len(df) >= 30:
             rets = df.pct_change().dropna()
@@ -325,7 +335,8 @@ def build_institutional_scorecard(
     """
     macro = get_macro_regime(as_of)
     industry = fundamental_data.get("industry", "General")
-    sector_info = get_sector_and_beta(ticker, industry, forecast_results.get("numerical_context", [last_price]*10), as_of)
+    stock_input = forecast_results.get("stock_series", forecast_results.get("numerical_context", [last_price]*10))
+    sector_info = get_sector_and_beta(ticker, industry, stock_input, as_of)
 
     scenarios = fundamental_data.get("scenarios", {})
     bear_tgt = scenarios.get("bear", {}).get("target_price", last_price * 0.85)
