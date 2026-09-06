@@ -1,0 +1,107 @@
+{
+  "ticker": "ARROWGREEN.NS",
+  "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
+  "a2a_message_id": "66b56b7b",
+  "metrics": {
+    "pure_baseline_terminal": 827.3269653320312,
+    "weighted_terminal": 827.3269653320312,
+    "bull_terminal": 827.3269653320312,
+    "bear_terminal": 827.3269653320312
+  },
+  "predictions": {
+    "pure_baseline": [
+      819.0234985351562,
+      824.5498046875,
+      827.243408203125,
+      828.6913452148438,
+      827.3269653320312
+    ],
+    "weighted": [
+      819.02353515625,
+      824.5498046875,
+      827.243408203125,
+      828.6913452148438,
+      827.3269653320312
+    ],
+    "scenarios": {
+      "bear": [
+        819.0235595703125,
+        824.5498046875,
+        827.243408203125,
+        828.6913452148438,
+        827.3269653320312
+      ],
+      "base": [
+        819.0235595703125,
+        824.5498046875,
+        827.243408203125,
+        828.6913452148438,
+        827.3269653320312
+      ],
+      "bull": [
+        819.0235595703125,
+        824.5498046875,
+        827.243408203125,
+        828.6913452148438,
+        827.3269653320312
+      ]
+    }
+  },
+  "chart_saved": "/content/test_results/ARROWGREEN.NS_multi_agent_forecast.png",
+  "report_saved": "/content/test_results/ARROWGREEN.NS_executive_report.md",
+  "institutional_scorecard": {
+    "timestamp": "2026-09-05T23:59:06.261192Z",
+    "ticker": "ARROWGREEN.NS",
+    "last_close": 814.1,
+    "horizon_days": 5,
+    "macro_environment": {
+      "nifty_close": 23900.0,
+      "nifty_trend": "BULLISH_UPTREND",
+      "india_vix": 13.5,
+      "vix_regime": "NORMAL_VOLATILITY (Optimal Trading Environment)",
+      "macro_multiplier": 1.0
+    },
+    "sector_relative_strength": {
+      "sector_index_ticker": "^NSEI",
+      "beta_nifty": 1.0,
+      "corr_nifty": 0.65,
+      "beta_sector": 1.0,
+      "corr_sector": 0.7
+    },
+    "fundamental_forensics": {
+      "audited_eps": 42.33,
+      "eps_source": "audited_vendor_trailing",
+      "earnings_cagr": null,
+      "sector_pe_benchmark": null,
+      "bear_target": 1597.2,
+      "base_target": 1815.0,
+      "bull_target": 2083.62,
+      "weighted_fair_value": 1827.705
+    },
+    "timesfm_probabilistic_forecast": {
+      "terminal_expected": 827.33,
+      "terminal_q10": 752.36,
+      "terminal_q90": 915.7
+    },
+    "institutional_risk_and_sizing": {
+      "annualized_volatility_pct": 38.97,
+      "historical_max_drawdown_pct": -14.83,
+      "var_95_1day_pct": 4.04,
+      "var_95_horizon_pct": 9.03,
+      "cvar_95_horizon_pct": 9.29,
+      "stop_loss_invalidation_level": 737.31,
+      "downside_risk_pct": 9.43,
+      "friction_deduction_pct": 0.25,
+      "gross_upside_pct": 124.51,
+      "net_upside_pct": 124.26,
+      "net_risk_reward_ratio": 13.17,
+      "win_probability_est": 0.78,
+      "half_kelly_alloc_pct": 38.2,
+      "volatility_parity_alloc_pct": 44.9,
+      "recommended_portfolio_alloc_pct": 15.0,
+      "recommended_capital_inr": 150000.0,
+      "recommended_shares": 184,
+      "institutional_directive": "STRONG BUY (High Conviction Asymmetric Setup)"
+    }
+  }
+}

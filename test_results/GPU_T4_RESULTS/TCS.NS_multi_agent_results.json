@@ -1,0 +1,107 @@
+{
+  "ticker": "TCS.NS",
+  "architecture": "3-Agent Air-Gapped Triad (Main \u2794 Process \u2794 Output)",
+  "a2a_message_id": "20811705",
+  "metrics": {
+    "pure_baseline_terminal": 2287.8408203125,
+    "weighted_terminal": 2287.840673828125,
+    "bull_terminal": 2287.840576171875,
+    "bear_terminal": 2287.840576171875
+  },
+  "predictions": {
+    "pure_baseline": [
+      2296.724853515625,
+      2293.638916015625,
+      2290.459228515625,
+      2290.318603515625,
+      2287.8408203125
+    ],
+    "weighted": [
+      2296.724853515625,
+      2293.638916015625,
+      2290.459228515625,
+      2290.318603515625,
+      2287.840673828125
+    ],
+    "scenarios": {
+      "bear": [
+        2296.724853515625,
+        2293.638916015625,
+        2290.459228515625,
+        2290.318603515625,
+        2287.840576171875
+      ],
+      "base": [
+        2296.724853515625,
+        2293.638916015625,
+        2290.459228515625,
+        2290.318603515625,
+        2287.840576171875
+      ],
+      "bull": [
+        2296.724853515625,
+        2293.638916015625,
+        2290.459228515625,
+        2290.318603515625,
+        2287.840576171875
+      ]
+    }
+  },
+  "chart_saved": "/content/test_results/TCS.NS_multi_agent_forecast.png",
+  "report_saved": "/content/test_results/TCS.NS_executive_report.md",
+  "institutional_scorecard": {
+    "timestamp": "2026-09-05T23:59:01.246112Z",
+    "ticker": "TCS.NS",
+    "last_close": 2304.0,
+    "horizon_days": 5,
+    "macro_environment": {
+      "nifty_close": 23900.0,
+      "nifty_trend": "BULLISH_UPTREND",
+      "india_vix": 13.5,
+      "vix_regime": "NORMAL_VOLATILITY (Optimal Trading Environment)",
+      "macro_multiplier": 1.0
+    },
+    "sector_relative_strength": {
+      "sector_index_ticker": "^CNXIT",
+      "beta_nifty": 1.0,
+      "corr_nifty": 0.65,
+      "beta_sector": 1.0,
+      "corr_sector": 0.7
+    },
+    "fundamental_forensics": {
+      "audited_eps": 137.55,
+      "eps_source": "audited_vendor_trailing",
+      "earnings_cagr": null,
+      "sector_pe_benchmark": null,
+      "bear_target": 1513.05,
+      "base_target": 1774.4,
+      "bull_target": 1994.48,
+      "weighted_fair_value": 1764.0825
+    },
+    "timesfm_probabilistic_forecast": {
+      "terminal_expected": 2287.84,
+      "terminal_q10": 2172.13,
+      "terminal_q90": 2411.45
+    },
+    "institutional_risk_and_sizing": {
+      "annualized_volatility_pct": 32.09,
+      "historical_max_drawdown_pct": -10.81,
+      "var_95_1day_pct": 3.33,
+      "var_95_horizon_pct": 7.44,
+      "cvar_95_horizon_pct": 7.74,
+      "stop_loss_invalidation_level": 1513.05,
+      "downside_risk_pct": 34.33,
+      "friction_deduction_pct": 0.25,
+      "gross_upside_pct": -23.43,
+      "net_upside_pct": -23.68,
+      "net_risk_reward_ratio": 0.0,
+      "win_probability_est": 0.3,
+      "half_kelly_alloc_pct": 0.0,
+      "volatility_parity_alloc_pct": 54.5,
+      "recommended_portfolio_alloc_pct": 0.0,
+      "recommended_capital_inr": 0.0,
+      "recommended_shares": 0,
+      "institutional_directive": "TRIM / TAKE PROFIT (Negative Expected Skew)"
+    }
+  }
+}
