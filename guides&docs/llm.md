@@ -15,8 +15,18 @@
 | **Exa Neural Search** | `5a51f858-e6b9-41ee-8881-e61b8af5821f` | `https://api.exa.ai/search`<br>Type: `neural` | Pre-cutoff regulatory filings, order wins, capacity expansion (zero-leakage guaranteed) |
 | **NVIDIA NIM API** | `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` | `https://integrate.api.nvidia.com/v1` | Secondary LLM fallback provider for reasoning models |
 | **Google Colab CLI** | `--auth=adc` / `--auth=oauth2` | Google Cloud Vertex / Colab Enterprise | Managing remote GPU (T4 / A100) runtimes for TimesFM PyTorch models |
+| **GitHub PAT** | `<YOUR_GITHUB_PAT>` | `https://github.com/ajithvnr2001/timesfm-3.0-pytorch.git` | Authenticated Git clone & push access |
+
+#### Ready-to-Run Shell Export (Zero Setup):
+```bash
+export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
+export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
+export NVIDIA_NIM_API_KEY="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"
+export GITHUB_PAT="<YOUR_GITHUB_PAT>"
+```
 
 ### B. Git Repository & Source Code Control
+* **Authenticated Git Clone URL**: `git clone https://@github.com/ajithvnr2001/timesfm-3.0-pytorch.git`
 * **Repository URL**: `https://github.com/ajithvnr2001/timesfm-3.0-pytorch.git`
 * **Local Workspace**: `/root/timesfm_repo`
 * **Primary Branch**: `main`
@@ -184,7 +194,10 @@ flowchart TD
    * **Zero-Leakage Security Gate**: The Process Sandbox Agent scans incoming payloads against dynamic token dictionaries and calendar regexes. Any match aborts execution immediately with `SecurityError`.
    * **Neural Time-Series Forecasting**: TimesFM 3.0 PyTorch model evaluates the 64-step numerical closing price context, capturing natural autocorrelation, momentum, and mean-reverting volatility.
    * **Horizon-Aware Monte Carlo Bridge**: Generates stochastic trajectories that bridge from the current market price toward fundamental scenario targets (Bear, Base, Bull) with dynamic target reach:
-     $$W_h = \left(rac{h}{H}ight) 	imes 	ext{target\_reach}, \quad 	ext{target\_reach} = \min\left(0.98, \max\left(0.50, rac{H}{180}ight)ight)$$
+     $$W_h = \left(rac{h}{H}
+ight) 	imes 	ext{target\_reach}, \quad 	ext{target\_reach} = \min\left(0.98, \max\left(0.50, rac{H}{180}
+ight)
+ight)$$
 
 4. **Stage 4 — Probabilistic Fusion, Institutional Risk & Sizing**:
    * **Ensemble Blending**: Combines neural foundation predictions with fundamental scenario paths:
@@ -351,9 +364,13 @@ $$	ext{Base Target Price} = 	ext{Effective EPS} 	imes 	ext{Target P/E}$$
 
 #### 2. Horizon-Aware Monte Carlo Bridge Simulation:
 For path $i \in \{1, \dots, N\}$ over horizon step $h \in \{1, \dots, H\}$:
-$$W_h = \left(rac{h}{H}ight) 	imes 	ext{target\_reach}$$
-$$	ext{Target}_{	ext{sim}} \sim \mathcal{N}\left(	ext{Target}, (0.12 	imes 	ext{Target})^2ight)$$
-$$	ext{Path}_h = (1 - W_h) 	imes \left(P_0 \exp\left(\sum \mathcal{N}(0, \sigma_{	ext{daily}}^2)ight)ight) + W_h 	imes 	ext{Target}_{	ext{sim}}$$
+$$W_h = \left(rac{h}{H}
+ight) 	imes 	ext{target\_reach}$$
+$$	ext{Target}_{	ext{sim}} \sim \mathcal{N}\left(	ext{Target}, (0.12 	imes 	ext{Target})^2
+ight)$$
+$$	ext{Path}_h = (1 - W_h) 	imes \left(P_0 \exp\left(\sum \mathcal{N}(0, \sigma_{	ext{daily}}^2)
+ight)
+ight) + W_h 	imes 	ext{Target}_{	ext{sim}}$$
 
 #### 3. Institutional Foundation Model Ensemble:
 $$P_{	ext{hybrid}}(h) = w_{	ext{tfm}} P_{	ext{baseline}}(h) + (1 - w_{	ext{tfm}}) P_{	ext{fund\_weighted}}(h)$$
@@ -368,14 +385,16 @@ $$P_{	ext{hybrid}}(h) = w_{	ext{tfm}} P_{	ext{baseline}}(h) + (1 - w_{	ext{tfm}}
 * **Objective Invalidation Stop-Loss Level**:
   $$	ext{Stop Loss} = \min(	ext{Bear Target}, Q_{10,	ext{terminal}} 	imes 0.98)$$
 * **Downside Risk %**:
-  $$	ext{Downside Risk} = \max\left(1.0, rac{P_0 - 	ext{Stop Loss}}{P_0} 	imes 100\%ight)$$
+  $$	ext{Downside Risk} = \max\left(1.0, rac{P_0 - 	ext{Stop Loss}}{P_0} 	imes 100\%
+ight)$$
 * **Indian Market Friction Adjustment**:
   $$	ext{Friction} = 0.25\% \quad (	ext{STT } 0.1\% 	ext{ Buy} + 0.1\% 	ext{ Sell} + 0.05\% 	ext{ Exchange/SEBI/GST})$$
   $$	ext{Net Upside} = 	ext{Gross Upside} - 0.25\%$$
 * **Net Risk/Reward Ratio (RRR)**:
   $$	ext{RRR} = rac{\max(0.0, 	ext{Net Upside})}{	ext{Downside Risk}}$$
 * **Half-Kelly Capital Allocation**:
-  $$f^* = 0.5 	imes \left(rac{p \cdot b - q}{b}ight) \quad 	ext{where } b = rac{	ext{Net Upside}}{	ext{Downside Risk}}, \; p = 	ext{Win Probability}, \; q = 1 - p$$
+  $$f^* = 0.5 	imes \left(rac{p \cdot b - q}{b}
+ight) \quad 	ext{where } b = rac{	ext{Net Upside}}{	ext{Downside Risk}}, \; p = 	ext{Win Probability}, \; q = 1 - p$$
 
 ---
 
@@ -627,6 +646,83 @@ colab --auth=adc stop -s timesfm-gpu
 
 ---
 
+### H. Multi-Platform GPU Spin-Up, Execution & Testing Quickstart
+
+> [!TIP]
+> A comprehensive standalone manual is available in the [`GPU_SPINUP_AND_TESTING_GUIDE.md`](file:///root/timesfm_repo/guides&docs/GPU_SPINUP_AND_TESTING_GUIDE.md). Below is the accelerated operational quickstart across all three deployment modalities.
+
+#### 1. Instant GPU Provisioning & Testing via Google Colab CLI
+```bash
+# 1. Provision standard T4 GPU session
+colab --auth=adc new -s timesfm-gpu --gpu T4
+
+# 2. Lightning-fast dependency installation (~7s via uv)
+colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
+
+# 3. Upload repository to remote VM
+colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
+
+# 4. Verify GPU hardware acceleration
+echo "import torch; assert torch.cuda.is_available(); print('Active GPU:', torch.cuda.get_device_name(0))" | colab --auth=adc exec -s timesfm-gpu
+
+# 5. Run Level 1 zero-leakage security audit test
+colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_agents.py"
+
+# 6. Run Level 3 multi-agent integration flow test
+colab --auth=adc exec -s timesfm-gpu --timeout 180.0 "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
+
+# 7. Execute 2026 backtest on CUPID.NS
+colab --auth=adc exec -s timesfm-gpu --timeout 300.0 "python3 /content/timesfm_repo/v2/run_pipeline.py --ticker CUPID.NS --cutoff 2025-12-31 --horizon 170 --output_dir /content/timesfm_repo/test_results/CUPID_2026_OUTPUT"
+
+# 8. Download generated forecast visualization and report
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/CUPID_2026_OUTPUT/CUPID.NS_multi_agent_forecast.png ./CUPID_gpu_forecast.png
+colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/CUPID_2026_OUTPUT/CUPID.NS_executive_report.md ./CUPID_gpu_report.md
+
+# 9. Clean session shutdown
+colab --auth=adc stop -s timesfm-gpu
+```
+
+#### 2. Dedicated Cloud GPU VM (RunPod, Lambda Labs, Vast.ai, GCP, AWS)
+```bash
+# Clone private repository directly using embedded PAT
+git clone https://@github.com/ajithvnr2001/timesfm-3.0-pytorch.git
+cd timesfm-3.0-pytorch
+
+# Export keys (also automatically read from .env)
+export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
+export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
+export NVIDIA_NIM_API_KEY="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"
+
+# Install packages
+pip install -r requirements.txt
+pip install git+https://github.com/google-research/timesfm.git
+
+# Test GPU and run live 90-day forward forecast
+python3 v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
+python3 v2/run_pipeline.py --ticker TCS.NS --horizon 63
+```
+
+#### 3. Interactive Google Colab Web UI (Single-Cell Run)
+```python
+# Run this entire block in a single cell on Colab with T4 GPU enabled:
+!git clone https://@github.com/ajithvnr2001/timesfm-3.0-pytorch.git /content/timesfm_repo
+%cd /content/timesfm_repo
+!pip install -q git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
+
+import os, torch
+os.environ["AKASHML_API_KEY"] = "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
+os.environ["EXA_API_KEY"] = "5a51f858-e6b9-41ee-8881-e61b8af5821f"
+os.environ["NVIDIA_NIM_API_KEY"] = "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"
+
+print("CUDA Status:", torch.cuda.is_available(), "| GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
+!python3 /content/timesfm_repo/v2/run_pipeline.py --ticker CUPID.NS --cutoff 2025-12-31 --horizon 170 --output_dir /content/test_output
+
+from IPython.display import Image, display
+display(Image('/content/test_output/CUPID.NS_multi_agent_forecast.png'))
+```
+
+---
+
 ## 6. Operational Manual: How Analysis Works End-to-End
 
 ### A. Directory Structure
@@ -662,7 +758,8 @@ colab --auth=adc stop -s timesfm-gpu
 
 ### B. Command-Line Execution Examples
 
-#### 1. Live Forecast (Current Prices $ightarrow$ Future Horizon):
+#### 1. Live Forecast (Current Prices $
+ightarrow$ Future Horizon):
 ```bash
 # 1 Month (21 trading days)
 python3 /root/timesfm_repo/v2/run_pipeline.py --tickers RELIANCE.NS --horizon 21

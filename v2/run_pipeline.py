@@ -21,6 +21,12 @@ import os
 import sys
 import subprocess
 
+# Institutional API Key Defaults (Hardcoded Fallbacks)
+os.environ.setdefault("AKASHML_API_KEY", "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL")
+os.environ.setdefault("EXA_API_KEY", "5a51f858-e6b9-41ee-8881-e61b8af5821f")
+os.environ.setdefault("NVIDIA_NIM_API_KEY", "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")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Google TimesFM 3.0 Unified Quantitative Execution Pipeline"
