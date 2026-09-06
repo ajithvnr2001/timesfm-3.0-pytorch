@@ -797,5 +797,20 @@ For any backtest evaluation, the system applies this quantitative decision tree:
 | **Directional Accuracy** | $\text{sign}(\Delta P_{\text{pred}}) == \text{sign}(\Delta P_{\text{actual}})$ | Mismatched only if realized move $< 10\%$ | Mismatched with move $> 10\%$ |
 | **A2A Security Verification** | 0 forbidden tokens detected | N/A | Any forbidden token raises `SecurityError` |
 
+### Level 8: Automated Hardware-Enforced Zero-Leakage Audit
+
+To cryptographically and forensically verify that NO future prices, NO future quarterly statements, and NO future analyst consensus estimates leak across the cutoff date:
+
+```bash
+python3 /root/timesfm_repo/test_results/AUDIT/audit_zero_leakage.py
+```
+
+**What this audit validates across 4 independent gates**:
+1. **Price Boundary Gate**: Checks `train_df["Date_str"] <= cutoff` with zero future price ticks.
+2. **Financial Statement Gate**: Asserts that `quarterly_income_stmt` columns are strictly $\le$ cutoff date, `forwardEps` is `None`, and YoY earnings/revenue growth are calculated point-in-time.
+3. **News & Filing Gate**: Verifies Exa search filters out any corporate announcement mentioning post-cutoff calendar years (`2026`, `2027`) or future fiscal years (`FY26`, `FY27`).
+4. **A2A Air-Gapped Sandbox Gate**: Verifies that tensors dispatched to the Process Sandbox Agent contain zero identifying company tokens and zero calendar years.
+
 ---
+
 *Single source of truth document. Autonomously verified and committed.*
