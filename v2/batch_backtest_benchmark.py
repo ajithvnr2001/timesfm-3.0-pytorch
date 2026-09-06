@@ -89,6 +89,9 @@ def generate_multi_panel_chart(all_results, out_dir):
         weighted_hyb = rec["predictions"]["weighted"]
         bull_proj = rec["predictions"]["scenarios"]["bull"]
         bear_proj = rec["predictions"]["scenarios"]["bear"]
+        int_low = rec["predictions"].get("interval_lower", cal.get("interval_lower", bear_proj))
+        int_high = rec["predictions"].get("interval_upper", cal.get("interval_upper", bull_proj))
+        cov_pct = metrics.get("interval_80_coverage_pct", metrics.get("envelope_coverage_pct", 0.0))
 
         # 1. Actual Market Ground Truth
         ax.plot(test_dates, actual_prices, label=f"Actual Ground Truth (Day 60: Rs. {metrics['actual_terminal']:.2f})", color="#107c41", linewidth=2.5)
@@ -99,14 +102,14 @@ def generate_multi_panel_chart(all_results, out_dir):
         # 3. Weighted Hybrid (TimesFM + Catalyst LLM)
         ax.plot(test_dates, weighted_hyb, label=f"Weighted Hybrid (Rs. {metrics['weighted_terminal']:.2f}, Err: {metrics['weighted_error_pct']:+.1f}%)", color="#0078d4", linewidth=2.2)
 
-        # 4. Envelope (Bear - Bull)
-        ax.fill_between(test_dates, bear_proj, bull_proj, color="#0078d4", alpha=0.12, label=f"Scenario Envelope ({metrics['envelope_coverage_pct']:.0f}% Coverage)")
+        # 4. 80% Prediction Interval
+        ax.fill_between(test_dates, int_low[:len(test_dates)], int_high[:len(test_dates)], color="#0078d4", alpha=0.15, label=f"80% Prediction Interval ({cov_pct:.0f}% Coverage)")
 
         start_p = actual_prices[0]
         end_p = actual_prices[-1]
         act_chg = (end_p - start_p) / start_p * 100
 
-        ax.set_title(f"{tk} | Start: Rs. {start_p:.2f} -> Actual 60d: Rs. {end_p:.2f} ({act_chg:+.1f}%) | Hybrid Err: {metrics['weighted_error_pct']:+.1f}% | Coverage: {metrics['envelope_coverage_pct']:.0f}%", fontsize=12, fontweight="bold", pad=8)
+        ax.set_title(f"{tk} | Start: Rs. {start_p:.2f} -> Actual 60d: Rs. {end_p:.2f} ({act_chg:+.1f}%) | Hybrid Err: {metrics['weighted_error_pct']:+.1f}% | Coverage: {cov_pct:.0f}%", fontsize=12, fontweight="bold", pad=8)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         ax.set_ylabel("Price (INR)", fontsize=10)
         ax.legend(loc="best", fontsize=9, framealpha=0.9)
@@ -135,7 +138,8 @@ def print_summary_table(all_results):
         end_p = m["actual_terminal"]
         act_chg = (end_p - start_p) / start_p * 100
         action = r["recommendation"]["action"]
-        print(f"{tk:<14} | {start_p:9.2f} | {end_p:9.2f} | {act_chg:+7.1f}% | {m['pure_baseline_terminal']:10.2f} | {m['pure_baseline_error_pct']:+8.1f}% | {m['weighted_terminal']:9.2f} | {m['weighted_error_pct']:+8.1f}% | {m['envelope_coverage_pct']:8.0f}% | {action:<15}")
+        cov_pct = m.get("interval_80_coverage_pct", m.get("envelope_coverage_pct", 0.0))
+        print(f"{tk:<14} | {start_p:9.2f} | {end_p:9.2f} | {act_chg:+7.1f}% | {m['pure_baseline_terminal']:10.2f} | {m['pure_baseline_error_pct']:+8.1f}% | {m['weighted_terminal']:9.2f} | {m['weighted_error_pct']:+8.1f}% | {cov_pct:8.0f}% | {action:<15}")
     print("="*125)
 
 if __name__ == "__main__":

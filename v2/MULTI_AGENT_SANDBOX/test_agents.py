@@ -254,8 +254,105 @@ def test_prediction_interval_coverage_metric():
         assert metrics["interval_80_coverage_pct"] == 100.0, f"Expected 100% interval coverage, got {metrics['interval_80_coverage_pct']}"
 
 
+def test_mixture_prediction_interval():
+    try:
+        from covfree_forecaster import mixture_prediction_interval
+    except ImportError:
+        from v2.MULTI_AGENT_SANDBOX.covfree_forecaster import mixture_prediction_interval
+    import numpy as np
+    
+    # 3 scenarios with 1000 simulated paths each across horizon=10
+    np.random.seed(42)
+    paths_bear = np.random.normal(80, 5, (1000, 10))
+    paths_base = np.random.normal(100, 5, (1000, 10))
+    paths_bull = np.random.normal(120, 5, (1000, 10))
+    
+    paths_dict = {"bear": paths_bear, "base": paths_base, "bull": paths_bull}
+    probs = {"bear": 0.25, "base": 0.50, "bull": 0.25}
+    
+    mix_q10, mix_q90 = mixture_prediction_interval(paths_dict, probs, 0.10, 0.90)
+    assert len(mix_q10) == 10 and len(mix_q90) == 10
+    assert np.all(mix_q10 < mix_q90)
+    
+    # Check that mixture width is strictly narrower than the union min(q10_bear) to max(q90_bull)
+    union_low = np.percentile(paths_bear, 10, axis=0)
+    union_high = np.percentile(paths_bull, 90, axis=0)
+    assert np.all(mix_q10 >= union_low)
+    assert np.all(mix_q90 <= union_high)
+    assert np.mean(mix_q90 - mix_q10) < np.mean(union_high - union_low)
+
+def test_non_asserting_terminal_ordering_and_monotonic_repair():
+    """Verify that inverted scenario terminal ordering triggers monotonic repair without crashing."""
+    out_agent = mas.OutputSynthesisAgent()
+    h = 5
+    # Deliberately invert terminal ordering: Bear (120) > Base (100) > Bull (80)
+    msg = mas.A2AMessage(
+        sender="Process_Sandbox_Agent", recipient="Output_Synthesis_Agent",
+        message_type="PREDICTION_TENSOR_OUTPUT",
+        payload={
+            "asset_pseudonym": "ASSET_INVERTED",
+            "horizon": h,
+            "last_scalar": 100.0,
+            "forecast_results": {
+                "pure_baseline": [100.0] * h,
+                "weighted_expected": [100.0] * h,
+                "bear": [120.0] * h,
+                "base": [100.0] * h,
+                "bull": [80.0] * h,
+                "mixture_q10": [75.0] * h,
+                "mixture_q90": [125.0] * h,
+                "neural_points": 0,
+                "extrapolated_points": 0
+            },
+            "scenarios": {
+                "bear": {"probability": 0.25, "target_price": 120.0},
+                "base": {"probability": 0.50, "target_price": 100.0},
+                "bull": {"probability": 0.25, "target_price": 80.0}
+            },
+            "fundamental_metadata": {}
+        }
+    )
+    import tempfile, pandas as pd
+    dates = pd.date_range("2024-01-01", periods=10, freq="B")
+    train_df = pd.DataFrame({"Close": [100.0]*10}, index=dates)
+    test_df = pd.DataFrame()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Must execute cleanly and repair terminal order
+        res = out_agent.render(msg, "INVERTED.NS", train_df, test_df, output_dir=tmpdir)
+        assert res is not None
+        assert res["metrics"]["bear_terminal"] <= res["metrics"]["bull_terminal"]
+        assert "interval_lower" in res["predictions"]
+        assert "interval_upper" in res["predictions"]
+        assert "interval_lower" in res["calendar"]
+
+def test_quantiles_unavailable_handling():
+    """Verify that tensor layout exceptions set quantiles_unavailable=True and preserve pure baseline."""
+    a = mas.ProcessSandboxAgent(device="cpu")
+    # Mock a forecaster whose predict_batch returns quantiles with unexpected 1D shape
+    class MalformedQuantileForecaster:
+        def predict_batch(self, series, horizon, return_quantiles=True, use_symmetric_averaging=False):
+            class Out:
+                forecast = [105.0] * horizon
+                quantiles = [1.0, 2.0]  # Shape (2,), fails assert q.ndim == 2 and q.shape[1] >= 9
+            return [Out()]
+    
+    a.forecaster = MalformedQuantileForecaster()
+    msg = mk({"asset_pseudonym": "ASSET_QFAIL", "horizon": 5, "last_known_scalar": 100.0,
+              "numerical_context": [98.0, 99.0, 100.0],
+              "scenarios": {"bear": {"probability": 0.25, "target_price": 90.0},
+                           "base": {"probability": 0.50, "target_price": 100.0},
+                           "bull": {"probability": 0.25, "target_price": 110.0}}},
+             [])
+    res = a.execute_forecast(msg)
+    forecasts = res.payload["forecast_results"]
+    assert forecasts.get("quantiles_unavailable") is True
+    assert "pure_baseline" in forecasts
+    assert len(forecasts["pure_baseline"]) == 5
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
             fn(); print(f"PASS  {name}")
     print("ALL TESTS PASSED")
+

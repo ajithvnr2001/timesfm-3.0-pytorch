@@ -222,12 +222,16 @@ def compute_institutional_risk_and_sizing(
     q90_terminal,
     horizon=30,
     portfolio_capital=1000000.0,
-    macro_multiplier=1.0
+    macro_multiplier=1.0,
+    forecast_terminal=None
 ):
     """
     Calculates VaR, CVaR, Max Drawdown, Indian Frictions, Risk/Reward Ratio,
     Half-Kelly Allocation %, and exact share position sizing.
     """
+    if forecast_terminal is None:
+        forecast_terminal = weighted_target
+
     ctx = np.array(stock_context, dtype=float)
     if len(ctx) >= 5:
         returns = np.diff(ctx) / ctx[:-1]
@@ -258,7 +262,7 @@ def compute_institutional_risk_and_sizing(
 
     # 4. Indian Friction Adjustment (STT 0.1% buy + 0.1% sell + SEBI/Exchange/Stamp/Slippage ~0.05% = 0.25% roundtrip)
     friction_pct = 0.25
-    gross_upside_pct = ((weighted_target - last_price) / last_price) * 100.0
+    gross_upside_pct = ((forecast_terminal - last_price) / last_price) * 100.0
     net_upside_pct = round(gross_upside_pct - friction_pct, 2)
 
     # 5. Net Asymmetric Risk/Reward Ratio (RRR)
@@ -343,6 +347,8 @@ def build_institutional_scorecard(
     base_tgt = scenarios.get("base", {}).get("target_price", last_price * 1.05)
     bull_tgt = scenarios.get("bull", {}).get("target_price", last_price * 1.25)
     weighted_tgt = fundamental_data.get("weighted_target", base_tgt)
+    weighted_expected = forecast_results.get("weighted_expected", [])
+    forecast_term = float(weighted_expected[-1]) if (len(weighted_expected) > 0) else weighted_tgt
 
     q10 = forecast_results.get("base_q10", [last_price * 0.90] * horizon)[-1]
     q90 = forecast_results.get("base_q90", [last_price * 1.10] * horizon)[-1]
@@ -357,7 +363,8 @@ def build_institutional_scorecard(
         q90_terminal=q90,
         horizon=horizon,
         portfolio_capital=portfolio_capital,
-        macro_multiplier=macro["macro_multiplier"]
+        macro_multiplier=macro["macro_multiplier"],
+        forecast_terminal=forecast_term
     )
 
     return {

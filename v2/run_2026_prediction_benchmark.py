@@ -99,7 +99,7 @@ def run_2026_benchmark():
                 "bull_pred": round(bull_term, 2),
                 "bear_pred": round(bear_term, 2),
                 "err_pct": round(err_pct, 1),
-                "coverage_pct": round(m["envelope_coverage_pct"], 1),
+                "coverage_pct": round(m.get("interval_80_coverage_pct", m.get("envelope_coverage_pct", 0.0)), 1),
                 "direction_match": "YES" if dir_match else "NO",
                 "status": status,
                 "record": rec,
@@ -155,6 +155,9 @@ def generate_7panel_chart(all_results, out_dir):
         hybrid = preds.get("weighted", [res["model_pred"]]*len(dates))[:len(dates)]
         bull = sc.get("bull", [res["bull_pred"]]*len(dates))[:len(dates)]
         bear = sc.get("bear", [res["bear_pred"]]*len(dates))[:len(dates)]
+        int_low = preds.get("interval_lower", bear)[:len(dates)]
+        int_high = preds.get("interval_upper", bull)[:len(dates)]
+        cov_pct = res.get("coverage_pct", 0)
 
         # Actual Ground Truth
         ax.plot(dates, actual_prices, label=f"Actual 2026 Price (Sep 4: ₹{res['actual_end']:.2f})", color="#107c41", linewidth=2.6)
@@ -165,8 +168,8 @@ def generate_7panel_chart(all_results, out_dir):
         # Hybrid Prediction
         ax.plot(dates, hybrid, label=f"Fixed Hybrid Model (₹{res['model_pred']:.2f}, {res['pred_move_pct']:+.1f}%)", color="#0078d4", linewidth=2.2)
         
-        # Scenario Envelope
-        ax.fill_between(dates, bear, bull, color="#0078d4", alpha=0.12, label=f"Scenario Band (Coverage: {res['coverage_pct']:.0f}%)")
+        # 80% Prediction Interval
+        ax.fill_between(dates, int_low, int_high, color="#0078d4", alpha=0.15, label=f"80% Prediction Interval ({cov_pct:.0f}% Coverage)")
 
         ax.set_title(f"{tk} | Start 2026: ₹{res['start_price']:.2f} -> Sep 4, 2026: ₹{res['actual_end']:.2f} ({res['actual_move_pct']:+.1f}%) | Status: {res['status']}", fontsize=12, fontweight="bold", pad=8)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))

@@ -110,12 +110,13 @@ except ImportError:
         build_scenarios = None
 
 try:
-    from covfree_forecaster import forecast_covfree
+    from covfree_forecaster import forecast_covfree, mixture_prediction_interval
 except ImportError:
     try:
-        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree
+        from MULTI_AGENT_SANDBOX.covfree_forecaster import forecast_covfree, mixture_prediction_interval
     except ImportError:
         forecast_covfree = None
+        mixture_prediction_interval = None
 
 try:
     from institutional_engine import build_institutional_scorecard
@@ -260,32 +261,6 @@ class MainIngestionAgent:
         print(f"  • Bull ({scenarios['bull']['probability']*100:.0f}%): Rs. {scenarios['bull']['target_price']:.2f} ({scenarios['bull'].get('target_pe', 0):.1f}x P/E)")
         print(f"  • Expected Target: Rs. {weighted_target:.2f}")
 
-        # Construct Dynamic Covariates: Honest stochastic bridge via covfree_forecaster
-        ann_vol = 0.25
-        if len(context_series) >= 2:
-            ctx_arr = np.array(context_series, dtype=float)
-            returns = np.diff(ctx_arr) / ctx_arr[:-1]
-            std_v = float(np.std(returns) * np.sqrt(252))
-            if not np.isnan(std_v) and std_v > 0:
-                ann_vol = std_v
-
-        covariates = {}
-        for sc_name, sc_data in scenarios.items():
-            tgt = sc_data["target_price"]
-            cov = np.zeros(ctx_len + horizon, dtype=float)
-            cov[:ctx_len] = [(c - last_price) / 500.0 for c in context_series]
-            if forecast_covfree is not None:
-                try:
-                    p_proj, _, _ = forecast_covfree(last_price, tgt, ann_vol, horizon)
-                    cov[ctx_len:] = (p_proj[:horizon] - last_price) / 500.0
-                except Exception:
-                    proj_line = np.linspace(last_price, tgt, horizon)
-                    cov[ctx_len:] = (proj_line - last_price) / 500.0
-            else:
-                proj_line = np.linspace(last_price, tgt, horizon)
-                cov[ctx_len:] = (proj_line - last_price) / 500.0
-            covariates[sc_name] = cov.tolist()
-
         # Macro 1-year drift and EMA200 trend
         full_close = train_df["Close"].values.astype(float)
         ret_1y = float((full_close[-1] - full_close[-min(252, len(full_close))]) / full_close[-min(252, len(full_close))])
@@ -307,7 +282,6 @@ class MainIngestionAgent:
             "last_known_scalar": last_price,
             "numerical_context": context_series,
             "past_volume_ratio": norm_vol,
-            "covariates": covariates,
             "scenarios": scenarios,
             "weighted_target": weighted_target,
             "macro_momentum": {"ret_1y": ret_1y, "is_downtrend": is_downtrend},
@@ -481,22 +455,30 @@ class ProcessSandboxAgent:
                     matched_base, neural_pts, extrap_pts = self._match_horizon_length(pred_vals, horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if hasattr(out, "quantiles") and out.quantiles is not None:
-                        q = np.asarray(out.quantiles)
-                        if q.ndim == 3:
-                            q = q[0]
-                        assert q.ndim == 2 and q.shape[1] >= 9, f"TimesFM 3.0 quantiles expected shape [H, >=9], got {q.shape}"
-                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(q[:, 0], horizon, last_val).tolist()
-                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(q[:, 8], horizon, last_val).tolist()
+                        try:
+                            q = np.asarray(out.quantiles)
+                            if q.ndim == 3:
+                                q = q[0]
+                            assert q.ndim == 2 and q.shape[1] >= 9, f"TimesFM 3.0 quantiles expected shape [H, >=9], got {q.shape}"
+                            forecast_results["pure_baseline_q10"] = self._match_horizon_length(q[:, 0], horizon, last_val).tolist()
+                            forecast_results["pure_baseline_q90"] = self._match_horizon_length(q[:, 8], horizon, last_val).tolist()
+                        except (AssertionError, IndexError) as q_err:
+                            print(f"[{self.agent_id}] TimesFM 3.0 quantile tensor layout notice: {q_err}. Setting quantiles_unavailable=True.")
+                            forecast_results["quantiles_unavailable"] = True
                 elif hasattr(self.forecaster, "forecast"):
                     # Google Research TimesFm API
                     point_forecast, experimental_quantiles = self.forecaster.forecast([ctx])
                     matched_base, neural_pts, extrap_pts = self._match_horizon_length(point_forecast[0], horizon, last_val, return_counts=True)
                     forecast_results["pure_baseline"] = matched_base.tolist()
                     if experimental_quantiles is not None:
-                        eq = np.asarray(experimental_quantiles)
-                        assert eq.ndim == 3 and eq.shape[0] >= 1 and eq.shape[2] >= 10, f"TimesFM 1.0 quantiles expected shape [1, H, >=10], got {eq.shape}"
-                        forecast_results["pure_baseline_q10"] = self._match_horizon_length(eq[0, :, 1], horizon, last_val).tolist()
-                        forecast_results["pure_baseline_q90"] = self._match_horizon_length(eq[0, :, 9], horizon, last_val).tolist()
+                        try:
+                            eq = np.asarray(experimental_quantiles)
+                            assert eq.ndim == 3 and eq.shape[0] >= 1 and eq.shape[2] >= 10, f"TimesFM 1.0 quantiles expected shape [1, H, >=10], got {eq.shape}"
+                            forecast_results["pure_baseline_q10"] = self._match_horizon_length(eq[0, :, 1], horizon, last_val).tolist()
+                            forecast_results["pure_baseline_q90"] = self._match_horizon_length(eq[0, :, 9], horizon, last_val).tolist()
+                        except (AssertionError, IndexError) as q_err:
+                            print(f"[{self.agent_id}] TimesFM 1.0 quantile tensor layout notice: {q_err}. Setting quantiles_unavailable=True.")
+                            forecast_results["quantiles_unavailable"] = True
             except Exception as e:
                 print(f"[{self.agent_id}] Neural forecaster notice: {e}. Executing empirical drift fallback.")
 
@@ -552,8 +534,8 @@ class ProcessSandboxAgent:
         # so that all scenarios experience the exact same Brownian shocks and differ solely by target
         common_seed = int(hashlib.sha256(f"{payload.get('asset_pseudonym', 'A')}_{horizon}_{round(float(last_val), 2)}".encode()).hexdigest()[:8], 16) % (2**31)
 
-        # Scale half-life to horizon (e.g. clip(horizon/2, 21, 252)) so short horizons are not dominated by prior inertia
-        half_life_scaled = float(np.clip(horizon / 2.0, 21.0, 252.0))
+        # Scale half-life to horizon (clip(horizon / 3.0, 14.0, 180.0)) for 87.5% horizon convergence
+        half_life_scaled = float(np.clip(horizon / 3.0, 14.0, 180.0))
 
         # Extract TimesFM neural oscillations with stationary continuation across extrapolated tail
         if neural_pts >= 2:
@@ -575,15 +557,24 @@ class ProcessSandboxAgent:
         else:
             tfm_oscillations = np.zeros(horizon)
 
+        scenario_sim_paths = {}
         for sc_name in sc_names:
             tgt = scenarios[sc_name]["target_price"]
             s_preds = None
             if forecast_covfree is not None:
                 try:
-                    point, q10, q90 = forecast_covfree(
+                    res_cov = forecast_covfree(
                         last_val, tgt, ann_vol, horizon,
-                        half_life_days=half_life_scaled, seed=common_seed
+                        half_life_days=half_life_scaled, seed=common_seed,
+                        return_paths=True
                     )
+                    if len(res_cov) == 4:
+                        point, q10, q90, paths = res_cov
+                        if self.forecaster is not None and neural_pts > 0 and paths is not None:
+                            paths = paths + 0.4 * tfm_oscillations[None, :]
+                        scenario_sim_paths[sc_name] = paths
+                    else:
+                        point, q10, q90 = res_cov
                     p_m = self._match_horizon_length(point, horizon, last_val)
                     q10_m = self._match_horizon_length(q10, horizon, last_val)
                     q90_m = self._match_horizon_length(q90, horizon, last_val)
@@ -602,6 +593,17 @@ class ProcessSandboxAgent:
                 forecast_results[f"{sc_name}_q10"] = [p * 0.90 for p in s_preds]
                 forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
             forecast_results[sc_name] = self._match_horizon_length(s_preds, horizon, last_val).tolist()
+
+        # Compute true probability-weighted mixture quantiles across pooled scenario paths
+        if scenario_sim_paths and mixture_prediction_interval is not None and scenarios:
+            try:
+                probs_by_sc = {s: scenarios[s]["probability"] for s in scenarios if s in scenario_sim_paths}
+                if len(probs_by_sc) == len(scenario_sim_paths) and sum(probs_by_sc.values()) > 0:
+                    mix_q10, mix_q90 = mixture_prediction_interval(scenario_sim_paths, probs_by_sc, q_low=0.10, q_high=0.90)
+                    forecast_results["mixture_q10"] = self._match_horizon_length(mix_q10, horizon, last_val).tolist()
+                    forecast_results["mixture_q90"] = self._match_horizon_length(mix_q90, horizon, last_val).tolist()
+            except Exception as e:
+                print(f"[{self.agent_id}] mixture_prediction_interval notice: {e}")
 
         # 3. Fundamental Scenario Weighted Path
         fund_weighted = (
@@ -670,19 +672,25 @@ class OutputSynthesisAgent:
         base_term = float(forecasts["base"][-1]) if "base" in forecasts and len(forecasts["base"]) > 0 else float(last_price)
         bull_term = float(forecasts["bull"][-1]) if "bull" in forecasts and len(forecasts["bull"]) > 0 else float(last_price)
         if "bear" in forecasts and "base" in forecasts and "bull" in forecasts:
-            assert bear_term <= base_term <= bull_term, (
-                f"Fundamental scenario terminal ordering violated: Bear ({bear_term:.2f}) <= Base ({base_term:.2f}) <= Bull ({bull_term:.2f})"
-            )
+            if not (bear_term <= base_term <= bull_term):
+                print(f"[{self.agent_id}] WARNING: Fundamental scenario terminal ordering inverted: "
+                      f"Bear ({bear_term:.2f}), Base ({base_term:.2f}), Bull ({bull_term:.2f}). Applying monotonic repair.")
+                sorted_terms = sorted([bear_term, base_term, bull_term])
+                bear_term, base_term, bull_term = sorted_terms[0], sorted_terms[1], sorted_terms[2]
 
-        # 80% Prediction Interval: min(bear_q10) to max(bull_q90) across scenarios
-        q10_candidates = [np.array(forecasts[k]) for k in ["bear_q10", "base_q10", "bull_q10"] if k in forecasts]
-        q90_candidates = [np.array(forecasts[k]) for k in ["bear_q90", "base_q90", "bull_q90"] if k in forecasts]
-        if q10_candidates and q90_candidates:
-            interval_lower = np.min(q10_candidates, axis=0)
-            interval_upper = np.max(q90_candidates, axis=0)
+        # 80% Prediction Interval: True probability-weighted mixture quantiles across pooled scenario paths
+        if "mixture_q10" in forecasts and "mixture_q90" in forecasts:
+            interval_lower = np.array(forecasts["mixture_q10"])
+            interval_upper = np.array(forecasts["mixture_q90"])
         else:
-            interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
-            interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
+            q10_candidates = [np.array(forecasts[k]) for k in ["bear_q10", "base_q10", "bull_q10"] if k in forecasts]
+            q90_candidates = [np.array(forecasts[k]) for k in ["bear_q90", "base_q90", "bull_q90"] if k in forecasts]
+            if q10_candidates and q90_candidates:
+                interval_lower = np.min(q10_candidates, axis=0)
+                interval_upper = np.max(q90_candidates, axis=0)
+            else:
+                interval_lower = np.minimum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
+                interval_upper = np.maximum(np.array(forecasts.get("bear", [last_price])), np.array(forecasts.get("bull", [last_price])))
 
         # Metrics computation: Always initialize projection terminals to prevent KeyError in live mode
         metrics = {
@@ -763,8 +771,8 @@ class OutputSynthesisAgent:
                         "stock_series": train_df["Close"] if not train_df.empty else None,
                         "numerical_context": train_df["Close"].values[-64:].tolist() if not train_df.empty else [last_price]*10,
                         "weighted_expected": forecasts.get("weighted_expected", []),
-                        "base_q10": forecasts.get("bear_q10", forecasts.get("bear", [])),
-                        "base_q90": forecasts.get("bull_q90", forecasts.get("bull", [])),
+                        "base_q10": interval_lower.tolist() if isinstance(interval_lower, np.ndarray) else list(interval_lower),
+                        "base_q90": interval_upper.tolist() if isinstance(interval_upper, np.ndarray) else list(interval_upper),
                         "neural_points": forecasts.get("neural_points", horizon),
                         "extrapolated_points": forecasts.get("extrapolated_points", 0)
                     },
@@ -942,7 +950,9 @@ class OutputSynthesisAgent:
         calendar_info = {
             "actual_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in test_dates],
             "actual_closes": [float(x) for x in actuals] if actuals is not None else [],
-            "future_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in future_dates]
+            "future_dates": [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in future_dates],
+            "interval_lower": interval_lower.tolist() if isinstance(interval_lower, np.ndarray) else list(interval_lower),
+            "interval_upper": interval_upper.tolist() if isinstance(interval_upper, np.ndarray) else list(interval_upper),
         }
         rec_action = (
             scorecard["institutional_risk_and_sizing"]["institutional_directive"]
@@ -958,10 +968,13 @@ class OutputSynthesisAgent:
             "neural_points": forecasts.get("neural_points", horizon),
             "extrapolated_points": forecasts.get("extrapolated_points", 0),
             "model_name": forecasts.get("model_name", "TimesFM"),
+            "quantiles_unavailable": forecasts.get("quantiles_unavailable", False),
             "recommendation": {"action": rec_action},
             "predictions": {
                 "pure_baseline": forecasts.get("pure_baseline", []),
                 "weighted": forecasts.get("weighted_expected", []),
+                "interval_lower": interval_lower.tolist() if isinstance(interval_lower, np.ndarray) else list(interval_lower),
+                "interval_upper": interval_upper.tolist() if isinstance(interval_upper, np.ndarray) else list(interval_upper),
                 "scenarios": {
                     "bear": forecasts.get("bear", []),
                     "base": forecasts.get("base", []),

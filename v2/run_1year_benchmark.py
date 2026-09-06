@@ -79,7 +79,7 @@ def evaluate_ticker(tk):
             "pure_timesfm": round(pure_term, 2),
             "pred_move_pct": round(pred_move, 1),
             "err_pct": round(err_pct, 1),
-            "coverage_pct": round(m["envelope_coverage_pct"], 1),
+            "coverage_pct": round(m.get("interval_80_coverage_pct", m.get("envelope_coverage_pct", 0.0)), 1),
             "direction_match": "YES" if dir_match else "NO",
             "status": status,
             "action": rec.get("recommendation", {}).get("action", "N/A"),
