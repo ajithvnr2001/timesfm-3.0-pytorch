@@ -404,52 +404,46 @@ class ProcessSandboxAgent:
                 daily_drift = 0.001
             forecast_results["pure_baseline"] = [float(last_val * np.exp(daily_drift * (h + 1))) for h in range(horizon)]
 
-        # 2. Multi-Scenario Inferences
-        sc_names = list(covariates.keys())
-        sc_success = False
+        # 2. Multi-Scenario Inferences (Conditioned on Fundamental Targets)
+        sc_names = list(scenarios.keys()) if scenarios else list(covariates.keys())
 
-        if self.forecaster is not None and hasattr(self.forecaster, "predict_batch"):
-            try:
-                contexts = [ctx for _ in sc_names]
-                # Pass full horizon directly in single forward pass (no chunking loop)
-                outs = list(self.forecaster.predict_batch(contexts, horizon=horizon, return_quantiles=True, use_symmetric_averaging=False))
-                for idx, sc_name in enumerate(sc_names):
-                    out = outs[idx]
-                    pred_vals = out.forecast if hasattr(out, "forecast") else out[0]
-                    forecast_results[sc_name] = np.array(pred_vals[:horizon], dtype=float).tolist()
-                    if hasattr(out, "quantiles") and out.quantiles is not None:
-                        forecast_results[f"{sc_name}_q10"] = np.array(out.quantiles[:horizon, 0], dtype=float).tolist()
-                        forecast_results[f"{sc_name}_q90"] = np.array(out.quantiles[:horizon, 8], dtype=float).tolist()
-                sc_success = True
-            except Exception as e:
-                print(f"[{self.agent_id}] Vectorized scenario predict notice: {e}.")
+        # Determine volatility from context series
+        if len(ctx) >= 2:
+            returns = np.diff(ctx) / ctx[:-1]
+            ann_vol = float(np.std(returns) * np.sqrt(252))
+            if np.isnan(ann_vol) or ann_vol <= 0:
+                ann_vol = 0.25
+        else:
+            ann_vol = 0.25
 
-        if not sc_success:
-            for sc_name in sc_names:
-                tgt = scenarios[sc_name]["target_price"]
-                s_preds = None
-                if forecast_covfree is not None:
-                    try:
-                        if len(ctx) >= 2:
-                            returns = np.diff(ctx) / ctx[:-1]
-                            ann_vol = float(np.std(returns) * np.sqrt(252))
-                            if np.isnan(ann_vol) or ann_vol <= 0:
-                                ann_vol = 0.25
-                        else:
-                            ann_vol = 0.25
-                        point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
+        pure_base_arr = np.array(forecast_results.get("pure_baseline", [last_val] * horizon), dtype=float)
+        # Extract TimesFM neural high-frequency oscillations around its own linear drift
+        tfm_linear_drift = np.linspace(last_val, pure_base_arr[-1], horizon)
+        tfm_oscillations = pure_base_arr - tfm_linear_drift
+
+        for sc_name in sc_names:
+            tgt = scenarios[sc_name]["target_price"]
+            s_preds = None
+            if forecast_covfree is not None:
+                try:
+                    point, q10, q90 = forecast_covfree(last_val, tgt, ann_vol, horizon)
+                    # Modulate fundamental scenario with TimesFM's empirical neural oscillations
+                    if self.forecaster is not None:
+                        point_modulated = point[:horizon] + 0.4 * tfm_oscillations[:horizon]
+                        s_preds = point_modulated.tolist()
+                    else:
                         s_preds = point[:horizon].tolist()
-                        forecast_results[f"{sc_name}_q10"] = q10[:horizon].tolist()
-                        forecast_results[f"{sc_name}_q90"] = q90[:horizon].tolist()
-                    except Exception as ex:
-                        print(f"[{self.agent_id}] forecast_covfree notice: {ex}")
-                if s_preds is None:
-                    k = 0.006
-                    t0 = horizon * 0.45
-                    s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
-                    forecast_results[f"{sc_name}_q10"] = [p * 0.90 for p in s_preds]
-                    forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
-                forecast_results[sc_name] = s_preds
+                    forecast_results[f"{sc_name}_q10"] = q10[:horizon].tolist()
+                    forecast_results[f"{sc_name}_q90"] = q90[:horizon].tolist()
+                except Exception as ex:
+                    print(f"[{self.agent_id}] forecast_covfree notice: {ex}")
+            if s_preds is None:
+                k = 0.006
+                t0 = horizon * 0.45
+                s_preds = [float(last_val + (1.0 / (1.0 + np.exp(-k * (h + 1 - t0)))) * (tgt - last_val)) for h in range(horizon)]
+                forecast_results[f"{sc_name}_q10"] = [p * 0.90 for p in s_preds]
+                forecast_results[f"{sc_name}_q90"] = [p * 1.10 for p in s_preds]
+            forecast_results[sc_name] = s_preds
 
         # 3. Fundamental Scenario Weighted Path
         fund_weighted = (
@@ -461,9 +455,8 @@ class ProcessSandboxAgent:
         # 4. Institutional Foundation Model Ensemble:
         # Fuse TimesFM Empirical Market Structure with Fundamental Scenario Attractor
         if "pure_baseline" in forecast_results:
-            pure_base_arr = np.array(forecast_results["pure_baseline"])
-            # Blend TimesFM empirical momentum with fundamental gravity
-            w_tfm = 0.40 if self.forecaster is not None else 0.15
+            # Over long horizons (>= 60 days), fundamental valuation gravitationally dominates pure random walk
+            w_tfm = 0.30 if horizon >= 60 else 0.45
             fused_path = (w_tfm * pure_base_arr + (1.0 - w_tfm) * fund_weighted).tolist()
             forecast_results["weighted_expected"] = fused_path
         else:
