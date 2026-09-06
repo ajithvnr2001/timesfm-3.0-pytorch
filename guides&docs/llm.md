@@ -461,14 +461,16 @@ python3 /root/timesfm_repo/v2/run_pipeline.py   --ticker TCS.NS   --horizon 252 
 
 The Google Colab CLI (`colab`) enables fully automated, command-line control of remote Google Colab GPU/TPU/CPU runtimes. It is installed at `/root/.local/bin/colab` and allows provisioning VMs, executing code, transferring files, and capturing visual artifacts directly from terminal environments.
 
-### A. Authentication Strategy
+### A. Authentication Strategy: OAuth2 vs ADC
 The Colab CLI supports two authentication modes:
-* `--auth=adc` (**Application Default Credentials** - Recommended for automated systems, Google Cloud environments, and headless agents).
-* `--auth=oauth2` (Interactive web-browser login flow for local user workstations).
+* **`--auth=oauth2` (Standard & Recommended)**: Uses user credentials stored in `~/.config/colab-cli/token.json`. This is the direct user authentication mode.
+* **`--auth=adc` (Cloud SDK / Service Account)**: Uses Google Cloud Application Default Credentials (`gcloud auth application-default login`).
 
-Always include `--auth=adc` in headless autonomous agent scripts:
 ```bash
-# Verify authentication and list active sessions
+# Verify authentication and list active sessions using OAuth2
+colab --auth=oauth2 sessions
+
+# Alternatively via ADC
 colab --auth=adc sessions
 ```
 
@@ -476,252 +478,124 @@ colab --auth=adc sessions
 
 | Command | Syntax | Primary Flags | Purpose |
 | :--- | :--- | :--- | :--- |
-| **`sessions`** | `colab --auth=adc sessions` | None | Lists all active runtimes, hardware types, and session names |
-| **`new`** | `colab --auth=adc new -s <name> [options]` | `-s, --session` (Name)<br>`--gpu <T4\|L4\|A100\|H100>`<br>`--tpu <v5e1\|v6e1>`<br>`--high-mem` (High RAM) | Creates a fresh remote Colab instance |
-| **`exec`** | `colab --auth=adc exec -s <name> [options]` | `-s, --session` (Target session)<br>`-f, --file <path>` (Local script to run)<br>`--timeout <seconds>` (Default: 30s)<br>`--env KEY=VALUE` (Remote env variable)<br>`--output-image <path>` (Save plot artifact) | Executes code remotely via stdin pipe or file |
-| **`install`** | `colab --auth=adc install -s <name> [pkgs]` | `-s, --session` (Target session)<br>`-r, --requirement <file>` | Installs Python wheels/packages on remote VM (uses `uv`, ~7s) |
-| **`upload`** | `colab --auth=adc upload -s <name> <local> <remote>` | `-s, --session` (Target session) | Transfers local files/folders to remote VM `/content/` |
-| **`download`**| `colab --auth=adc download -s <name> <remote> <local>`| `-s, --session` (Target session) | Pulls remote plots/logs down to local filesystem |
-| **`ls`** | `colab --auth=adc ls -s <name> [path]` | `-s, --session` (Target session) | Lists contents of remote directory (default: `content`) |
-| **`status`** | `colab --auth=adc status -s <name>` | `-s, --session` (Target session) | Reports live session lifecycle status and resource state |
-| **`stop`** | `colab --auth=adc stop -s <name>` | `-s, --session` (Target session) | Shuts down remote instance to conserve compute units |
-| **`run`** | `colab --auth=adc run <script.py>` | Ephemeral VM run | Provisions temporary VM, runs script, then releases VM |
+| **`sessions`** | `colab --auth=oauth2 sessions` | None | Lists all active runtimes, hardware types, and session names |
+| **`new`** | `colab --auth=oauth2 new -s <name> [options]` | `-s, --session` (Name)<br>`--gpu <T4|L4|A100|H100>`<br>`--tpu <v5e1|v6e1>`<br>`--high-mem` (High RAM) | Creates a fresh remote Colab instance |
+| **`exec`** | `colab --auth=oauth2 exec -s <name> [options]` | `-s, --session` (Target session)<br>`-f, --file <path>` (Local script to run)<br>`--timeout <seconds>` (Default: 30s)<br>`--env KEY=VALUE` (Remote env variable)<br>`--output-image <path>` (Save plot artifact) | Executes code remotely via stdin pipe or file |
+| **`install`** | `colab --auth=oauth2 install -s <name> [pkgs]` | `-s, --session` (Target session)<br>`-r, --requirement <file>` | Installs Python wheels/packages on remote VM (uses `uv`, ~7s) |
+| **`upload`** | `colab --auth=oauth2 upload -s <name> <local> <remote>` | `-s, --session` (Target session) | Transfers local files/folders to remote VM `/content/` |
+| **`download`**| `colab --auth=oauth2 download -s <name> <remote> <local>`| `-s, --session` (Target session) | Pulls remote plots/logs down to local filesystem |
+| **`ls`** | `colab --auth=oauth2 ls -s <name> [path]` | `-s, --session` (Target session) | Lists contents of remote directory (default: `content`) |
+| **`status`** | `colab --auth=oauth2 status -s <name>` | `-s, --session` (Target session) | Reports live session lifecycle status and resource state |
+| **`stop`** | `colab --auth=oauth2 stop -s <name>` | `-s, --session` (Target session) | Shuts down remote instance to conserve compute units |
+| **`run`** | `colab --auth=oauth2 run <script.py>` | Ephemeral VM run | Provisions temporary VM, runs script, then releases VM |
 
 ### C. Critical Production Safety Rule: Protecting Persistent Sessions
 
 > [!CAUTION]
 > **DO NOT TERMINATE OR MODIFY SESSION `[discos4]`**:  
-> Running `colab --auth=adc sessions` will list persistent background runtimes, such as:  
-> `[discos4] m-s-kkb-usw4b1-1xnxbaq84ipie | Hardware: CPU | Shape: Standard | Variant: DEFAULT`  
-> This session contains ongoing background tasks. **NEVER** run `colab stop -s discos4` or `colab delete`. Only create, interact with, and terminate dedicated sessions explicitly created for your workflow (e.g., `timesfm-gpu`).
+> Running `colab --auth=oauth2 sessions` will list persistent background runtimes, such as:  
+> `[discos4] m-s-kkb-usc1a2-kakw2odkb9fx | Hardware: CPU | Shape: Standard | Variant: DEFAULT`  
+> This session contains user-initiated long-running tasks (`discovery-leecher`). **NEVER** run `colab stop -s discos4` or unassign it without explicit user instruction. Only create, interact with, and terminate dedicated sessions explicitly created for your workflow (e.g., `timesfm-gpu`).
+>
+> **Colab Free Tier Concurrency Behavior**:  
+> On Colab Free tier (`subTier: 0`), Google allows exactly **1 concurrent active session** per Google account. If `[discos4]` is active, attempting to create a second session (`timesfm-gpu`) will return HTTP 503 (`outcome: 2`). To run GPU jobs, either upgrade to Colab Pro/Pro+, run sequentially after `discos4` completes, or run on dedicated cloud instances.
 
 ### D. Step-by-Step Instructions: How to Use Colab CLI
 
 #### 1. How to Provision a GPU Instance
 ```bash
 # Provision a standard T4 GPU session named 'timesfm-gpu'
-colab --auth=adc new -s timesfm-gpu --gpu T4
-
-# Provision an A100 High-Memory GPU instance (if subscription permits)
-# colab --auth=adc new -s timesfm-gpu --gpu A100 --high-mem
+colab --auth=oauth2 new -s timesfm-gpu --gpu T4
 ```
 
 #### 2. How to Execute Code Remotely
-There are two primary methods to run code on the remote Colab session:
-
-**Method 1: Pipe Python code via stdin (Fastest for commands and inline scripts)**
 ```bash
+# Pipe Python code via stdin
 echo "
 import torch
 print('PyTorch Version:', torch.__version__)
 print('CUDA Available:', torch.cuda.is_available())
 if torch.cuda.is_available():
     print('GPU Device:', torch.cuda.get_device_name(0))
-" | colab --auth=adc exec -s timesfm-gpu
-```
-
-**Method 2: Execute a local Python file with environment variables and custom timeout**
-```bash
-colab --auth=adc exec -s timesfm-gpu   --file /root/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py   --env AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"   --env EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"   --timeout 180.0
+" | colab --auth=oauth2 exec -s timesfm-gpu
 ```
 
 #### 3. How to Install Packages on Remote VM (Fast `uv` installation)
 ```bash
-# Install TimesFM from Google Research repo and financial dependencies in ~7 seconds
-colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
+colab --auth=oauth2 install -s timesfm-gpu   git+https://github.com/google-research/timesfm.git   yfinance pypdf matplotlib pandas numpy scipy requests exa_py
 ```
 
 #### 4. How to Transfer Files (Upload & Download)
 ```bash
 # Upload local repository to /content/timesfm_repo on remote machine
-colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
+colab --auth=oauth2 upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
 
 # Verify uploaded files on remote VM
-colab --auth=adc ls -s timesfm-gpu content/timesfm_repo
+colab --auth=oauth2 ls -s timesfm-gpu content/timesfm_repo
 
-# Download generated forecast PNG plot to local workspace
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/CUPID_2026_OUTPUT/CUPID.NS_multi_agent_forecast.png ./remote_cupid_forecast.png
+# Download generated forecast PNG plot and reports
+colab --auth=oauth2 download -s timesfm-gpu   /content/timesfm_repo/test_results/CUPID_2026_BACKTEST/CUPID.NS_multi_agent_forecast.png ./remote_cupid_forecast.png
 ```
 
 #### 5. How to Safely Tear Down a Session
-When execution is complete, shut down the GPU instance to avoid compute unit burn:
 ```bash
-colab --auth=adc stop -s timesfm-gpu
+colab --auth=oauth2 stop -s timesfm-gpu
 ```
 
 ---
 
-### E. Step-by-Step Instructions: How to Test Colab CLI Itself
-
-To verify that the Colab CLI is properly functioning and connected to remote infrastructure, execute this 5-step diagnostic test suite:
-
-#### Diagnostic Test 1: Authentication & Session Discovery
+### E. Diagnostic Testing & Verification
 ```bash
-colab --auth=adc sessions
-```
-*Verification*: Exits with code 0 and prints active sessions.
+# 1. Check sessions
+colab --auth=oauth2 sessions
 
-#### Diagnostic Test 2: Remote Python Execution
-```bash
-echo "print('COLAB_CLI_TEST_OK')" | colab --auth=adc exec -s timesfm-gpu
-```
-*Verification*: Console outputs `COLAB_CLI_TEST_OK`.
+# 2. Remote execution test
+echo "print('COLAB_CLI_TEST_OK')" | colab --auth=oauth2 exec -s timesfm-gpu
 
-#### Diagnostic Test 3: GPU Hardware Acceleration Check
-```bash
-echo "import torch; assert torch.cuda.is_available(), 'GPU not found'; print('GPU Device:', torch.cuda.get_device_name(0))" | colab --auth=adc exec -s timesfm-gpu
-```
-*Verification*: Console outputs `GPU Device: Tesla T4` (or allocated GPU).
-
-#### Diagnostic Test 4: Bidirectional File Transfer Test
-```bash
-# 1. Create temporary test payload
-echo "Colab Transfer Verification Payload 2026" > /tmp/colab_test_payload.txt
-
-# 2. Upload to remote instance
-colab --auth=adc upload -s timesfm-gpu /tmp/colab_test_payload.txt /content/colab_test_payload.txt
-
-# 3. Verify on remote instance
-echo "with open('/content/colab_test_payload.txt') as f: print(f.read().strip())" | colab --auth=adc exec -s timesfm-gpu
-
-# 4. Download back to local workspace
-colab --auth=adc download -s timesfm-gpu /content/colab_test_payload.txt /tmp/downloaded_payload.txt
-
-# 5. Assert integrity
-diff /tmp/colab_test_payload.txt /tmp/downloaded_payload.txt && echo "TRANSFER_TEST_PASSED"
-```
-*Verification*: Output prints `TRANSFER_TEST_PASSED`.
-
-#### Diagnostic Test 5: Execution Timeout Verification
-The default timeout is 30 seconds. Verify that custom `--timeout` is respected for long jobs:
-```bash
-echo "import time; time.sleep(10); print('SLEEP_COMPLETED')" | colab --auth=adc exec -s timesfm-gpu --timeout 45.0
-```
-*Verification*: Output prints `SLEEP_COMPLETED` without raising `TimeoutError`.
-
----
-
-### F. End-to-End Workflow: Running TimesFM Multi-Agent System on Colab GPU
-
-Here is the exact production workflow to run the entire quantitative forecasting pipeline on a remote Google Colab GPU from start to finish:
-
-```bash
-# 1. Ensure GPU session is active
-colab --auth=adc sessions
-
-# 2. If 'timesfm-gpu' does not exist, provision it
-colab --auth=adc new -s timesfm-gpu --gpu T4
-
-# 3. Install core libraries on the GPU machine (Fast uv install)
-colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
-
-# 4. Upload repository
-colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
-
-# 5. Run the unit security tests inside remote GPU environment
-colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_agents.py"
-
-# 6. Execute full multi-agent backtest with 300s timeout
-colab --auth=adc exec -s timesfm-gpu --timeout 300.0 "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
-
-# 7. Download generated visualization and report
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/test_run_output/HEROMOTOCO.NS_multi_agent_forecast.png ./remote_heromotoco_forecast.png
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/test_run_output/HEROMOTOCO.NS_executive_report.md ./remote_heromotoco_report.md
-
-# 8. Stop the GPU VM when finished
-colab --auth=adc stop -s timesfm-gpu
+# 3. GPU CUDA check
+echo "import torch; assert torch.cuda.is_available(), 'GPU not found'; print('GPU Device:', torch.cuda.get_device_name(0))" | colab --auth=oauth2 exec -s timesfm-gpu
 ```
 
 ---
 
-### G. Colab CLI Troubleshooting & Edge Case Guide
+### F. Multi-Agent End-to-End Workflow on Colab GPU
+```bash
+# 1. Provision T4 GPU session
+colab --auth=oauth2 new -s timesfm-gpu --gpu T4
+
+# 2. Install dependencies (~7s via uv)
+colab --auth=oauth2 install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests exa_py
+
+# 3. Upload codebase
+colab --auth=oauth2 upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
+
+# 4. Run unit tests (Level 1)
+colab --auth=oauth2 exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_agents.py"
+
+# 5. Run full multi-agent flow (Level 2)
+colab --auth=oauth2 exec -s timesfm-gpu --timeout 180.0 "cd /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX && python3 test_multi_agent_flow.py"
+
+# 6. Run 2026 Zero-Leakage Backtest Benchmark (Level 3)
+colab --auth=oauth2 exec -s timesfm-gpu --timeout 300.0 "cd /content/timesfm_repo && python3 v2/run_2026_prediction_benchmark.py --ticker CUPID.NS --cutoff 2025-01-01 --horizon 170 --output_dir /content/gpu_output"
+
+# 7. Download artifacts
+colab --auth=oauth2 download -s timesfm-gpu /content/gpu_output /root/timesfm_repo/test_results/CUPID_2026_BACKTEST/
+
+# 8. Release VM
+colab --auth=oauth2 stop -s timesfm-gpu
+```
+
+---
+
+### G. Colab CLI Troubleshooting Reference
 
 | Issue / Error Message | Root Cause | Exact Solution |
 | :--- | :--- | :--- |
 | `TimeoutError: Execution exceeded 30.0s` | Long-running training, inference, or package install exceeded default 30s | Pass explicit `--timeout <seconds>`, e.g., `--timeout 300.0`. |
-| `ModuleNotFoundError: No module named 'timesfm'` | TimesFM not installed in remote kernel environment | Run `colab --auth=adc install -s <name> git+https://github.com/google-research/timesfm.git`. |
-| `FileNotFoundError: /content/...` | Directory structure not created on remote VM prior to script run | Prefix script with `mkdir -p` or verify upload with `colab --auth=adc ls -s <name> content`. |
-| `401 Unauthorized / Token Expired` | ADC credentials need refresh | Check `gcloud auth application-default print-access-token` or switch to `--auth=adc`. |
-| `503 Service Unavailable (T4)` | Google Colab compute pool in active region is temporarily at full capacity | Wait and retry after several minutes, or run the Covariate-Free CPU pipeline locally. |
-| `412 Precondition Failed (TooManyAssignmentsError)` | Account has reached concurrent VM assignment limit while another session (e.g. `[discos4]`) is active | Run Python SDK cleanup: `from colabtools import state; state.client.unassign(endpoint)`. Do NOT terminate `[discos4]`. |
-| `GPU Quota Exceeded / Unavailable` | Account lacks entitlement for requested accelerator (e.g. L4 or A100) | Use `--gpu T4` (the entitled GPU shape) or use CPU runtime. |
-
----
-
-### H. Multi-Platform GPU Spin-Up, Execution & Testing Quickstart
-
-> [!TIP]
-> A comprehensive standalone manual is available in the [`GPU_SPINUP_AND_TESTING_GUIDE.md`](file:///root/timesfm_repo/guides&docs/GPU_SPINUP_AND_TESTING_GUIDE.md). Below is the accelerated operational quickstart across all three deployment modalities.
-
-#### 1. Instant GPU Provisioning & Testing via Google Colab CLI
-```bash
-# 1. Provision standard T4 GPU session
-colab --auth=adc new -s timesfm-gpu --gpu T4
-
-# 2. Lightning-fast dependency installation (~7s via uv)
-colab --auth=adc install -s timesfm-gpu git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
-
-# 3. Upload repository to remote VM
-colab --auth=adc upload -s timesfm-gpu /root/timesfm_repo/ /content/timesfm_repo/
-
-# 4. Verify GPU hardware acceleration
-echo "import torch; assert torch.cuda.is_available(); print('Active GPU:', torch.cuda.get_device_name(0))" | colab --auth=adc exec -s timesfm-gpu
-
-# 5. Run Level 1 zero-leakage security audit test
-colab --auth=adc exec -s timesfm-gpu "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_agents.py"
-
-# 6. Run Level 3 multi-agent integration flow test
-colab --auth=adc exec -s timesfm-gpu --timeout 180.0 "python3 /content/timesfm_repo/v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py"
-
-# 7. Execute 2026 backtest on CUPID.NS
-colab --auth=adc exec -s timesfm-gpu --timeout 300.0 "python3 /content/timesfm_repo/v2/run_pipeline.py --ticker CUPID.NS --cutoff 2025-12-31 --horizon 170 --output_dir /content/timesfm_repo/test_results/CUPID_2026_OUTPUT"
-
-# 8. Download generated forecast visualization and report
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/CUPID_2026_OUTPUT/CUPID.NS_multi_agent_forecast.png ./CUPID_gpu_forecast.png
-colab --auth=adc download -s timesfm-gpu /content/timesfm_repo/test_results/CUPID_2026_OUTPUT/CUPID.NS_executive_report.md ./CUPID_gpu_report.md
-
-# 9. Clean session shutdown
-colab --auth=adc stop -s timesfm-gpu
-```
-
-#### 2. Dedicated Cloud GPU VM (RunPod, Lambda Labs, Vast.ai, GCP, AWS)
-```bash
-# Clone private repository directly using embedded PAT
-git clone https://@github.com/ajithvnr2001/timesfm-3.0-pytorch.git
-cd timesfm-3.0-pytorch
-
-# Export keys (also automatically read from .env)
-export AKASHML_API_KEY="akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-export EXA_API_KEY="5a51f858-e6b9-41ee-8881-e61b8af5821f"
-export NVIDIA_NIM_API_KEY="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"
-
-# Install packages
-pip install -r requirements.txt
-pip install git+https://github.com/google-research/timesfm.git
-
-# Test GPU and run live 90-day forward forecast
-python3 v2/MULTI_AGENT_SANDBOX/test_multi_agent_flow.py
-python3 v2/run_pipeline.py --ticker TCS.NS --horizon 63
-```
-
-#### 3. Interactive Google Colab Web UI (Single-Cell Run)
-```python
-# Run this entire block in a single cell on Colab with T4 GPU enabled:
-!git clone https://@github.com/ajithvnr2001/timesfm-3.0-pytorch.git /content/timesfm_repo
-%cd /content/timesfm_repo
-!pip install -q git+https://github.com/google-research/timesfm.git yfinance pypdf matplotlib pandas numpy scipy requests
-
-import os, torch
-os.environ["AKASHML_API_KEY"] = "akml-QGBqqzmgXkPlYbxwjbTRUKmHrfHrEicL"
-os.environ["EXA_API_KEY"] = "5a51f858-e6b9-41ee-8881-e61b8af5821f"
-os.environ["NVIDIA_NIM_API_KEY"] = "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"
-
-print("CUDA Status:", torch.cuda.is_available(), "| GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
-!python3 /content/timesfm_repo/v2/run_pipeline.py --ticker CUPID.NS --cutoff 2025-12-31 --horizon 170 --output_dir /content/test_output
-
-from IPython.display import Image, display
-display(Image('/content/test_output/CUPID.NS_multi_agent_forecast.png'))
-```
+| `ModuleNotFoundError: No module named 'timesfm'` | TimesFM not installed in remote kernel environment | Run `colab --auth=oauth2 install -s <name> git+https://github.com/google-research/timesfm.git`. |
+| `503 Service Unavailable (outcome: 2)` | Free tier single concurrent session limit reached (`[discos4]` active), or regional GPU pool busy | Free the session slot or wait for dynamic GPU pool allocation. |
+| `Session 'xyz' not found` | Local `sessions.json` pruned or session not registered | Check `colab --auth=oauth2 sessions` and sync store via Python SDK if needed. |
+| `GPU Quota Exceeded / 400 Bad Request` | Account lacks entitlement for requested accelerator (e.g. L4 or A100) | Use `--gpu T4` (entitled GPU shape) or standard CPU runtime. |
 
 ---
 
