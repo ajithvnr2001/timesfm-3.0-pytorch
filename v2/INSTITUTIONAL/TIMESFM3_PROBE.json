@@ -1,0 +1,68 @@
+{
+  "load_seconds": 24.7,
+  "forecast_output_anatomy": {
+    "ok": true,
+    "detail": "{\"type\": \"ForecastOutput\", \"fields\": [\"forecast\", \"quantiles\", \"ts_id\"], \"forecast\": {\"shape\": [64], \"dtype\": \"float32\"}, \"quantiles\": {\"shape\": [64, 9], \"dtype\": \"float32\"}, \"ts_id\": \"None\"}"
+  },
+  "quantiles": {
+    "ok": true,
+    "detail": "shape=[32, 9] monotone_along_last=True first_row=[67.13600158691406, 67.52899932861328, 67.78700256347656, 68.0459976196289, 68.24600219726562, 68.43699645996094, 68.68800354003906, 68.9739990234375, 69.2969970703125]"
+  },
+  "context_512": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "context_1024": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "context_2048": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "context_4096": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "context_8192": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "context_16384": {
+    "ok": true,
+    "detail": "[32]"
+  },
+  "horizon_252": {
+    "ok": true,
+    "detail": "[252]"
+  },
+  "horizon_663": {
+    "ok": true,
+    "detail": "[663]"
+  },
+  "past_only_cov_T_k": {
+    "ok": false,
+    "detail": "RuntimeError: The size of tensor a (2) must match the size of tensor b (512) at non-singleton dimension 2"
+  },
+  "past_only_cov_k_T": {
+    "ok": true,
+    "detail": "(k,T) accepted -> [32]"
+  },
+  "past_future_cov_TH_k": {
+    "ok": false,
+    "detail": "ValueError: Decode function requires horizon > 0."
+  },
+  "past_future_cov_k_TH": {
+    "ok": true,
+    "detail": "(k,T+H) accepted -> [32]"
+  },
+  "multivariate_context_V_T": {
+    "ok": true,
+    "detail": "(V,T) accepted -> [2, 32]"
+  },
+  "multivariate_context_T_V": {
+    "ok": true,
+    "detail": "(T,V) accepted -> [512, 32]"
+  },
+  "predict_batch_sig": "(contexts: 'list[np.ndarray]', horizon: 'int', past_only_covariates: 'list[np.ndarray | None] | None' = None, past_future_covariates: 'list[np.ndarray | None] | None' = None, ts_ids: 'list[str] | None' = None, return_quantiles: 'bool' = False, use_symmetric_averaging: 'bool' = False, make_positive: 'bool' = False, sort_quantiles: 'bool' = True, use_znorm: 'bool' = False, padding_mode: 'str' = 'none') -> 'Iterator[ForecastOutput]'"
+}
